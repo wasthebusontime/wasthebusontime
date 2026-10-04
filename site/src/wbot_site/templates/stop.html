@@ -3,7 +3,7 @@
 {% block main %}
 <h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
 {% if stop_map %}
-<p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">See on the map</a></p>
+<p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">Show this stop on the map</a></p>
 {% endif %}
 {{ notice_list(notices) }}
 {{ scope_toggle() }}

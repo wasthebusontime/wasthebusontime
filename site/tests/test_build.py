@@ -261,7 +261,7 @@ def test_stop_map_data_is_complete(dev_site):
 
 def test_stop_pages_link_to_the_map(dev_site):
     html = (dev_site / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
-    assert '<a href="/stops/?stop=E120">See on the map</a>' in html
+    assert '<a href="/stops/?stop=E120">Show this stop on the map</a>' in html
 
 
 def test_tiles_url_reaches_the_page(tmp_path):
@@ -274,7 +274,7 @@ def test_stats_without_map_data_build_without_the_map(real_looking_stats, tmp_pa
     out = tmp_path / "out"
     make_build(real_looking_stats, out, "prod")
     assert 'id="stop-map"' not in (out / "stops" / "index.html").read_text(encoding="utf-8")
-    assert "See on the map" not in (out / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
+    assert "on the map</a>" not in (out / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
     assert not (out / "stops" / "data").exists()
 
 

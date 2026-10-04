@@ -32,7 +32,7 @@
 <tr>
 <th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name }}</a>{% if st.timepoint %} <span class="def">Timepoint</span>{% endif %}</th>
 {% if loop.last %}
-<td class="num" colspan="5"><span class="nodata">Last stop: arrivals only, see end-of-line arrivals</span></td>
+<td class="num" colspan="5"><span class="nodata">Last stop: arrivals only (see End-of-line arrivals below)</span></td>
 {% else %}
 {{ perf_cells(st[scope]) }}
 {% endif %}

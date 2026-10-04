@@ -2,7 +2,7 @@
 {% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, share, monthly_table, terminal, end_of_line %}
 {% block main %}
 <h1>Was the Bus On Time?</h1>
-<p class="lede">How often Intercity Transit buses leave on time, measured from the agency's public real-time data.</p>
+<p class="lede">How often Intercity Transit buses leave their stops on time, measured from the agency's public real-time data and updated every night.</p>
 {{ notice_list(notices) }}
 {{ scope_toggle() }}
 {% call(scope) scoped() %}

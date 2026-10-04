@@ -12,7 +12,7 @@ The underlying transit data is provided by Intercity Transit under the [Sound Tr
 
 This site is provided as is, without warranty of any kind.
 
-- **Not for trip planning.** Do not rely on this site to decide when to catch a bus.
+- **Not for trip planning.** Please don't use this site to decide when to catch a bus. Intercity Transit's real-time tools are the place for that.
 - **Numbers may contain errors.** The statistics are computed from real-time data that can be incomplete or wrong, by methods described on the [Methodology](/methodology/) page.
 - **No guarantee** of accuracy, completeness or availability is given, and the site may change or stop at any time.
 

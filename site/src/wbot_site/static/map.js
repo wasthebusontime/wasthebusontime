@@ -200,7 +200,7 @@ async function start(root) {
       map.getSource("stops").setData(await stopFeatures());
       status.textContent = "";
     } catch (e) {
-      status.textContent = "Couldn't load the numbers for this choice.";
+      status.textContent = "Sorry, the numbers for this choice didn't load. Please try again in a moment.";
     }
   }
 

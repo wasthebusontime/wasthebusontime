@@ -2,7 +2,7 @@ Title: Methodology
 
 # Methodology
 
-How the numbers on this site are measured. **The method is provisional** while it is checked against more data.
+How the numbers on this site are measured. The method is provisional while we check it against more data.
 
 ## What "on time" means
 
@@ -32,14 +32,14 @@ Every page has a choice between two sets of stops:
 
 ## Where the times come from
 
-Intercity Transit publishes real-time data about its buses. For a while after a bus leaves a stop, that data keeps reporting when it left. This project records the data around the clock and uses those reported departure times. A departure counts only if the data shows the bus was tracked when it left; times that are only predictions are never used.
+Intercity Transit publishes real-time data about its buses. For a while after a bus leaves a stop, that data keeps reporting when it left. We record that data around the clock and use those reported departure times. A departure counts only if the data shows the bus was tracked when it left; times that are only predictions are never used.
 
 Each departure is compared with the schedule that was in effect on that day, including holiday schedules, trips after midnight and daylight saving time changes.
 
 ## Completeness and gaps
 
 - Departures that weren't recorded are left out. They are never guessed and never counted as late or missed.
-- A trip with no tracked bus may have been cancelled, or may have run without working tracking. We can't tell the difference, so it is reported as **not observed**.
+- A trip with no tracked bus may have been cancelled, or may have run without working tracking. We can't tell the difference, so it is reported as **not recorded**.
 - Short interruptions in our recording (up to about 14 minutes) lose nothing, because the data keeps recent departures for a while. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
 - A percentage is shown only when at least 30 departures are behind it. Otherwise the page says "Not enough data".
 

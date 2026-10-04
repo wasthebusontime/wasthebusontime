@@ -11,7 +11,7 @@
   <div class="scope-option">
     <input type="radio" name="scope" id="scope-all_stops" value="all_stops">
     <label for="scope-all_stops">All stops</label>
-    <p class="scope-help">Times at stops between timepoints are estimates the schedule fills in between timepoints, not promises. A bus can be "early" there without having left a timepoint early, so expect lower on-time numbers in this view.</p>
+    <p class="scope-help">At stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
   </div>
 </fieldset>
 {% endmacro %}
@@ -73,9 +73,9 @@
 <ul class="notices">
 {% for n in items %}
 {% if n.code == "provisional" %}
-  <li>These numbers are provisional while the method is checked against more data.</li>
+  <li>These numbers are provisional while we check the method against more data.</li>
 {% elif n.code == "data_loss" %}
-  <li>No data was collected from {{ n.start | timestamp }} to {{ n.end | timestamp }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
+  <li>No data was recorded from {{ n.start | timestamp }} to {{ n.end | timestamp }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
 {% elif n.code == "low_completeness" %}
   <li>On {{ n.date | date }}, only {{ fraction(n.share) }} of scheduled departures were recorded.</li>
 {% elif n.code == "methodology_change" %}
@@ -86,7 +86,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro cause_text(cause) %}{{ {"collector": "an outage of our collector", "feed": "a problem with the agency's data feed"}.get(cause, "cause unknown") }}{% endmacro %}
+{% macro cause_text(cause) %}{{ {"collector": "a break in our recording", "feed": "a gap in Intercity Transit's real-time data"}.get(cause, "cause unknown") }}{% endmacro %}
 
 {% macro monthly_table(rows) %}
 <table class="data">
@@ -123,7 +123,7 @@
 {% endmacro %}
 
 {% macro trips_line(trips) %}
-<p>{{ trips.scheduled | number }} trips scheduled, {{ trips.observed | number }} observed, {{ trips.not_observed | number }} not observed{% if trips.cancelled %}, {{ trips.cancelled | number }} cancelled{% endif %}{% if trips.added %}, {{ trips.added | number }} added{% endif %}. {{ trips.skipped_stops | number }} stop visits were skipped (for example by detours) and are left out.</p>
+<p>{{ trips.scheduled | number }} trips scheduled, {{ trips.observed | number }} recorded, {{ trips.not_observed | number }} not recorded (cancelled, or run without tracking; we can't tell which){% if trips.cancelled %}, {{ trips.cancelled | number }} cancelled{% endif %}{% if trips.added %}, {{ trips.added | number }} added{% endif %}. {{ trips.skipped_stops | number }} stops were skipped, for example by detours, and are left out.</p>
 {% endmacro %}
 
 {# A chart from charts.py: the SVG, its one-sentence summary, and the same numbers as a table. #}
