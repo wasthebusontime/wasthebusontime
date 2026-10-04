@@ -13,7 +13,7 @@ src/wbot_site/data.py     loads and checks schema 1, rounding, "Not enough data"
 src/wbot_site/charts.py   the SVG charts, each with a summary sentence and a table
 src/wbot_site/templates/  Jinja templates; footer.html is on every page
 src/wbot_site/static/     site.css (all colors in variables at the top) and site.js
-content/                  Markdown pages: about, AI use, terms, privacy, methodology, data, unavailable
+content/                  Markdown pages: about (including AI use), terms, privacy, methodology, data, unavailable
 tools/make_sample.py      writes the synthetic sample stats
 sample-stats/             the committed sample (invented network, "synthetic": true)
 deploy/                   the dev VM rebuild job: script, systemd units, Caddyfile

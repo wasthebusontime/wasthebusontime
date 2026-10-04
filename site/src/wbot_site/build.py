@@ -34,7 +34,6 @@ ENVS = ("dev", "prod")
 # Markdown file in content/ -> URL path. Pages listed in NO_SITEMAP carry noindex.
 PAGES = {
     "about": "about/",
-    "about-ai": "about/ai/",
     "terms": "terms/",
     "privacy": "privacy/",
     "methodology": "methodology/",
@@ -174,7 +173,7 @@ def render_stats_pages(b: Build) -> None:
     stats = b.stats
     system = stats.system
     b.render(
-        "home.html", "", title="Intercity Transit on-time performance",
+        "home.html", "", title="Was the Bus On Time",
         system=system, notices=data.known_notices(system["notices"], "system.json"),
     )
     for slug, route in stats.routes.items():

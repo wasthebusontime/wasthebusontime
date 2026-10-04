@@ -37,9 +37,9 @@ def target_of(out: Path, path: str) -> Path:
 
 def test_sample_builds_every_page(dev_site):
     stats_pages = 1 + 6 + 1 + 33 + 1  # home, routes, stop index, stops, data quality
-    text_pages = 7  # about, AI use, terms, privacy, methodology, data, unavailable
+    text_pages = 6  # about (with AI use), terms, privacy, methodology, data, unavailable
     assert len(html_pages(dev_site)) == stats_pages + text_pages + 1  # + 404
-    for path in ["routes/901/index.html", "stops/E101/index.html", "about/ai/index.html", "data/routes.csv",
+    for path in ["routes/901/index.html", "stops/E101/index.html", "data/routes.csv",
                  "static/site.css", "sitemap.xml", "robots.txt", "404.html"]:
         assert (dev_site / path).is_file(), path
 
@@ -184,3 +184,10 @@ def test_output_dir_that_is_not_a_build_is_left_alone(tmp_path):
     with pytest.raises(SystemExit):
         make_build(SAMPLE_DIR, out, "dev")
     assert (out / "notes.txt").read_text() == "keep me"
+
+
+def test_tab_titles_start_with_our_name(dev_site):
+    for page in html_pages(dev_site):
+        html = page.read_text(encoding="utf-8")
+        assert "<title>WBOT - " in html, page
+    assert "<title>WBOT - Was the Bus On Time</title>" in (dev_site / "index.html").read_text(encoding="utf-8")

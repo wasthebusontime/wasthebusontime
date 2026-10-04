@@ -6,11 +6,11 @@ How the numbers on this site are measured. **The method is provisional** while i
 
 ## What "on time" means
 
-The headline numbers use **Intercity Transit's own definition**: a bus is on time if it *departs* a stop between 0 and 5 minutes after the scheduled time. Leaving before the scheduled time counts as **early**; leaving more than 5 minutes after it counts as **late**.
+The headline numbers use Intercity Transit's own definition: a bus is on time if it *departs* a stop between 0 and 5 minutes after the scheduled time. Leaving before the scheduled time counts as early; leaving more than 5 minutes after it counts as late.
 
-The agency's 2026 Transit Development Plan states this definition, and sets a standard that 90% of buses leave **terminal departure points** (the first stop of each trip) on time.
+The agency's 2026 Transit Development Plan states this definition, and sets a standard that 90% of buses leave terminal departure points (the first stop of each trip) on time.
 
-A second, common industry window is shown alongside and always labeled: **1 minute early to 5 minutes late**.
+A second, common industry window is shown alongside and always labeled: 1 minute early to 5 minutes late.
 
 | Label on this site | Early | On time | Late |
 |---|---|---|---|
@@ -19,7 +19,7 @@ A second, common industry window is shown alongside and always labeled: **1 minu
 
 ## Departures, not arrivals
 
-On-time status is measured when the bus **leaves** a stop, as in the agency's definition. The last stop of a trip has no departure, so it is not part of the on-time percentages. Arrivals at the last stop are shown separately as **end-of-line arrivals**; buses often arrive there early because schedules include recovery time at the end of a trip.
+On-time status is measured when the bus leaves a stop, as in the agency's definition. The last stop of a trip has no departure, so it is not part of the on-time percentages. Arrivals at the last stop are shown separately as end-of-line arrivals; buses often arrive there early because schedules include recovery time at the end of a trip.
 
 ## Which stops
 
