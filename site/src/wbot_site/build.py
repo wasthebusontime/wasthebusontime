@@ -99,6 +99,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         enough=data.enough,
         split=data.split,
         percent=data.percent,
+        fraction=data.fraction,
     )
     jinja.filters.update(
         number=data.number,
@@ -169,7 +170,33 @@ def csv_downloads(b: Build) -> list[dict]:
 
 
 def render_stats_pages(b: Build) -> None:
-    b.render("home.html", "", title="Intercity Transit on-time performance", system=b.stats.system)
+    stats = b.stats
+    system = stats.system
+    b.render(
+        "home.html", "", title="Intercity Transit on-time performance",
+        system=system, notices=data.known_notices(system["notices"], "system.json"),
+    )
+    for slug, route in stats.routes.items():
+        name = route_name(route["route"])
+        b.render(
+            "route.html", f"routes/{slug}/", title=name, name=name, route=route,
+            notices=data.known_notices(route["notices"], f"routes/{slug}.json"),
+        )
+    b.render("stops.html", "stops/", title="Stops", stops=stats.index["stops"], route_names=route_names(stats))
+    for code, stop in stats.stops.items():
+        b.render(
+            "stop.html", f"stops/{code}/", title=stop["stop"]["name"], stop=stop, route_names=route_names(stats),
+            notices=data.known_notices(stop["notices"], f"stops/{code}.json"),
+        )
+    b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=system["completeness"])
+
+
+def route_name(route: dict) -> str:
+    return f"Route {route['short_name']}"
+
+
+def route_names(stats: Stats) -> dict[str, str]:
+    return {r["slug"]: f"{route_name(r)} {r['long_name']}" for r in stats.system["routes"]}
 
 
 def write_sitemap(b: Build) -> None:

@@ -89,7 +89,15 @@ def load_stats(stats_dir: Path) -> Stats:
 
 
 def percent(count: int, n: int, digits: int = 0) -> str:
+    if n == 0:
+        return "n/a"
     value = (Decimal(count) * 100 / Decimal(n)).quantize(Decimal(1).scaleb(-digits), ROUND_HALF_UP)
+    return f"{value}%"
+
+
+def fraction(share: float, digits: int = 0) -> str:
+    """0.62 -> '62%'. For shares the pipeline already computed (completeness, uptime)."""
+    value = (Decimal(str(share)) * 100).quantize(Decimal(1).scaleb(-digits), ROUND_HALF_UP)
     return f"{value}%"
 
 

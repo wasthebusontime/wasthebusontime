@@ -77,7 +77,7 @@
 {% elif n.code == "data_loss" %}
   <li>No data was collected from {{ n.start | timestamp }} to {{ n.end | timestamp }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
 {% elif n.code == "low_completeness" %}
-  <li>On {{ n.date | date }}, only {{ percent((n.share * 1000) | round | int, 1000) }} of scheduled departures were recorded.</li>
+  <li>On {{ n.date | date }}, only {{ fraction(n.share) }} of scheduled departures were recorded.</li>
 {% elif n.code == "methodology_change" %}
   <li>The <a href="/methodology/">methodology</a> changed on {{ n.date | date }} (version {{ n.version }}).</li>
 {% endif %}
@@ -98,4 +98,30 @@
 {% endfor %}
 </tbody>
 </table>
+{% endmacro %}
+
+{# Terminal departures: the first stop of each trip, against the agency's 90% standard. #}
+{% macro terminal(perf, subject) %}
+<h3>Terminal departures</h3>
+<p>The first stop of each trip. Intercity Transit's standard is that 90% of buses leave terminal departure points on time (0 to 5 min late).</p>
+{% if enough(perf, min_sample) %}
+{% set on_time = perf.on_time * 100 / perf.n %}
+<p class="terminal-result"><strong>{{ share(perf, digits=1) }}</strong> of {{ perf.n | number }} terminal departures for {{ subject }} were on time, {{ "at or above" if on_time >= 90 else "below" }} the 90% standard. {{ share(perf, "early") }} left early and {{ share(perf, "late") }} left late.</p>
+{% else %}
+<p><span class="nodata">Not enough data</span> ({{ perf.n | number }} terminal departures).</p>
+{% endif %}
+{% endmacro %}
+
+{# Arrivals at the last stop, reported separately from on-time departures. #}
+{% macro end_of_line(eol) %}
+<h3>End-of-line arrivals</h3>
+{% if eol.n >= min_sample %}
+<p>At the last stop of a trip, the median arrival was {{ eol.p50 | delay }}, and {{ fraction(eol.early_share) }} of {{ eol.n | number }} arrivals were early. Most trips (80%) arrived between {{ eol.p10 | delay }} and {{ eol.p90 | delay }}. Schedules include recovery time at the end of a trip, so early arrivals there are normal.</p>
+{% else %}
+<p><span class="nodata">Not enough data</span> ({{ eol.n | number }} arrivals).</p>
+{% endif %}
+{% endmacro %}
+
+{% macro trips_line(trips) %}
+<p>{{ trips.scheduled | number }} trips scheduled, {{ trips.observed | number }} observed, {{ trips.not_observed | number }} not observed{% if trips.cancelled %}, {{ trips.cancelled | number }} cancelled{% endif %}{% if trips.added %}, {{ trips.added | number }} added{% endif %}. {{ trips.skipped_stops | number }} stop visits were skipped (for example by detours) and are left out.</p>
 {% endmacro %}

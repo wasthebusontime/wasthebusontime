@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>Stops</h1>
+<p>Every stop with recorded departures, in alphabetical order. Each stop page shows how often buses left that stop on time, by route and by hour.</p>
+<p class="stop-filter" id="stop-filter" hidden>
+  <label for="stop-filter-input">Filter stops</label><br>
+  <input type="search" id="stop-filter-input" autocomplete="off" placeholder="Street name or stop code">
+</p>
+<ul class="stop-list" id="stop-list">
+{% for st in stops %}
+  <li><a href="/stops/{{ st.code }}/">{{ st.name }}</a> <span class="stop-routes">({{ st.code }}; Route{{ "s" if st.routes | length > 1 }} {{ st.routes | join(", ") }})</span></li>
+{% endfor %}
+</ul>
+{% endblock %}
