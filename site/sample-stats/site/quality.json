@@ -1,0 +1,265 @@
+{
+ "schema": 1,
+ "days": [
+  {
+   "date": "2026-10-04",
+   "trips_scheduled": 74,
+   "trips_observed": 73,
+   "departures_scheduled": 207,
+   "departures_observed": 199,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-05",
+   "trips_scheduled": 305,
+   "trips_observed": 303,
+   "departures_scheduled": 802,
+   "departures_observed": 779,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-06",
+   "trips_scheduled": 305,
+   "trips_observed": 300,
+   "departures_scheduled": 802,
+   "departures_observed": 770,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-07",
+   "trips_scheduled": 305,
+   "trips_observed": 295,
+   "departures_scheduled": 802,
+   "departures_observed": 757,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-08",
+   "trips_scheduled": 305,
+   "trips_observed": 294,
+   "departures_scheduled": 802,
+   "departures_observed": 760,
+   "uptime_service_hours": 0.9833
+  },
+  {
+   "date": "2026-10-09",
+   "trips_scheduled": 305,
+   "trips_observed": 302,
+   "departures_scheduled": 802,
+   "departures_observed": 783,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-10",
+   "trips_scheduled": 122,
+   "trips_observed": 118,
+   "departures_scheduled": 318,
+   "departures_observed": 302,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-11",
+   "trips_scheduled": 74,
+   "trips_observed": 73,
+   "departures_scheduled": 207,
+   "departures_observed": 202,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-12",
+   "trips_scheduled": 305,
+   "trips_observed": 299,
+   "departures_scheduled": 802,
+   "departures_observed": 767,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-13",
+   "trips_scheduled": 305,
+   "trips_observed": 297,
+   "departures_scheduled": 802,
+   "departures_observed": 771,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-14",
+   "trips_scheduled": 305,
+   "trips_observed": 299,
+   "departures_scheduled": 802,
+   "departures_observed": 774,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-15",
+   "trips_scheduled": 305,
+   "trips_observed": 296,
+   "departures_scheduled": 802,
+   "departures_observed": 757,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-16",
+   "trips_scheduled": 305,
+   "trips_observed": 301,
+   "departures_scheduled": 802,
+   "departures_observed": 786,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-17",
+   "trips_scheduled": 122,
+   "trips_observed": 115,
+   "departures_scheduled": 318,
+   "departures_observed": 293,
+   "uptime_service_hours": 0.9708
+  },
+  {
+   "date": "2026-10-18",
+   "trips_scheduled": 74,
+   "trips_observed": 69,
+   "departures_scheduled": 207,
+   "departures_observed": 192,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-19",
+   "trips_scheduled": 305,
+   "trips_observed": 303,
+   "departures_scheduled": 802,
+   "departures_observed": 776,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-20",
+   "trips_scheduled": 305,
+   "trips_observed": 297,
+   "departures_scheduled": 802,
+   "departures_observed": 767,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-21",
+   "trips_scheduled": 305,
+   "trips_observed": 300,
+   "departures_scheduled": 802,
+   "departures_observed": 769,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-22",
+   "trips_scheduled": 305,
+   "trips_observed": 131,
+   "departures_scheduled": 802,
+   "departures_observed": 301,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-23",
+   "trips_scheduled": 305,
+   "trips_observed": 297,
+   "departures_scheduled": 802,
+   "departures_observed": 765,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-24",
+   "trips_scheduled": 122,
+   "trips_observed": 121,
+   "departures_scheduled": 318,
+   "departures_observed": 313,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-25",
+   "trips_scheduled": 74,
+   "trips_observed": 74,
+   "departures_scheduled": 207,
+   "departures_observed": 204,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-26",
+   "trips_scheduled": 305,
+   "trips_observed": 301,
+   "departures_scheduled": 802,
+   "departures_observed": 780,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-27",
+   "trips_scheduled": 305,
+   "trips_observed": 300,
+   "departures_scheduled": 802,
+   "departures_observed": 775,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-28",
+   "trips_scheduled": 305,
+   "trips_observed": 293,
+   "departures_scheduled": 802,
+   "departures_observed": 754,
+   "uptime_service_hours": 0.9708
+  },
+  {
+   "date": "2026-10-29",
+   "trips_scheduled": 305,
+   "trips_observed": 299,
+   "departures_scheduled": 802,
+   "departures_observed": 771,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-30",
+   "trips_scheduled": 305,
+   "trips_observed": 302,
+   "departures_scheduled": 802,
+   "departures_observed": 783,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-10-31",
+   "trips_scheduled": 122,
+   "trips_observed": 121,
+   "departures_scheduled": 318,
+   "departures_observed": 303,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-11-01",
+   "trips_scheduled": 74,
+   "trips_observed": 74,
+   "departures_scheduled": 207,
+   "departures_observed": 203,
+   "uptime_service_hours": 1.0
+  },
+  {
+   "date": "2026-11-02",
+   "trips_scheduled": 305,
+   "trips_observed": 302,
+   "departures_scheduled": 802,
+   "departures_observed": 775,
+   "uptime_service_hours": 1.0
+  }
+ ],
+ "data_loss": [
+  {
+   "start": "2026-10-09T01:00:00Z",
+   "end": "2026-10-09T01:20:00Z",
+   "cause": "unknown",
+   "note": "sample gap"
+  },
+  {
+   "start": "2026-10-17T20:10:00Z",
+   "end": "2026-10-17T20:45:00Z",
+   "cause": "collector",
+   "note": "sample outage"
+  },
+  {
+   "start": "2026-10-28T15:30:00Z",
+   "end": "2026-10-28T16:05:00Z",
+   "cause": "feed",
+   "note": "sample feed gap"
+  }
+ ]
+}

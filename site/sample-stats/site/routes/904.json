@@ -1,0 +1,1615 @@
+{
+ "schema": 1,
+ "route": {
+  "slug": "904",
+  "short_name": "904",
+  "long_name": "3rd Ave North-South",
+  "route_id": "R904"
+ },
+ "scopes": {
+  "timepoints": {
+   "summary": {
+    "n": 2521,
+    "early": 105,
+    "on_time": 2197,
+    "late": 219,
+    "early_alt": 14,
+    "on_time_alt": 2288,
+    "late_alt": 219,
+    "p10": 6,
+    "p50": 73,
+    "p90": 286,
+    "hist": {
+     "start_min": -10,
+     "under": 0,
+     "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      13,
+      91,
+      1020,
+      490,
+      265,
+      240,
+      180,
+      108,
+      67,
+      32,
+      8,
+      4,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "over": 0
+    }
+   },
+   "by_hour": [
+    {
+     "hour": 6,
+     "n": 153,
+     "early": 6,
+     "on_time": 142,
+     "late": 5,
+     "early_alt": 1,
+     "on_time_alt": 147,
+     "late_alt": 5,
+     "p10": 7,
+     "p50": 68,
+     "p90": 225
+    },
+    {
+     "hour": 7,
+     "n": 158,
+     "early": 4,
+     "on_time": 146,
+     "late": 8,
+     "early_alt": 2,
+     "on_time_alt": 148,
+     "late_alt": 8,
+     "p10": 4,
+     "p50": 70,
+     "p90": 263
+    },
+    {
+     "hour": 8,
+     "n": 167,
+     "early": 6,
+     "on_time": 153,
+     "late": 8,
+     "early_alt": 1,
+     "on_time_alt": 158,
+     "late_alt": 8,
+     "p10": 7,
+     "p50": 66,
+     "p90": 206
+    },
+    {
+     "hour": 9,
+     "n": 174,
+     "early": 8,
+     "on_time": 161,
+     "late": 5,
+     "early_alt": 3,
+     "on_time_alt": 166,
+     "late_alt": 5,
+     "p10": 4,
+     "p50": 67,
+     "p90": 253
+    },
+    {
+     "hour": 10,
+     "n": 193,
+     "early": 13,
+     "on_time": 175,
+     "late": 5,
+     "early_alt": 1,
+     "on_time_alt": 187,
+     "late_alt": 5,
+     "p10": 2,
+     "p50": 65,
+     "p90": 220
+    },
+    {
+     "hour": 11,
+     "n": 191,
+     "early": 6,
+     "on_time": 181,
+     "late": 4,
+     "early_alt": 1,
+     "on_time_alt": 186,
+     "late_alt": 4,
+     "p10": 9,
+     "p50": 54,
+     "p90": 227
+    },
+    {
+     "hour": 12,
+     "n": 195,
+     "early": 5,
+     "on_time": 179,
+     "late": 11,
+     "early_alt": 2,
+     "on_time_alt": 182,
+     "late_alt": 11,
+     "p10": 9,
+     "p50": 65,
+     "p90": 255
+    },
+    {
+     "hour": 13,
+     "n": 192,
+     "early": 8,
+     "on_time": 180,
+     "late": 4,
+     "early_alt": 0,
+     "on_time_alt": 188,
+     "late_alt": 4,
+     "p10": 3,
+     "p50": 59,
+     "p90": 214
+    },
+    {
+     "hour": 14,
+     "n": 189,
+     "early": 7,
+     "on_time": 175,
+     "late": 7,
+     "early_alt": 0,
+     "on_time_alt": 182,
+     "late_alt": 7,
+     "p10": 8,
+     "p50": 62,
+     "p90": 244
+    },
+    {
+     "hour": 15,
+     "n": 197,
+     "early": 4,
+     "on_time": 147,
+     "late": 46,
+     "early_alt": 0,
+     "on_time_alt": 151,
+     "late_alt": 46,
+     "p10": 9,
+     "p50": 89,
+     "p90": 392
+    },
+    {
+     "hour": 16,
+     "n": 188,
+     "early": 9,
+     "on_time": 140,
+     "late": 39,
+     "early_alt": 1,
+     "on_time_alt": 148,
+     "late_alt": 39,
+     "p10": 3,
+     "p50": 119,
+     "p90": 393
+    },
+    {
+     "hour": 17,
+     "n": 185,
+     "early": 11,
+     "on_time": 141,
+     "late": 33,
+     "early_alt": 1,
+     "on_time_alt": 151,
+     "late_alt": 33,
+     "p10": 6,
+     "p50": 94,
+     "p90": 385
+    },
+    {
+     "hour": 18,
+     "n": 171,
+     "early": 9,
+     "on_time": 122,
+     "late": 40,
+     "early_alt": 0,
+     "on_time_alt": 131,
+     "late_alt": 40,
+     "p10": 6,
+     "p50": 115,
+     "p90": 382
+    },
+    {
+     "hour": 19,
+     "n": 168,
+     "early": 9,
+     "on_time": 155,
+     "late": 4,
+     "early_alt": 1,
+     "on_time_alt": 163,
+     "late_alt": 4,
+     "p10": 5,
+     "p50": 69,
+     "p90": 215
+    }
+   ],
+   "by_daytype": {
+    "weekday": {
+     "n": 2196,
+     "early": 92,
+     "on_time": 1897,
+     "late": 207,
+     "early_alt": 11,
+     "on_time_alt": 1978,
+     "late_alt": 207,
+     "p10": 6,
+     "p50": 74,
+     "p90": 293
+    },
+    "saturday": {
+     "n": 178,
+     "early": 10,
+     "on_time": 162,
+     "late": 6,
+     "early_alt": 2,
+     "on_time_alt": 170,
+     "late_alt": 6,
+     "p10": 4,
+     "p50": 56,
+     "p90": 237
+    },
+    "sunday": {
+     "n": 147,
+     "early": 3,
+     "on_time": 138,
+     "late": 6,
+     "early_alt": 1,
+     "on_time_alt": 140,
+     "late_alt": 6,
+     "p10": 8,
+     "p50": 74,
+     "p90": 269
+    }
+   },
+   "daily": [
+    {
+     "date": "2026-10-04",
+     "n": 30,
+     "early": 0,
+     "on_time": 30,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 30,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-05",
+     "n": 107,
+     "early": 10,
+     "on_time": 92,
+     "late": 5,
+     "early_alt": 0,
+     "on_time_alt": 102,
+     "late_alt": 5
+    },
+    {
+     "date": "2026-10-06",
+     "n": 111,
+     "early": 7,
+     "on_time": 95,
+     "late": 9,
+     "early_alt": 0,
+     "on_time_alt": 102,
+     "late_alt": 9
+    },
+    {
+     "date": "2026-10-07",
+     "n": 105,
+     "early": 3,
+     "on_time": 94,
+     "late": 8,
+     "early_alt": 0,
+     "on_time_alt": 97,
+     "late_alt": 8
+    },
+    {
+     "date": "2026-10-08",
+     "n": 101,
+     "early": 7,
+     "on_time": 89,
+     "late": 5,
+     "early_alt": 2,
+     "on_time_alt": 94,
+     "late_alt": 5
+    },
+    {
+     "date": "2026-10-09",
+     "n": 107,
+     "early": 4,
+     "on_time": 93,
+     "late": 10,
+     "early_alt": 0,
+     "on_time_alt": 97,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-10",
+     "n": 44,
+     "early": 3,
+     "on_time": 40,
+     "late": 1,
+     "early_alt": 2,
+     "on_time_alt": 41,
+     "late_alt": 1
+    },
+    {
+     "date": "2026-10-11",
+     "n": 30,
+     "early": 2,
+     "on_time": 26,
+     "late": 2,
+     "early_alt": 1,
+     "on_time_alt": 27,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-12",
+     "n": 106,
+     "early": 1,
+     "on_time": 97,
+     "late": 8,
+     "early_alt": 1,
+     "on_time_alt": 97,
+     "late_alt": 8
+    },
+    {
+     "date": "2026-10-13",
+     "n": 110,
+     "early": 7,
+     "on_time": 91,
+     "late": 12,
+     "early_alt": 0,
+     "on_time_alt": 98,
+     "late_alt": 12
+    },
+    {
+     "date": "2026-10-14",
+     "n": 110,
+     "early": 1,
+     "on_time": 96,
+     "late": 13,
+     "early_alt": 0,
+     "on_time_alt": 97,
+     "late_alt": 13
+    },
+    {
+     "date": "2026-10-15",
+     "n": 111,
+     "early": 8,
+     "on_time": 93,
+     "late": 10,
+     "early_alt": 1,
+     "on_time_alt": 100,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-16",
+     "n": 110,
+     "early": 2,
+     "on_time": 95,
+     "late": 13,
+     "early_alt": 0,
+     "on_time_alt": 97,
+     "late_alt": 13
+    },
+    {
+     "date": "2026-10-17",
+     "n": 44,
+     "early": 3,
+     "on_time": 39,
+     "late": 2,
+     "early_alt": 0,
+     "on_time_alt": 42,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-18",
+     "n": 28,
+     "early": 0,
+     "on_time": 28,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 28,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-19",
+     "n": 108,
+     "early": 4,
+     "on_time": 97,
+     "late": 7,
+     "early_alt": 0,
+     "on_time_alt": 101,
+     "late_alt": 7
+    },
+    {
+     "date": "2026-10-20",
+     "n": 104,
+     "early": 5,
+     "on_time": 89,
+     "late": 10,
+     "early_alt": 0,
+     "on_time_alt": 94,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-21",
+     "n": 105,
+     "early": 5,
+     "on_time": 88,
+     "late": 12,
+     "early_alt": 1,
+     "on_time_alt": 92,
+     "late_alt": 12
+    },
+    {
+     "date": "2026-10-22",
+     "n": 44,
+     "early": 3,
+     "on_time": 36,
+     "late": 5,
+     "early_alt": 0,
+     "on_time_alt": 39,
+     "late_alt": 5
+    },
+    {
+     "date": "2026-10-23",
+     "n": 109,
+     "early": 2,
+     "on_time": 101,
+     "late": 6,
+     "early_alt": 0,
+     "on_time_alt": 103,
+     "late_alt": 6
+    },
+    {
+     "date": "2026-10-24",
+     "n": 46,
+     "early": 3,
+     "on_time": 43,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 46,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-25",
+     "n": 29,
+     "early": 0,
+     "on_time": 27,
+     "late": 2,
+     "early_alt": 0,
+     "on_time_alt": 27,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-26",
+     "n": 106,
+     "early": 4,
+     "on_time": 95,
+     "late": 7,
+     "early_alt": 0,
+     "on_time_alt": 99,
+     "late_alt": 7
+    },
+    {
+     "date": "2026-10-27",
+     "n": 107,
+     "early": 3,
+     "on_time": 88,
+     "late": 16,
+     "early_alt": 0,
+     "on_time_alt": 91,
+     "late_alt": 16
+    },
+    {
+     "date": "2026-10-28",
+     "n": 106,
+     "early": 4,
+     "on_time": 85,
+     "late": 17,
+     "early_alt": 1,
+     "on_time_alt": 88,
+     "late_alt": 17
+    },
+    {
+     "date": "2026-10-29",
+     "n": 107,
+     "early": 5,
+     "on_time": 92,
+     "late": 10,
+     "early_alt": 4,
+     "on_time_alt": 93,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-30",
+     "n": 111,
+     "early": 4,
+     "on_time": 97,
+     "late": 10,
+     "early_alt": 0,
+     "on_time_alt": 101,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-31",
+     "n": 44,
+     "early": 1,
+     "on_time": 40,
+     "late": 3,
+     "early_alt": 0,
+     "on_time_alt": 41,
+     "late_alt": 3
+    },
+    {
+     "date": "2026-11-01",
+     "n": 30,
+     "early": 1,
+     "on_time": 27,
+     "late": 2,
+     "early_alt": 0,
+     "on_time_alt": 28,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-11-02",
+     "n": 111,
+     "early": 3,
+     "on_time": 94,
+     "late": 14,
+     "early_alt": 1,
+     "on_time_alt": 96,
+     "late_alt": 14
+    }
+   ],
+   "monthly": [
+    {
+     "month": "2026-10",
+     "partial": true,
+     "n": 2380,
+     "early": 101,
+     "on_time": 2076,
+     "late": 203,
+     "early_alt": 13,
+     "on_time_alt": 2164,
+     "late_alt": 203,
+     "p10": 6,
+     "p50": 73,
+     "p90": 285
+    },
+    {
+     "month": "2026-11",
+     "partial": true,
+     "n": 141,
+     "early": 4,
+     "on_time": 121,
+     "late": 16,
+     "early_alt": 1,
+     "on_time_alt": 124,
+     "late_alt": 16,
+     "p10": 14,
+     "p50": 66,
+     "p90": 319
+    }
+   ],
+   "by_direction": [
+    {
+     "direction_id": 0,
+     "headsign": "Sample Transit Center",
+     "n": 1269,
+     "early": 48,
+     "on_time": 1109,
+     "late": 112,
+     "early_alt": 7,
+     "on_time_alt": 1150,
+     "late_alt": 112,
+     "p10": 5,
+     "p50": 73,
+     "p90": 289
+    },
+    {
+     "direction_id": 1,
+     "headsign": "Example St & 3rd Ave",
+     "n": 1252,
+     "early": 57,
+     "on_time": 1088,
+     "late": 107,
+     "early_alt": 7,
+     "on_time_alt": 1138,
+     "late_alt": 107,
+     "p10": 6,
+     "p50": 72,
+     "p90": 285
+    }
+   ]
+  },
+  "all_stops": {
+   "summary": {
+    "n": 5034,
+    "early": 746,
+    "on_time": 4051,
+    "late": 237,
+    "early_alt": 210,
+    "on_time_alt": 4587,
+    "late_alt": 237,
+    "p10": -21,
+    "p50": 62,
+    "p90": 237,
+    "hist": {
+     "start_min": -10,
+     "under": 0,
+     "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      33,
+      173,
+      536,
+      1714,
+      1076,
+      612,
+      401,
+      246,
+      121,
+      71,
+      33,
+      8,
+      4,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "over": 0
+    }
+   },
+   "by_hour": [
+    {
+     "hour": 6,
+     "n": 312,
+     "early": 44,
+     "on_time": 263,
+     "late": 5,
+     "early_alt": 16,
+     "on_time_alt": 291,
+     "late_alt": 5,
+     "p10": -27,
+     "p50": 61,
+     "p90": 191
+    },
+    {
+     "hour": 7,
+     "n": 314,
+     "early": 52,
+     "on_time": 254,
+     "late": 8,
+     "early_alt": 19,
+     "on_time_alt": 287,
+     "late_alt": 8,
+     "p10": -32,
+     "p50": 65,
+     "p90": 206
+    },
+    {
+     "hour": 8,
+     "n": 333,
+     "early": 59,
+     "on_time": 266,
+     "late": 8,
+     "early_alt": 13,
+     "on_time_alt": 312,
+     "late_alt": 8,
+     "p10": -33,
+     "p50": 47,
+     "p90": 188
+    },
+    {
+     "hour": 9,
+     "n": 345,
+     "early": 57,
+     "on_time": 283,
+     "late": 5,
+     "early_alt": 15,
+     "on_time_alt": 325,
+     "late_alt": 5,
+     "p10": -32,
+     "p50": 55,
+     "p90": 213
+    },
+    {
+     "hour": 10,
+     "n": 385,
+     "early": 81,
+     "on_time": 299,
+     "late": 5,
+     "early_alt": 28,
+     "on_time_alt": 352,
+     "late_alt": 5,
+     "p10": -52,
+     "p50": 49,
+     "p90": 177
+    },
+    {
+     "hour": 11,
+     "n": 386,
+     "early": 69,
+     "on_time": 313,
+     "late": 4,
+     "early_alt": 21,
+     "on_time_alt": 361,
+     "late_alt": 4,
+     "p10": -39,
+     "p50": 43,
+     "p90": 197
+    },
+    {
+     "hour": 12,
+     "n": 388,
+     "early": 65,
+     "on_time": 312,
+     "late": 11,
+     "early_alt": 21,
+     "on_time_alt": 356,
+     "late_alt": 11,
+     "p10": -33,
+     "p50": 52,
+     "p90": 216
+    },
+    {
+     "hour": 13,
+     "n": 386,
+     "early": 77,
+     "on_time": 304,
+     "late": 5,
+     "early_alt": 24,
+     "on_time_alt": 357,
+     "late_alt": 5,
+     "p10": -33,
+     "p50": 42,
+     "p90": 188
+    },
+    {
+     "hour": 14,
+     "n": 380,
+     "early": 74,
+     "on_time": 299,
+     "late": 7,
+     "early_alt": 24,
+     "on_time_alt": 349,
+     "late_alt": 7,
+     "p10": -38,
+     "p50": 50,
+     "p90": 191
+    },
+    {
+     "hour": 15,
+     "n": 388,
+     "early": 18,
+     "on_time": 321,
+     "late": 49,
+     "early_alt": 0,
+     "on_time_alt": 339,
+     "late_alt": 49,
+     "p10": 8,
+     "p50": 100,
+     "p90": 340
+    },
+    {
+     "hour": 16,
+     "n": 379,
+     "early": 34,
+     "on_time": 301,
+     "late": 44,
+     "early_alt": 2,
+     "on_time_alt": 333,
+     "late_alt": 44,
+     "p10": 1,
+     "p50": 101,
+     "p90": 310
+    },
+    {
+     "hour": 17,
+     "n": 365,
+     "early": 34,
+     "on_time": 294,
+     "late": 37,
+     "early_alt": 9,
+     "on_time_alt": 319,
+     "late_alt": 37,
+     "p10": 1,
+     "p50": 90,
+     "p90": 310
+    },
+    {
+     "hour": 18,
+     "n": 344,
+     "early": 22,
+     "on_time": 277,
+     "late": 45,
+     "early_alt": 3,
+     "on_time_alt": 296,
+     "late_alt": 45,
+     "p10": 6,
+     "p50": 105,
+     "p90": 343
+    },
+    {
+     "hour": 19,
+     "n": 329,
+     "early": 60,
+     "on_time": 265,
+     "late": 4,
+     "early_alt": 15,
+     "on_time_alt": 310,
+     "late_alt": 4,
+     "p10": -27,
+     "p50": 49,
+     "p90": 184
+    }
+   ],
+   "by_daytype": {
+    "weekday": {
+     "n": 4382,
+     "early": 621,
+     "on_time": 3536,
+     "late": 225,
+     "early_alt": 171,
+     "on_time_alt": 3986,
+     "late_alt": 225,
+     "p10": -20,
+     "p50": 64,
+     "p90": 242
+    },
+    "saturday": {
+     "n": 360,
+     "early": 74,
+     "on_time": 280,
+     "late": 6,
+     "early_alt": 25,
+     "on_time_alt": 329,
+     "late_alt": 6,
+     "p10": -46,
+     "p50": 45,
+     "p90": 197
+    },
+    "sunday": {
+     "n": 292,
+     "early": 51,
+     "on_time": 235,
+     "late": 6,
+     "early_alt": 14,
+     "on_time_alt": 272,
+     "late_alt": 6,
+     "p10": -28,
+     "p50": 67,
+     "p90": 213
+    }
+   },
+   "daily": [
+    {
+     "date": "2026-10-04",
+     "n": 60,
+     "early": 9,
+     "on_time": 51,
+     "late": 0,
+     "early_alt": 2,
+     "on_time_alt": 58,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-05",
+     "n": 216,
+     "early": 43,
+     "on_time": 168,
+     "late": 5,
+     "early_alt": 10,
+     "on_time_alt": 201,
+     "late_alt": 5
+    },
+    {
+     "date": "2026-10-06",
+     "n": 216,
+     "early": 27,
+     "on_time": 180,
+     "late": 9,
+     "early_alt": 11,
+     "on_time_alt": 196,
+     "late_alt": 9
+    },
+    {
+     "date": "2026-10-07",
+     "n": 210,
+     "early": 30,
+     "on_time": 171,
+     "late": 9,
+     "early_alt": 6,
+     "on_time_alt": 195,
+     "late_alt": 9
+    },
+    {
+     "date": "2026-10-08",
+     "n": 203,
+     "early": 38,
+     "on_time": 160,
+     "late": 5,
+     "early_alt": 11,
+     "on_time_alt": 187,
+     "late_alt": 5
+    },
+    {
+     "date": "2026-10-09",
+     "n": 219,
+     "early": 29,
+     "on_time": 180,
+     "late": 10,
+     "early_alt": 7,
+     "on_time_alt": 202,
+     "late_alt": 10
+    },
+    {
+     "date": "2026-10-10",
+     "n": 90,
+     "early": 17,
+     "on_time": 72,
+     "late": 1,
+     "early_alt": 6,
+     "on_time_alt": 83,
+     "late_alt": 1
+    },
+    {
+     "date": "2026-10-11",
+     "n": 60,
+     "early": 6,
+     "on_time": 52,
+     "late": 2,
+     "early_alt": 4,
+     "on_time_alt": 54,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-12",
+     "n": 211,
+     "early": 29,
+     "on_time": 173,
+     "late": 9,
+     "early_alt": 10,
+     "on_time_alt": 192,
+     "late_alt": 9
+    },
+    {
+     "date": "2026-10-13",
+     "n": 217,
+     "early": 35,
+     "on_time": 169,
+     "late": 13,
+     "early_alt": 11,
+     "on_time_alt": 193,
+     "late_alt": 13
+    },
+    {
+     "date": "2026-10-14",
+     "n": 215,
+     "early": 26,
+     "on_time": 174,
+     "late": 15,
+     "early_alt": 3,
+     "on_time_alt": 197,
+     "late_alt": 15
+    },
+    {
+     "date": "2026-10-15",
+     "n": 221,
+     "early": 33,
+     "on_time": 176,
+     "late": 12,
+     "early_alt": 9,
+     "on_time_alt": 200,
+     "late_alt": 12
+    },
+    {
+     "date": "2026-10-16",
+     "n": 217,
+     "early": 29,
+     "on_time": 175,
+     "late": 13,
+     "early_alt": 4,
+     "on_time_alt": 200,
+     "late_alt": 13
+    },
+    {
+     "date": "2026-10-17",
+     "n": 88,
+     "early": 22,
+     "on_time": 64,
+     "late": 2,
+     "early_alt": 11,
+     "on_time_alt": 75,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-18",
+     "n": 55,
+     "early": 12,
+     "on_time": 43,
+     "late": 0,
+     "early_alt": 2,
+     "on_time_alt": 53,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-19",
+     "n": 218,
+     "early": 33,
+     "on_time": 178,
+     "late": 7,
+     "early_alt": 11,
+     "on_time_alt": 200,
+     "late_alt": 7
+    },
+    {
+     "date": "2026-10-20",
+     "n": 209,
+     "early": 25,
+     "on_time": 173,
+     "late": 11,
+     "early_alt": 3,
+     "on_time_alt": 195,
+     "late_alt": 11
+    },
+    {
+     "date": "2026-10-21",
+     "n": 215,
+     "early": 32,
+     "on_time": 170,
+     "late": 13,
+     "early_alt": 10,
+     "on_time_alt": 192,
+     "late_alt": 13
+    },
+    {
+     "date": "2026-10-22",
+     "n": 83,
+     "early": 11,
+     "on_time": 66,
+     "late": 6,
+     "early_alt": 2,
+     "on_time_alt": 75,
+     "late_alt": 6
+    },
+    {
+     "date": "2026-10-23",
+     "n": 219,
+     "early": 22,
+     "on_time": 191,
+     "late": 6,
+     "early_alt": 9,
+     "on_time_alt": 204,
+     "late_alt": 6
+    },
+    {
+     "date": "2026-10-24",
+     "n": 92,
+     "early": 21,
+     "on_time": 71,
+     "late": 0,
+     "early_alt": 4,
+     "on_time_alt": 88,
+     "late_alt": 0
+    },
+    {
+     "date": "2026-10-25",
+     "n": 58,
+     "early": 8,
+     "on_time": 48,
+     "late": 2,
+     "early_alt": 0,
+     "on_time_alt": 56,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-10-26",
+     "n": 211,
+     "early": 31,
+     "on_time": 172,
+     "late": 8,
+     "early_alt": 8,
+     "on_time_alt": 195,
+     "late_alt": 8
+    },
+    {
+     "date": "2026-10-27",
+     "n": 214,
+     "early": 23,
+     "on_time": 174,
+     "late": 17,
+     "early_alt": 4,
+     "on_time_alt": 193,
+     "late_alt": 17
+    },
+    {
+     "date": "2026-10-28",
+     "n": 211,
+     "early": 30,
+     "on_time": 161,
+     "late": 20,
+     "early_alt": 8,
+     "on_time_alt": 183,
+     "late_alt": 20
+    },
+    {
+     "date": "2026-10-29",
+     "n": 215,
+     "early": 30,
+     "on_time": 174,
+     "late": 11,
+     "early_alt": 13,
+     "on_time_alt": 191,
+     "late_alt": 11
+    },
+    {
+     "date": "2026-10-30",
+     "n": 221,
+     "early": 32,
+     "on_time": 178,
+     "late": 11,
+     "early_alt": 9,
+     "on_time_alt": 201,
+     "late_alt": 11
+    },
+    {
+     "date": "2026-10-31",
+     "n": 90,
+     "early": 14,
+     "on_time": 73,
+     "late": 3,
+     "early_alt": 4,
+     "on_time_alt": 83,
+     "late_alt": 3
+    },
+    {
+     "date": "2026-11-01",
+     "n": 59,
+     "early": 16,
+     "on_time": 41,
+     "late": 2,
+     "early_alt": 6,
+     "on_time_alt": 51,
+     "late_alt": 2
+    },
+    {
+     "date": "2026-11-02",
+     "n": 221,
+     "early": 33,
+     "on_time": 173,
+     "late": 15,
+     "early_alt": 12,
+     "on_time_alt": 194,
+     "late_alt": 15
+    }
+   ],
+   "monthly": [
+    {
+     "month": "2026-10",
+     "partial": true,
+     "n": 4754,
+     "early": 697,
+     "on_time": 3837,
+     "late": 220,
+     "early_alt": 192,
+     "on_time_alt": 4342,
+     "late_alt": 220,
+     "p10": -21,
+     "p50": 63,
+     "p90": 236
+    },
+    {
+     "month": "2026-11",
+     "partial": true,
+     "n": 280,
+     "early": 49,
+     "on_time": 214,
+     "late": 17,
+     "early_alt": 18,
+     "on_time_alt": 245,
+     "late_alt": 17,
+     "p10": -36,
+     "p50": 62,
+     "p90": 248
+    }
+   ],
+   "by_direction": [
+    {
+     "direction_id": 0,
+     "headsign": "Sample Transit Center",
+     "n": 2529,
+     "early": 354,
+     "on_time": 2055,
+     "late": 120,
+     "early_alt": 95,
+     "on_time_alt": 2314,
+     "late_alt": 120,
+     "p10": -19,
+     "p50": 64,
+     "p90": 236
+    },
+    {
+     "direction_id": 1,
+     "headsign": "Example St & 3rd Ave",
+     "n": 2505,
+     "early": 392,
+     "on_time": 1996,
+     "late": 117,
+     "early_alt": 115,
+     "on_time_alt": 2273,
+     "late_alt": 117,
+     "p10": -25,
+     "p50": 60,
+     "p90": 239
+    }
+   ]
+  }
+ },
+ "terminal": {
+  "n": 1259,
+  "early": 98,
+  "on_time": 1161,
+  "late": 0,
+  "early_alt": 11,
+  "on_time_alt": 1248,
+  "late_alt": 0,
+  "p10": 1,
+  "p50": 30,
+  "p90": 91,
+  "hist": {
+   "start_min": -10,
+   "under": 0,
+   "counts": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    10,
+    87,
+    820,
+    301,
+    39,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "over": 0
+  }
+ },
+ "end_of_line": {
+  "n": 1271,
+  "p10": -163,
+  "p50": 15,
+  "p90": 214,
+  "early_share": 0.448
+ },
+ "completeness": {
+  "trips_scheduled": 1343,
+  "trips_observed": 1304,
+  "departures_scheduled": 2686,
+  "departures_observed": 2521,
+  "uptime_service_hours": 0.9975
+ },
+ "trips": {
+  "scheduled": 1343,
+  "observed": 1304,
+  "not_observed": 39,
+  "cancelled": 0,
+  "added": 0,
+  "skipped_stops": 14
+ },
+ "stops": [
+  {
+   "direction_id": 0,
+   "stops": [
+    {
+     "code": "E105",
+     "name": "Example St & 3rd Ave",
+     "timepoint": true,
+     "timepoints": {
+      "n": 635,
+      "early": 46,
+      "on_time": 589,
+      "late": 0,
+      "early_alt": 6,
+      "on_time_alt": 629,
+      "late_alt": 0,
+      "p10": 2,
+      "p50": 32,
+      "p90": 89
+     },
+     "all_stops": {
+      "n": 635,
+      "early": 46,
+      "on_time": 589,
+      "late": 0,
+      "early_alt": 6,
+      "on_time_alt": 629,
+      "late_alt": 0,
+      "p10": 2,
+      "p50": 32,
+      "p90": 89
+     }
+    },
+    {
+     "code": "E127",
+     "name": "Sample Ave & 3rd Ave",
+     "timepoint": false,
+     "timepoints": null,
+     "all_stops": {
+      "n": 631,
+      "early": 183,
+      "on_time": 448,
+      "late": 0,
+      "early_alt": 48,
+      "on_time_alt": 583,
+      "late_alt": 0,
+      "p10": -48,
+      "p50": 38,
+      "p90": 129
+     }
+    },
+    {
+     "code": "E119",
+     "name": "Placeholder Rd & 3rd Ave",
+     "timepoint": false,
+     "timepoints": null,
+     "all_stops": {
+      "n": 629,
+      "early": 123,
+      "on_time": 498,
+      "late": 8,
+      "early_alt": 40,
+      "on_time_alt": 581,
+      "late_alt": 8,
+      "p10": -42,
+      "p50": 82,
+      "p90": 224
+     }
+    },
+    {
+     "code": "E113",
+     "name": "Fictional Blvd & 3rd Ave",
+     "timepoint": true,
+     "timepoints": {
+      "n": 634,
+      "early": 2,
+      "on_time": 520,
+      "late": 112,
+      "early_alt": 1,
+      "on_time_alt": 521,
+      "late_alt": 112,
+      "p10": 25,
+      "p50": 180,
+      "p90": 358
+     },
+     "all_stops": {
+      "n": 634,
+      "early": 2,
+      "on_time": 520,
+      "late": 112,
+      "early_alt": 1,
+      "on_time_alt": 521,
+      "late_alt": 112,
+      "p10": 25,
+      "p50": 180,
+      "p90": 358
+     }
+    },
+    {
+     "code": "E133",
+     "name": "Sample Transit Center",
+     "timepoint": true,
+     "timepoints": {
+      "n": 0,
+      "early": 0,
+      "on_time": 0,
+      "late": 0,
+      "early_alt": 0,
+      "on_time_alt": 0,
+      "late_alt": 0,
+      "p10": null,
+      "p50": null,
+      "p90": null
+     },
+     "all_stops": {
+      "n": 0,
+      "early": 0,
+      "on_time": 0,
+      "late": 0,
+      "early_alt": 0,
+      "on_time_alt": 0,
+      "late_alt": 0,
+      "p10": null,
+      "p50": null,
+      "p90": null
+     }
+    }
+   ]
+  },
+  {
+   "direction_id": 1,
+   "stops": [
+    {
+     "code": "E133",
+     "name": "Sample Transit Center",
+     "timepoint": true,
+     "timepoints": {
+      "n": 624,
+      "early": 52,
+      "on_time": 572,
+      "late": 0,
+      "early_alt": 5,
+      "on_time_alt": 619,
+      "late_alt": 0,
+      "p10": 1,
+      "p50": 28,
+      "p90": 92
+     },
+     "all_stops": {
+      "n": 624,
+      "early": 52,
+      "on_time": 572,
+      "late": 0,
+      "early_alt": 5,
+      "on_time_alt": 619,
+      "late_alt": 0,
+      "p10": 1,
+      "p50": 28,
+      "p90": 92
+     }
+    },
+    {
+     "code": "E113",
+     "name": "Fictional Blvd & 3rd Ave",
+     "timepoint": false,
+     "timepoints": null,
+     "all_stops": {
+      "n": 626,
+      "early": 199,
+      "on_time": 426,
+      "late": 1,
+      "early_alt": 58,
+      "on_time_alt": 567,
+      "late_alt": 1,
+      "p10": -58,
+      "p50": 33,
+      "p90": 124
+     }
+    },
+    {
+     "code": "E119",
+     "name": "Placeholder Rd & 3rd Ave",
+     "timepoint": false,
+     "timepoints": null,
+     "all_stops": {
+      "n": 627,
+      "early": 136,
+      "on_time": 482,
+      "late": 9,
+      "early_alt": 50,
+      "on_time_alt": 568,
+      "late_alt": 9,
+      "p10": -49,
+      "p50": 82,
+      "p90": 211
+     }
+    },
+    {
+     "code": "E127",
+     "name": "Sample Ave & 3rd Ave",
+     "timepoint": true,
+     "timepoints": {
+      "n": 628,
+      "early": 5,
+      "on_time": 516,
+      "late": 107,
+      "early_alt": 2,
+      "on_time_alt": 519,
+      "late_alt": 107,
+      "p10": 23,
+      "p50": 183,
+      "p90": 348
+     },
+     "all_stops": {
+      "n": 628,
+      "early": 5,
+      "on_time": 516,
+      "late": 107,
+      "early_alt": 2,
+      "on_time_alt": 519,
+      "late_alt": 107,
+      "p10": 23,
+      "p50": 183,
+      "p90": 348
+     }
+    },
+    {
+     "code": "E105",
+     "name": "Example St & 3rd Ave",
+     "timepoint": true,
+     "timepoints": {
+      "n": 0,
+      "early": 0,
+      "on_time": 0,
+      "late": 0,
+      "early_alt": 0,
+      "on_time_alt": 0,
+      "late_alt": 0,
+      "p10": null,
+      "p50": null,
+      "p90": null
+     },
+     "all_stops": {
+      "n": 0,
+      "early": 0,
+      "on_time": 0,
+      "late": 0,
+      "early_alt": 0,
+      "on_time_alt": 0,
+      "late_alt": 0,
+      "p10": null,
+      "p50": null,
+      "p90": null
+     }
+    }
+   ]
+  }
+ ],
+ "notices": [
+  {
+   "code": "provisional"
+  }
+ ]
+}

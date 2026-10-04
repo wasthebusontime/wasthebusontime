@@ -1,0 +1,284 @@
+{
+ "schema": 1,
+ "stop": {
+  "code": "E132",
+  "stop_id": "SE132",
+  "name": "Sample Fairgrounds",
+  "timepoint_somewhere": true
+ },
+ "scopes": {
+  "timepoints": {
+   "summary": {
+    "n": 4,
+    "early": 1,
+    "on_time": 3,
+    "late": 0,
+    "early_alt": 0,
+    "on_time_alt": 4,
+    "late_alt": 0,
+    "p10": -8,
+    "p50": 7,
+    "p90": 122,
+    "hist": {
+     "start_min": -10,
+     "under": 0,
+     "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "over": 0
+    }
+   },
+   "by_hour": [
+    {
+     "hour": 10,
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ],
+   "by_daytype": {
+    "weekday": {
+     "n": 0,
+     "early": 0,
+     "on_time": 0,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 0,
+     "late_alt": 0,
+     "p10": null,
+     "p50": null,
+     "p90": null
+    },
+    "saturday": {
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    },
+    "sunday": {
+     "n": 0,
+     "early": 0,
+     "on_time": 0,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 0,
+     "late_alt": 0,
+     "p10": null,
+     "p50": null,
+     "p90": null
+    }
+   },
+   "monthly": [
+    {
+     "month": "2026-10",
+     "partial": true,
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ],
+   "by_route": [
+    {
+     "slug": "906",
+     "short_name": "906",
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ]
+  },
+  "all_stops": {
+   "summary": {
+    "n": 4,
+    "early": 1,
+    "on_time": 3,
+    "late": 0,
+    "early_alt": 0,
+    "on_time_alt": 4,
+    "late_alt": 0,
+    "p10": -8,
+    "p50": 7,
+    "p90": 122,
+    "hist": {
+     "start_min": -10,
+     "under": 0,
+     "counts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "over": 0
+    }
+   },
+   "by_hour": [
+    {
+     "hour": 10,
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ],
+   "by_daytype": {
+    "weekday": {
+     "n": 0,
+     "early": 0,
+     "on_time": 0,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 0,
+     "late_alt": 0,
+     "p10": null,
+     "p50": null,
+     "p90": null
+    },
+    "saturday": {
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    },
+    "sunday": {
+     "n": 0,
+     "early": 0,
+     "on_time": 0,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 0,
+     "late_alt": 0,
+     "p10": null,
+     "p50": null,
+     "p90": null
+    }
+   },
+   "monthly": [
+    {
+     "month": "2026-10",
+     "partial": true,
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ],
+   "by_route": [
+    {
+     "slug": "906",
+     "short_name": "906",
+     "n": 4,
+     "early": 1,
+     "on_time": 3,
+     "late": 0,
+     "early_alt": 0,
+     "on_time_alt": 4,
+     "late_alt": 0,
+     "p10": -8,
+     "p50": 7,
+     "p90": 122
+    }
+   ]
+  }
+ },
+ "notices": []
+}

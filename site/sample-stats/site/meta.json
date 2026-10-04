@@ -1,0 +1,28 @@
+{
+ "schema": 1,
+ "synthetic": true,
+ "generated_at": "2026-11-03T12:05:00Z",
+ "data_through": "2026-11-02",
+ "collection_start": "2026-10-04",
+ "pipeline_version": "sample",
+ "methodology_version": "2",
+ "static_versions": [
+  "sample"
+ ],
+ "min_sample": 30,
+ "windows": {
+  "headline": [
+   0,
+   300
+  ],
+  "alt": [
+   -60,
+   300
+  ]
+ },
+ "period": {
+  "key": "all",
+  "start": "2026-10-04",
+  "end": "2026-11-02"
+ }
+}

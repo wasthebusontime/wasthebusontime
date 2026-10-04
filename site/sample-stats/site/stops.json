@@ -1,0 +1,246 @@
+{
+ "schema": 1,
+ "stops": [
+  {
+   "code": "E101",
+   "name": "Example Hospital",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E102",
+   "name": "Example Park & Ride",
+   "routes": [
+    "901",
+    "906"
+   ]
+  },
+  {
+   "code": "E103",
+   "name": "Example St & 1st Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E104",
+   "name": "Example St & 2nd Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E105",
+   "name": "Example St & 3rd Ave",
+   "routes": [
+    "901",
+    "904"
+   ]
+  },
+  {
+   "code": "E106",
+   "name": "Example St & 4th Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E107",
+   "name": "Example St & 5th Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E108",
+   "name": "Example St & 6th Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E109",
+   "name": "Example St & 7th Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E110",
+   "name": "Example St & 8th Ave",
+   "routes": [
+    "901"
+   ]
+  },
+  {
+   "code": "E111",
+   "name": "Fictional Blvd & 1st Ave",
+   "routes": [
+    "905"
+   ]
+  },
+  {
+   "code": "E112",
+   "name": "Fictional Blvd & 2nd Ave",
+   "routes": [
+    "905"
+   ]
+  },
+  {
+   "code": "E113",
+   "name": "Fictional Blvd & 3rd Ave",
+   "routes": [
+    "904",
+    "905"
+   ]
+  },
+  {
+   "code": "E114",
+   "name": "Fictional Blvd & 4th Ave",
+   "routes": [
+    "905"
+   ]
+  },
+  {
+   "code": "E115",
+   "name": "Fictional Blvd & 5th Ave",
+   "routes": [
+    "905"
+   ]
+  },
+  {
+   "code": "E116",
+   "name": "Fictional Blvd & 6th Ave",
+   "routes": [
+    "905"
+   ]
+  },
+  {
+   "code": "E117",
+   "name": "Placeholder Rd & 1st Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E118",
+   "name": "Placeholder Rd & 2nd Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E119",
+   "name": "Placeholder Rd & 3rd Ave",
+   "routes": [
+    "903",
+    "904"
+   ]
+  },
+  {
+   "code": "E120",
+   "name": "Placeholder Rd & 4th Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E121",
+   "name": "Placeholder Rd & 5th Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E122",
+   "name": "Placeholder Rd & 6th Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E123",
+   "name": "Placeholder Rd & 7th Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E124",
+   "name": "Placeholder Rd & 8th Ave",
+   "routes": [
+    "903"
+   ]
+  },
+  {
+   "code": "E125",
+   "name": "Sample Ave & 1st Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E126",
+   "name": "Sample Ave & 2nd Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E127",
+   "name": "Sample Ave & 3rd Ave",
+   "routes": [
+    "902",
+    "904"
+   ]
+  },
+  {
+   "code": "E128",
+   "name": "Sample Ave & 4th Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E129",
+   "name": "Sample Ave & 5th Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E130",
+   "name": "Sample Ave & 6th Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E131",
+   "name": "Sample Ave & 7th Ave",
+   "routes": [
+    "902"
+   ]
+  },
+  {
+   "code": "E132",
+   "name": "Sample Fairgrounds",
+   "routes": [
+    "906"
+   ]
+  },
+  {
+   "code": "E133",
+   "name": "Sample Transit Center",
+   "routes": [
+    "901",
+    "902",
+    "903",
+    "904",
+    "905",
+    "906"
+   ]
+  }
+ ]
+}
