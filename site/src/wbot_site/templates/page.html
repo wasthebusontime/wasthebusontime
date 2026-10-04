@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block main %}
+<article class="prose">
+{{ body | safe }}
+{% if csv_files is defined %}
+<h2 id="downloads">Downloads</h2>
+{% if csv_files %}
+<ul class="downloads">
+{% for f in csv_files %}
+  <li><a href="{{ f.url }}">{{ f.name }}</a> ({{ f.kb }} KB)</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No CSV files are published yet.</p>
+{% endif %}
+{% endif %}
+</article>
+{% endblock %}

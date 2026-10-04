@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% if noindex %}
+<meta name="robots" content="noindex, nofollow">
+{% endif %}
+<title>{{ title }} | Was the Bus On Time?</title>
+<meta name="description" content="Unofficial on-time statistics for Intercity Transit buses in Olympia, Washington. Not affiliated with Intercity Transit.">
+{% block styles %}
+<link rel="stylesheet" href="/static/site.css">
+{% endblock %}
+</head>
+<body>
+{% if env == "dev" %}
+<p class="banner banner-dev">DEV PREVIEW: code {{ banner.code }}, stats {{ banner.stats }}, built {{ banner.time }}</p>
+{% endif %}
+{% if synthetic %}
+<p class="banner banner-sample">SAMPLE DATA: every route, stop and number on this site is invented for testing.</p>
+{% endif %}
+<header class="site-header">
+  <a class="site-name" href="/">Was the Bus On Time?</a>
+  <p class="tagline">Unofficial on-time statistics for Intercity Transit buses. Not affiliated with Intercity Transit.</p>
+  <nav class="site-nav" aria-label="Site">
+    <a href="/">Routes</a>
+    <a href="/stops/">Stops</a>
+    <a href="/data-quality/">Data quality</a>
+    <a href="/methodology/">Methodology</a>
+    <a href="/data/">Data</a>
+    <a href="/about/">About</a>
+  </nav>
+  <p class="data-through">Data through {{ meta.data_through | date }}, {{ period }}.</p>
+</header>
+<main id="main">
+{% block main %}{% endblock %}
+</main>
+{% include "footer.html" %}
+{% block scripts %}
+<script src="/static/site.js" defer></script>
+{% endblock %}
+</body>
+</html>

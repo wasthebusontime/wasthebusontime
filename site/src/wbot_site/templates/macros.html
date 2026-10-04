@@ -1,0 +1,101 @@
+{# Timepoints / all stops toggle. CSS :has() shows one scope at a time; without
+   :has() support the toggle is hidden and both scopes show under their headings. #}
+{% macro scope_toggle() %}
+<fieldset class="scope-toggle">
+  <legend>Which stops</legend>
+  <div class="scope-option">
+    <input type="radio" name="scope" id="scope-timepoints" value="timepoints" checked>
+    <label for="scope-timepoints">Timepoints</label>
+    <p class="scope-help">Timepoints are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how Intercity Transit measures on-time performance.</p>
+  </div>
+  <div class="scope-option">
+    <input type="radio" name="scope" id="scope-all_stops" value="all_stops">
+    <label for="scope-all_stops">All stops</label>
+    <p class="scope-help">Times at stops between timepoints are estimates the schedule fills in between timepoints, not promises. A bus can be "early" there without having left a timepoint early, so expect lower on-time numbers in this view.</p>
+  </div>
+</fieldset>
+{% endmacro %}
+
+{# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %} #}
+{% macro scoped() %}
+{% for scope in scopes %}
+<section class="scope scope-{{ scope }}">
+<h2 class="scope-heading">{{ scope_labels[scope] }}</h2>
+{{ caller(scope) }}
+</section>
+{% endfor %}
+{% endmacro %}
+
+{# "91%" or "Not enough data", for a perf block and a window. #}
+{% macro share(perf, part="on_time", window="headline", digits=0) %}
+{% if enough(perf, min_sample) %}{{ percent(perf[part ~ ("_alt" if window == "alt" else "")], perf.n, digits) }}{% else %}<span class="nodata">Not enough data</span>{% endif %}
+{% endmacro %}
+
+{# Table cells: departures, early, on time, late (headline), on time (alt). #}
+{% macro perf_header() %}
+<th scope="col" class="num">Departures</th>
+<th scope="col" class="num">Early</th>
+<th scope="col" class="num">On time <span class="def">(0 to 5 min late)</span></th>
+<th scope="col" class="num">Late</th>
+<th scope="col" class="num">On time <span class="def">(1 min early to 5 min late)</span></th>
+{% endmacro %}
+
+{% macro perf_cells(perf) %}
+{% if perf is none %}
+<td class="num" colspan="5"><span class="nodata">Not a timepoint</span></td>
+{% elif enough(perf, min_sample) %}
+<td class="num">{{ perf.n | number }}</td>
+<td class="num">{{ percent(perf.early, perf.n, 1) }}</td>
+<td class="num">{{ percent(perf.on_time, perf.n, 1) }}</td>
+<td class="num">{{ percent(perf.late, perf.n, 1) }}</td>
+<td class="num">{{ percent(perf.on_time_alt, perf.n, 1) }}</td>
+{% else %}
+<td class="num">{{ perf.n | number }}</td>
+<td class="num" colspan="4"><span class="nodata">Not enough data</span></td>
+{% endif %}
+{% endmacro %}
+
+{# Big numbers at the top of a page, both windows labeled. #}
+{% macro headline(perf, subject) %}
+<div class="headline">
+{% if enough(perf, min_sample) %}
+  <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ window_labels.headline }}</p>
+  <p class="headline-parts">{{ share(perf, "early") }} early, {{ share(perf, "late") }} late, out of {{ perf.n | number }} departures.</p>
+  <p class="headline-alt"><span class="medium">{{ share(perf, window="alt") }}</span> {{ window_labels.alt }}</p>
+{% else %}
+  <p class="headline-main"><span class="nodata">Not enough data</span> for {{ subject }} yet ({{ perf.n | number }} departures; at least {{ min_sample }} are needed).</p>
+{% endif %}
+</div>
+{% endmacro %}
+
+{% macro notices(items) %}
+{% if items %}
+<ul class="notices">
+{% for n in items %}
+{% if n.code == "provisional" %}
+  <li>These numbers are provisional while the method is checked against more data.</li>
+{% elif n.code == "data_loss" %}
+  <li>No data was collected from {{ n.start | timestamp }} to {{ n.end | timestamp }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
+{% elif n.code == "low_completeness" %}
+  <li>On {{ n.date | date }}, only {{ percent((n.share * 1000) | round | int, 1000) }} of scheduled departures were recorded.</li>
+{% elif n.code == "methodology_change" %}
+  <li>The <a href="/methodology/">methodology</a> changed on {{ n.date | date }} (version {{ n.version }}).</li>
+{% endif %}
+{% endfor %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro cause_text(cause) %}{{ {"collector": "an outage of our collector", "feed": "a problem with the agency's data feed"}.get(cause, "cause unknown") }}{% endmacro %}
+
+{% macro monthly_table(rows) %}
+<table class="data">
+<caption>By calendar month</caption>
+<thead><tr><th scope="col">Month</th>{{ perf_header() }}</tr></thead>
+<tbody>
+{% for m in rows %}
+<tr><th scope="row">{{ m.month | month }}{% if m.partial %} (partial){% endif %}</th>{{ perf_cells(m) }}</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endmacro %}

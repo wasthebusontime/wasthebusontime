@@ -1,0 +1,83 @@
+/* Placeholder styling. Palette, typography and layout are decided in the style-guide
+   session; every color lives in a variable below so it can be swapped in one place.
+   The palette must not resemble Intercity Transit's brand colors. */
+:root {
+  --bg: #ffffff;
+  --text: #222222;
+  --muted: #5f5f5f;
+  --rule: #d6d6d6;
+  --panel: #f4f4f4;
+  --link: #5a3e85;
+  --banner-dev: #fff3c4;
+  --banner-sample: #ffd9d4;
+  --early: #c7741c;
+  --on-time: #6a4c93;
+  --late: #4d4d4d;
+  --grid: #e3e3e3;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; }
+a { color: var(--link); }
+main, .site-header, .site-footer { max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
+
+.banner { margin: 0; padding: .3rem 1rem; font-size: .85rem; font-weight: 600; text-align: center; }
+.banner-dev { background: var(--banner-dev); }
+.banner-sample { background: var(--banner-sample); }
+
+.site-header { padding-top: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--rule); }
+.site-name { font-size: 1.4rem; font-weight: 700; color: var(--text); text-decoration: none; }
+.tagline, .data-through { margin: .25rem 0; color: var(--muted); font-size: .9rem; }
+.site-nav, .footer-nav { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .5rem 0; }
+
+.site-footer { margin-top: 3rem; padding-top: 1rem; padding-bottom: 2rem; border-top: 1px solid var(--rule); font-size: .9rem; color: var(--muted); }
+.site-footer p { margin: .3rem 0; }
+.non-affiliation { color: var(--text); }
+
+.lede { font-size: 1.1rem; }
+.prose { max-width: 42rem; }
+.notices { padding: .5rem 1rem .5rem 2rem; background: var(--panel); border-left: 4px solid var(--early); }
+
+/* Timepoints / all stops toggle */
+.scope-toggle { border: 1px solid var(--rule); padding: .5rem 1rem; margin: 1rem 0; }
+.scope-option { margin: .25rem 0; }
+.scope-option label { font-weight: 600; }
+.scope-help { margin: 0 0 0 1.6rem; font-size: .85rem; color: var(--muted); }
+@supports not selector(:has(a)) { .scope-toggle { display: none; } }
+body:has(#scope-timepoints:checked) .scope-all_stops { display: none; }
+body:has(#scope-all_stops:checked) .scope-timepoints { display: none; }
+.scope-heading { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+.headline .big { font-size: 2.5rem; font-weight: 700; }
+.headline .medium { font-size: 1.5rem; font-weight: 700; }
+.headline p { margin: .25rem 0; }
+.nodata { color: var(--muted); font-style: italic; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table.data { border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
+table.data caption { text-align: left; font-weight: 600; padding-bottom: .25rem; }
+table.data th, table.data td { padding: .25rem .6rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .def { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
+
+/* Charts (inline SVG drawn at build time) */
+.chart { margin: 1.5rem 0; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart figcaption { font-size: .9rem; color: var(--muted); }
+.chart text { font-family: var(--font); font-size: 12px; fill: var(--text); }
+.chart text.small { font-size: 10px; fill: var(--muted); }
+.chart .early { fill: var(--early); }
+.chart .on-time { fill: var(--on-time); }
+.chart .late { fill: var(--late); }
+.chart .grid { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: var(--muted); stroke-width: 1; }
+.chart .line { fill: none; stroke: var(--on-time); stroke-width: 2; }
+.chart .dot { fill: var(--on-time); }
+.chart .bracket { fill: none; stroke: var(--text); stroke-width: 1; }
+
+/* Stop index */
+.stop-list { columns: 2 18rem; padding-left: 1.2rem; }
+.stop-filter input { font: inherit; padding: .3rem .5rem; width: min(100%, 20rem); }
+.stop-routes { color: var(--muted); font-size: .85rem; }

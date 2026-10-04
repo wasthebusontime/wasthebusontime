@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{# Shown to visitors outside the US and Canada, who are redirected away from every
+   other path, so this page uses inline CSS and loads nothing else. #}
+{% block styles %}
+<style>
+body { margin: 0 auto; max-width: 40rem; padding: 1rem; font-family: system-ui, sans-serif; line-height: 1.5; color: #222; background: #fff; }
+a { color: #3b3b8f; }
+.banner { margin: 0 0 .5rem; padding: .25rem .5rem; background: #eee; font-size: .85rem; }
+.site-nav, .footer-nav, .data-through { display: none; }
+.site-name { font-weight: bold; text-decoration: none; color: inherit; }
+.site-footer { margin-top: 2rem; border-top: 1px solid #ccc; font-size: .9rem; }
+</style>
+{% endblock %}
+{% block main %}
+<article class="prose">
+{{ body | safe }}
+</article>
+{% endblock %}
+{% block scripts %}{% endblock %}

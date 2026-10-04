@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "macros.html" import scope_toggle, scoped, headline, notices %}
+{% block main %}
+<h1>Was the Bus On Time?</h1>
+<p class="lede">How often Intercity Transit buses leave on time, measured from the agency's public real-time data.</p>
+{{ notices(system.notices) }}
+{{ scope_toggle() }}
+{% call(scope) scoped() %}
+{{ headline(system.scopes[scope].summary, "the whole system") }}
+{% endcall %}
+{% endblock %}
