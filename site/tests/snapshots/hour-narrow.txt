@@ -1,0 +1,16 @@
+<svg viewBox="0 0 320 192" role="img" aria-label="Route 901, on time by hour: lowest 75% at 7 am, highest 100% at 12 am (next day)." xmlns="http://www.w3.org/2000/svg">
+<line x1="32" y1="156" x2="314" y2="156" class="grid"/>
+<text x="26" y="160" text-anchor="end" class="small">0%</text>
+<line x1="32" y1="86" x2="314" y2="86" class="grid"/>
+<text x="26" y="90" text-anchor="end" class="small">50%</text>
+<line x1="32" y1="16" x2="314" y2="16" class="grid"/>
+<text x="26" y="20" text-anchor="end" class="small">100%</text>
+<rect x="34.0" y="30.0" width="52.4" height="126.0" class="on-time"><title>6 am: 90.0% on time, 40 departures</title></rect>
+<text x="60.2" y="170" text-anchor="middle" class="small">6</text>
+<rect x="90.4" y="51.0" width="52.4" height="105.0" class="on-time"><title>7 am: 75.0% on time, 80 departures</title></rect>
+<rect x="203.2" y="30.0" width="52.4" height="126.0" class="on-time"><title>9 am: 90.0% on time, 60 departures</title></rect>
+<text x="229.4" y="170" text-anchor="middle" class="small">9</text>
+<rect x="259.6" y="16.0" width="52.4" height="140.0" class="on-time"><title>12 am (next day): 100.0% on time, 31 departures</title></rect>
+<text x="285.8" y="170" text-anchor="middle" class="small">24</text>
+<text x="173" y="186" text-anchor="middle" class="small">Hour of the day (24 and later: after midnight)</text>
+</svg>

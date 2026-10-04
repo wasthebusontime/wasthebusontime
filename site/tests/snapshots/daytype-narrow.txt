@@ -1,0 +1,14 @@
+<svg viewBox="0 0 320 176" role="img" aria-label="Route 901, on time by day type: weekday 83%, saturday 90%, sunday not enough data." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="16" text-anchor="start">Weekday:</text>
+<text x="0" y="32" text-anchor="start">83% on time, 6% early, 11% late</text>
+<rect x="0.0" y="38.0" width="17.2" height="20.0" class="early"><title>Weekday: 9 early (6.0%)</title></rect>
+<rect x="19.2" y="38.0" width="264.7" height="20.0" class="on-time"><title>Weekday: 125 on time (83.3%)</title></rect>
+<rect x="285.9" y="38.0" width="32.1" height="20.0" class="late"><title>Weekday: 16 late (10.7%)</title></rect>
+<text x="0" y="82" text-anchor="start">Saturday:</text>
+<text x="0" y="98" text-anchor="start">90% on time, 5% early, 5% late</text>
+<rect x="0.0" y="104.0" width="14.0" height="20.0" class="early"><title>Saturday: 2 early (5.0%)</title></rect>
+<rect x="16.0" y="104.0" width="286.0" height="20.0" class="on-time"><title>Saturday: 36 on time (90.0%)</title></rect>
+<rect x="304.0" y="104.0" width="14.0" height="20.0" class="late"><title>Saturday: 2 late (5.0%)</title></rect>
+<text x="0" y="148" text-anchor="start">Sunday:</text>
+<text x="0" y="164" text-anchor="start">not enough data (10 departures)</text>
+</svg>

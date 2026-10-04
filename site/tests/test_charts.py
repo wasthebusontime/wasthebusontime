@@ -64,6 +64,25 @@ def test_chart_snapshot(name):
     assert text == path.read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize("name", sorted(CASES))
+def test_narrow_chart_snapshot(name):
+    """The phone layout of each chart. UPDATE_SNAPSHOTS=1 rewrites these too."""
+    text = CASES[name]().svg_narrow + "\n"
+    path = SNAPSHOTS / f"{name}-narrow.txt"
+    if os.environ.get("UPDATE_SNAPSHOTS") == "1":
+        path.write_text(text, encoding="utf-8", newline="\n")
+    assert text == path.read_text(encoding="utf-8")
+
+
+def test_narrow_charts_fit_their_width():
+    # Every mark, point and label is placed inside the narrow drawing.
+    for make in CASES.values():
+        svg = make().svg_narrow
+        assert svg.startswith(f'<svg viewBox="0 0 {charts.NARROW.width} ')
+        for x in re.findall(r'x="([-0-9.]+)"', svg):
+            assert 0 <= float(x) <= charts.NARROW.width, (svg[:60], x)
+
+
 def test_charts_are_deterministic():
     for make in CASES.values():
         assert as_text(make()) == as_text(make())

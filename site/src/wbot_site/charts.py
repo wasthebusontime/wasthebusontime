@@ -5,6 +5,9 @@ a table. Colors come from CSS classes (early, on-time, late), so the palette liv
 site.css. Meaning never depends on color alone: rows and bars carry text labels, and
 every mark has a <title> with its exact value. Output is deterministic text, so the
 tests snapshot it.
+
+Every chart is drawn twice: WIDE for screens with room, NARROW (laid out for phones,
+where it shows at about 1:1 so the text stays readable). CSS shows one of the two.
 """
 
 from dataclasses import dataclass
@@ -12,12 +15,24 @@ from html import escape
 
 from wbot_site.data import DAYTYPE_LABELS, DAYTYPES, date_text, delay_text, enough, hour_text, number, percent, split
 
-WIDTH = 640
-LEFT = 40
-RIGHT = 10
-PLOT = WIDTH - LEFT - RIGHT
 PARTS = (("early", "early"), ("on_time", "on-time"), ("late", "late"))
 PART_LABELS = {"early": "early", "on_time": "on time", "late": "late"}
+
+
+@dataclass(frozen=True)
+class Layout:
+    width: int
+    left: int
+    right: int
+    narrow: bool
+
+    @property
+    def plot(self) -> int:
+        return self.width - self.left - self.right
+
+
+WIDE = Layout(width=640, left=40, right=10, narrow=False)
+NARROW = Layout(width=320, left=32, right=6, narrow=True)
 
 
 @dataclass
@@ -27,14 +42,21 @@ class Chart:
     headers: list[str]
     rows: list[list[str]]
     legend: bool = False  # colored early / on time / late, so the page shows a key
+    svg_narrow: str = ""
 
 
-def _svg(height: int, body: list[str], label: str) -> str:
+def _svg(L: Layout, drawn: tuple[list[str], int], label: str) -> str:
+    body, height = drawn
     return "\n".join([
-        f'<svg viewBox="0 0 {WIDTH} {height}" role="img" aria-label="{escape(label)}" xmlns="http://www.w3.org/2000/svg">',
+        f'<svg viewBox="0 0 {L.width} {height}" role="img" aria-label="{escape(label)}" xmlns="http://www.w3.org/2000/svg">',
         *body,
         "</svg>",
     ])
+
+
+def _both(draw, label: str) -> tuple[str, str]:
+    """draw(layout) -> (body, height). Returns the wide and the narrow SVG."""
+    return _svg(WIDE, draw(WIDE), label), _svg(NARROW, draw(NARROW), label)
 
 
 def _text(x: float, y: float, s: str, anchor: str = "start", cls: str = "") -> str:
@@ -60,23 +82,34 @@ def _count_cells(perf: dict, window: str = "headline") -> list[str]:
 # Stacked early / on time / late bars
 
 
-def _stacked(rows: list[tuple[str, dict | None, str]], min_sample: int) -> tuple[list[str], int]:
-    """rows: (label, perf, window). Each row is a text line over a 100% bar."""
+def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: int) -> tuple[list[str], int]:
+    """rows: (label, perf, window). Each row is a text line over a 100% bar; on narrow
+    screens the label and the numbers take a line each."""
     body, y = [], 0
     for label, perf, window in rows:
         y += 16
         if not enough(perf, min_sample):
             n = perf["n"] if perf else 0
-            body.append(_text(0, y, f"{label}: not enough data ({number(n)} departures)"))
+            if L.narrow:
+                body.append(_text(0, y, f"{label}:"))
+                y += 16
+                body.append(_text(0, y, f"not enough data ({number(n)} departures)"))
+            else:
+                body.append(_text(0, y, f"{label}: not enough data ({number(n)} departures)"))
             y += 12
             continue
         parts = dict(zip(("early", "on_time", "late"), split(perf, window)))
         line = ", ".join(f"{_pct(perf, p, window)} {PART_LABELS[p]}" for p in ("on_time", "early", "late"))
-        body.append(_text(0, y, f"{label}: {line}"))
+        if L.narrow:
+            body.append(_text(0, y, f"{label}:"))
+            y += 16
+            body.append(_text(0, y, line))
+        else:
+            body.append(_text(0, y, f"{label}: {line}"))
         y += 6
         x = 0.0
         for part, cls in PARTS:
-            w = WIDTH * parts[part] / perf["n"]
+            w = L.width * parts[part] / perf["n"]
             if w > 0:
                 # A 2px gap between segments keeps them apart without relying on color.
                 body.append(_rect(x, y, max(w - 2, 0.5), 20, cls, f"{label}: {number(parts[part])} {PART_LABELS[part]} ({_pct(perf, part, window, 1)})"))
@@ -89,10 +122,7 @@ def headline_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
     """Early / on time / late under both on-time windows."""
     if not enough(perf, min_sample):
         return None
-    body, height = _stacked(
-        [("0 to 5 min late (Intercity Transit)", perf, "headline"), ("1 min early to 5 min late", perf, "alt")],
-        min_sample,
-    )
+    rows_in = [("0 to 5 min late (Intercity Transit)", perf, "headline"), ("1 min early to 5 min late", perf, "alt")]
     summary = (
         f"{subject}: {_pct(perf)} on time, {_pct(perf, 'early')} early, {_pct(perf, 'late')} late, "
         f"{number(perf['n'])} departures (Intercity Transit's definition, 0 to 5 min late)."
@@ -101,21 +131,45 @@ def headline_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
         ["0 to 5 min late (Intercity Transit's definition)", *_count_cells(perf)],
         ["1 min early to 5 min late", *_count_cells(perf, "alt")],
     ]
-    return Chart(_svg(height, body, summary), summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True)
+    wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample), summary)
+    return Chart(wide, summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
 
 
 def daytype_chart(by_daytype: dict, subject: str, min_sample: int) -> Chart | None:
     present = [(DAYTYPE_LABELS[d], by_daytype.get(d)) for d in DAYTYPES if by_daytype.get(d) and by_daytype[d]["n"] > 0]
     if not any(enough(p, min_sample) for _, p in present):
         return None
-    body, height = _stacked([(label, p, "headline") for label, p in present], min_sample)
+    rows_in = [(label, p, "headline") for label, p in present]
     parts = [f"{label.lower()} {_pct(p)}" if enough(p, min_sample) else f"{label.lower()} not enough data" for label, p in present]
     summary = f"{subject}, on time by day type: {', '.join(parts)}."
     rows = [[label, *_count_cells(p)] for label, p in present]
-    return Chart(_svg(height, body, summary), summary, ["Day type", "Departures", "Early", "On time", "Late"], rows, legend=True)
+    wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample), summary)
+    return Chart(wide, summary, ["Day type", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
 
 
 # Delay histogram
+
+
+def _histogram(L: Layout, hist: dict, values: list[int], kinds: list[str], labels: list[str]) -> tuple[list[str], int]:
+    start, counts = hist["start_min"], hist["counts"]
+    top, plot_h, base = 26, 120, 146
+    step = L.plot / len(values)
+    peak = max(values) or 1
+    body = [f'<line x1="{L.left}" y1="{base}" x2="{L.width - L.right}" y2="{base}" class="axis"/>']
+    for i, (v, kind, label) in enumerate(zip(values, kinds, labels)):
+        h = plot_h * v / peak
+        if v:
+            body.append(_rect(L.left + i * step + 1, base - h, step - 2, h, kind, f"{label}: {number(v)} departures"))
+    # Bracket over the on-time window (0 to 5 min late, buckets 0 to 4).
+    x0 = L.left + (1 - start) * step
+    x1 = x0 + 5 * step
+    body.append(f'<path d="M{x0:.1f} {top + 6} V{top} H{x1:.1f} V{top + 6}" class="bracket"/>')
+    body.append(_text((x0 + x1) / 2, top - 4, "On time", "middle"))
+    for m in range(start, start + len(counts) + 1, 5):
+        x = L.left + (1 + m - start) * step
+        body.append(_text(x, base + 14, f"{m:+d}" if m else "0", "middle", "small"))
+    body.append(_text(L.left + L.plot / 2, base + 30, "Minutes late (negative is early)", "middle", "small"))
+    return body, base + 36
 
 
 def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
@@ -128,63 +182,52 @@ def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
     labels = [f"before {start} min"] + [f"{m} to {m + 1} min" for m in range(start, start + len(counts))]
     labels.append(f"{start + len(counts)} min or more")
     kinds = ["early"] + ["early" if m < 0 else "on-time" if m < 5 else "late" for m in range(start, start + len(counts))] + ["late"]
-
-    top, plot_h, base = 26, 120, 146
-    step = PLOT / len(values)
-    peak = max(values) or 1
-    body = [f'<line x1="{LEFT}" y1="{base}" x2="{WIDTH - RIGHT}" y2="{base}" class="axis"/>']
-    for i, (v, kind, label) in enumerate(zip(values, kinds, labels)):
-        h = plot_h * v / peak
-        if v:
-            body.append(_rect(LEFT + i * step + 1, base - h, step - 2, h, kind, f"{label}: {number(v)} departures"))
-    # Bracket over the on-time window (0 to 5 min late, buckets 0 to 4).
-    x0 = LEFT + (1 - start) * step
-    x1 = x0 + 5 * step
-    body.append(f'<path d="M{x0:.1f} {top + 6} V{top} H{x1:.1f} V{top + 6}" class="bracket"/>')
-    body.append(_text((x0 + x1) / 2, top - 4, "On time", "middle"))
-    for m in range(start, start + len(counts) + 1, 5):
-        x = LEFT + (1 + m - start) * step
-        body.append(_text(x, base + 14, f"{m:+d}" if m else "0", "middle", "small"))
-    body.append(_text(LEFT + PLOT / 2, base + 30, "Minutes late (negative is early)", "middle", "small"))
     summary = (
         f"{subject}: median departure {delay_text(perf['p50'])}; 80% of departures were between "
         f"{delay_text(perf['p10'])} and {delay_text(perf['p90'])}."
     )
     rows = [[label, number(v)] for label, v in zip(labels, values)]
-    return Chart(_svg(base + 36, body, summary), summary, ["Delay", "Departures"], rows, legend=True)
+    wide, narrow = _both(lambda L: _histogram(L, hist, values, kinds, labels), summary)
+    return Chart(wide, summary, ["Delay", "Departures"], rows, legend=True, svg_narrow=narrow)
 
 
 # On time by hour
 
 
-def _axis_y(body: list[str], top: int, plot_h: int) -> None:
+def _axis_y(L: Layout, body: list[str], top: int, plot_h: int) -> None:
     for pct in (0, 50, 100):
         y = top + plot_h * (100 - pct) / 100
-        body.append(f'<line x1="{LEFT}" y1="{y:g}" x2="{WIDTH - RIGHT}" y2="{y:g}" class="grid"/>')
-        body.append(_text(LEFT - 6, y + 4, f"{pct}%", "end", "small"))
+        body.append(f'<line x1="{L.left}" y1="{y:g}" x2="{L.width - L.right}" y2="{y:g}" class="grid"/>')
+        body.append(_text(L.left - 6, y + 4, f"{pct}%", "end", "small"))
+
+
+def _hours(L: Layout, by_hour: list[dict], min_sample: int) -> tuple[list[str], int]:
+    top, plot_h = 16, 140
+    base = top + plot_h
+    step = L.plot / len(by_hour)
+    body: list[str] = []
+    _axis_y(L, body, top, plot_h)
+    for i, h in enumerate(by_hour):
+        cx = L.left + i * step + step / 2
+        if enough(h, min_sample):
+            share = h["on_time"] / h["n"]
+            bh = plot_h * share
+            body.append(_rect(cx - step / 2 + 2, base - bh, step - 4, bh, "on-time",
+                              f"{hour_text(h['hour'])}: {_pct(h, digits=1)} on time, {number(h['n'])} departures"))
+            # Values over the bars only where they fit; the titles and the table have them all.
+            if len(by_hour) <= 24 and not L.narrow:
+                body.append(_text(cx, base - bh - 3, _pct(h).rstrip("%"), "middle", "small"))
+        if h["hour"] % 3 == 0:
+            body.append(_text(cx, base + 14, str(h["hour"]), "middle", "small"))
+    caption = "Hour of the day (24 and later: after midnight)" if L.narrow else "Hour of the service day (24 and later: after midnight)"
+    body.append(_text(L.left + L.plot / 2, base + 30, caption, "middle", "small"))
+    return body, base + 36
 
 
 def hour_chart(by_hour: list[dict], subject: str, min_sample: int) -> Chart | None:
     usable = [h for h in by_hour if enough(h, min_sample)]
     if not usable:
         return None
-    top, plot_h = 16, 140
-    base = top + plot_h
-    step = PLOT / len(by_hour)
-    body: list[str] = []
-    _axis_y(body, top, plot_h)
-    for i, h in enumerate(by_hour):
-        cx = LEFT + i * step + step / 2
-        if enough(h, min_sample):
-            share = h["on_time"] / h["n"]
-            bh = plot_h * share
-            body.append(_rect(cx - step / 2 + 2, base - bh, step - 4, bh, "on-time",
-                              f"{hour_text(h['hour'])}: {_pct(h, digits=1)} on time, {number(h['n'])} departures"))
-            if len(by_hour) <= 24:
-                body.append(_text(cx, base - bh - 3, _pct(h).rstrip("%"), "middle", "small"))
-        if h["hour"] % 3 == 0:
-            body.append(_text(cx, base + 14, str(h["hour"]), "middle", "small"))
-    body.append(_text(LEFT + PLOT / 2, base + 30, "Hour of the service day (24 and later: after midnight)", "middle", "small"))
     best = max(usable, key=lambda h: (h["on_time"] / h["n"], -h["hour"]))
     worst = min(usable, key=lambda h: (h["on_time"] / h["n"], h["hour"]))
     summary = (
@@ -193,28 +236,26 @@ def hour_chart(by_hour: list[dict], subject: str, min_sample: int) -> Chart | No
     )
     rows = [[hour_text(h["hour"]), *_count_cells(h)] if enough(h, min_sample)
             else [hour_text(h["hour"]), number(h["n"]), "Not enough data", "", ""] for h in by_hour]
-    return Chart(_svg(base + 36, body, summary), summary, ["Hour", "Departures", "Early", "On time", "Late"], rows)
+    wide, narrow = _both(lambda L: _hours(L, by_hour, min_sample), summary)
+    return Chart(wide, summary, ["Hour", "Departures", "Early", "On time", "Late"], rows, svg_narrow=narrow)
 
 
 # Daily trend
 
 
-def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | None:
-    usable = [d for d in daily if enough(d, min_sample)]
-    if len(usable) < 2:
-        return None
+def _days(L: Layout, daily: list[dict], min_sample: int) -> tuple[list[str], int]:
     top, plot_h = 10, 140
     base = top + plot_h
-    step = PLOT / max(len(daily) - 1, 1)
+    step = L.plot / max(len(daily) - 1, 1)
     body: list[str] = []
-    _axis_y(body, top, plot_h)
+    _axis_y(L, body, top, plot_h)
 
     # Days without enough data break the line rather than being bridged.
     segment: list[str] = []
     segments: list[list[str]] = []
     for i, d in enumerate(daily):
         if enough(d, min_sample):
-            x = LEFT + i * step
+            x = L.left + i * step
             y = top + plot_h * (1 - d["on_time"] / d["n"])
             segment.append(f"{x:.1f},{y:.1f}")
             body.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" class="hit"><title>'
@@ -235,8 +276,14 @@ def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | Non
     for i, d in enumerate(daily):
         if i in (0, last) or (d["date"].endswith("-01") and 4 <= i <= last - 4):
             anchor = "start" if i == 0 else "end" if i == last else "middle"
-            body.append(_text(LEFT + i * step, base + 14, date_text(d["date"]).rsplit(",", 1)[0], anchor, "small"))
+            body.append(_text(L.left + i * step, base + 14, date_text(d["date"]).rsplit(",", 1)[0], anchor, "small"))
+    return body, base + 22
 
+
+def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | None:
+    usable = [d for d in daily if enough(d, min_sample)]
+    if len(usable) < 2:
+        return None
     shares = [(d["on_time"] / d["n"], d) for d in usable]
     low = min(shares, key=lambda s: (s[0], s[1]["date"]))[1]
     high = max(shares, key=lambda s: (s[0], s[1]["date"]))[1]
@@ -247,4 +294,5 @@ def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | Non
     )
     rows = [[date_text(d["date"]), *_count_cells(d)] if enough(d, min_sample)
             else [date_text(d["date"]), number(d["n"]), "Not enough data", "", ""] for d in reversed(daily)]
-    return Chart(_svg(base + 22, body, summary), summary, ["Date", "Departures", "Early", "On time", "Late"], rows)
+    wide, narrow = _both(lambda L: _days(L, daily, min_sample), summary)
+    return Chart(wide, summary, ["Date", "Departures", "Early", "On time", "Late"], rows, svg_narrow=narrow)

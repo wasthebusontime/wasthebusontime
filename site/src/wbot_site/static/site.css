@@ -136,6 +136,14 @@ table.data .def { display: block; font-weight: 400; font-size: .8rem; color: var
 /* Charts (inline SVG drawn at build time) */
 .chart { margin: 1.5rem 0; }
 .chart svg { width: 100%; height: auto; display: block; }
+/* Each chart is drawn twice; phones get the narrow drawing, shown at about 1:1 so its text stays readable. */
+.chart-narrow { display: none; }
+@media (max-width: 32rem) {
+  .chart-wide { display: none; }
+  .chart-narrow { display: block; }
+}
+.chart-narrow text { font-size: 13px; }
+.chart-narrow text.small { font-size: 11.5px; }
 .chart figcaption { font-size: .9rem; color: var(--muted); }
 .chart text { font-family: var(--font); font-size: 12px; fill: var(--text); font-variant-numeric: tabular-nums; }
 .chart text.small { font-size: 10px; fill: var(--muted); }

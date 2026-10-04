@@ -1,0 +1,12 @@
+<svg viewBox="0 0 320 132" role="img" aria-label="Route 901: 85% on time, 6% early, 9% late, 200 departures (Intercity Transit&#x27;s definition, 0 to 5 min late)." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="16" text-anchor="start">0 to 5 min late (Intercity Transit):</text>
+<text x="0" y="32" text-anchor="start">85% on time, 6% early, 9% late</text>
+<rect x="0.0" y="38.0" width="17.2" height="20.0" class="early"><title>0 to 5 min late (Intercity Transit): 12 early (6.0%)</title></rect>
+<rect x="19.2" y="38.0" width="270.0" height="20.0" class="on-time"><title>0 to 5 min late (Intercity Transit): 170 on time (85.0%)</title></rect>
+<rect x="291.2" y="38.0" width="26.8" height="20.0" class="late"><title>0 to 5 min late (Intercity Transit): 18 late (9.0%)</title></rect>
+<text x="0" y="82" text-anchor="start">1 min early to 5 min late:</text>
+<text x="0" y="98" text-anchor="start">89% on time, 2% early, 9% late</text>
+<rect x="0.0" y="104.0" width="4.4" height="20.0" class="early"><title>1 min early to 5 min late: 4 early (2.0%)</title></rect>
+<rect x="6.4" y="104.0" width="282.8" height="20.0" class="on-time"><title>1 min early to 5 min late: 178 on time (89.0%)</title></rect>
+<rect x="291.2" y="104.0" width="26.8" height="20.0" class="late"><title>1 min early to 5 min late: 18 late (9.0%)</title></rect>
+</svg>
