@@ -26,6 +26,7 @@ class Chart:
     summary: str
     headers: list[str]
     rows: list[list[str]]
+    legend: bool = False  # colored early / on time / late, so the page shows a key
 
 
 def _svg(height: int, body: list[str], label: str) -> str:
@@ -100,7 +101,7 @@ def headline_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
         ["0 to 5 min late (Intercity Transit's definition)", *_count_cells(perf)],
         ["1 min early to 5 min late", *_count_cells(perf, "alt")],
     ]
-    return Chart(_svg(height, body, summary), summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows)
+    return Chart(_svg(height, body, summary), summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True)
 
 
 def daytype_chart(by_daytype: dict, subject: str, min_sample: int) -> Chart | None:
@@ -111,7 +112,7 @@ def daytype_chart(by_daytype: dict, subject: str, min_sample: int) -> Chart | No
     parts = [f"{label.lower()} {_pct(p)}" if enough(p, min_sample) else f"{label.lower()} not enough data" for label, p in present]
     summary = f"{subject}, on time by day type: {', '.join(parts)}."
     rows = [[label, *_count_cells(p)] for label, p in present]
-    return Chart(_svg(height, body, summary), summary, ["Day type", "Departures", "Early", "On time", "Late"], rows)
+    return Chart(_svg(height, body, summary), summary, ["Day type", "Departures", "Early", "On time", "Late"], rows, legend=True)
 
 
 # Delay histogram
@@ -150,7 +151,7 @@ def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
         f"{delay_text(perf['p10'])} and {delay_text(perf['p90'])}."
     )
     rows = [[label, number(v)] for label, v in zip(labels, values)]
-    return Chart(_svg(base + 36, body, summary), summary, ["Delay", "Departures"], rows)
+    return Chart(_svg(base + 36, body, summary), summary, ["Delay", "Departures"], rows, legend=True)
 
 
 # On time by hour

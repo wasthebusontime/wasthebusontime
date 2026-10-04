@@ -21,17 +21,24 @@ function css(name) {
   return getComputedStyle(root).getPropertyValue(name).trim();
 }
 
+// The basemap follows the page: Protomaps' neutral "white" flavor, or "black" in dark mode.
+const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+let pmtilesReady = false;
+
 function basemapStyle(tiles) {
   const origin = location.origin;
   if (!tiles || !window.pmtiles || !window.basemaps) {
     return { version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": css("--map-blank") } }] };
   }
-  const protocol = new window.pmtiles.Protocol();
-  maplibregl.addProtocol("pmtiles", protocol.tile);
+  if (!pmtilesReady) {
+    maplibregl.addProtocol("pmtiles", new window.pmtiles.Protocol().tile);
+    pmtilesReady = true;
+  }
+  const flavor = darkScheme.matches ? "black" : "white";
   return {
     version: 8,
     glyphs: origin + "/static/vendor/protomaps/fonts/{fontstack}/{range}.pbf",
-    sprite: origin + "/static/vendor/protomaps/sprites/grayscale",
+    sprite: origin + "/static/vendor/protomaps/sprites/" + flavor,
     sources: {
       protomaps: {
         type: "vector",
@@ -39,7 +46,7 @@ function basemapStyle(tiles) {
         attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, <a href="https://protomaps.com">Protomaps</a>',
       },
     },
-    layers: window.basemaps.layers("protomaps", window.basemaps.namedFlavor("grayscale"), { lang: "en" }),
+    layers: window.basemaps.layers("protomaps", window.basemaps.namedFlavor(flavor), { lang: "en" }),
   };
 }
 
@@ -236,6 +243,31 @@ async function start(root) {
       },
     });
     routeFilter();
+
+    // Light or dark mode changed while the page is open: swap the basemap under our layers
+    // (keeping their data and filters) and recolor them from the new CSS values.
+    darkScheme.addEventListener("change", () => {
+      const ours = ["routes", "route-selected", "stops"];
+      const bins = ["--map-bin-0", "--map-bin-1", "--map-bin-2", "--map-bin-3"].map(css);
+      const colors = {
+        routes: { "line-color": css("--map-route") },
+        "route-selected": { "line-color": css("--map-route-selected") },
+        stops: {
+          "circle-color": ["match", ["get", "bin"], 0, bins[0], 1, bins[1], 2, bins[2], 3, bins[3], css("--map-nodata")],
+          "circle-stroke-color": css("--map-stop-stroke"),
+        },
+      };
+      map.setStyle(basemapStyle(root.dataset.tiles), {
+        transformStyle: (prev, next) => ({
+          ...next,
+          sources: { ...next.sources, routes: prev.sources.routes, stops: prev.sources.stops },
+          layers: [
+            ...next.layers,
+            ...prev.layers.filter((l) => ours.includes(l.id)).map((l) => ({ ...l, paint: { ...l.paint, ...colors[l.id] } })),
+          ],
+        }),
+      });
+    });
 
     map.on("click", "stops", (e) => openStop(e.features[0].properties.i));
     map.on("mouseenter", "stops", () => (map.getCanvas().style.cursor = "pointer"));

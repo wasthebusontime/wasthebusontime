@@ -1,35 +1,65 @@
-/* Placeholder styling. Palette, typography and layout are decided in the style-guide
-   session; every color lives in a variable below so it can be swapped in one place.
-   The palette must not resemble Intercity Transit's brand colors. */
+/* Palette and type are set in docs/planning/topics/style-guide.md (style guide, 2026-10-04):
+   validated with the dataviz palette validator, WCAG AA for text, and kept away from
+   Intercity Transit's brand colors. Every color is a variable here, with a dark set below. */
 :root {
-  --bg: #ffffff;
-  --text: #222222;
-  --muted: #5f5f5f;
-  --rule: #d6d6d6;
-  --panel: #f4f4f4;
-  --link: #5a3e85;
-  --banner-dev: #fff3c4;
-  --banner-sample: #ffd9d4;
-  --early: #d08a2e;
-  --on-time: #7a5aa8;
-  --late: #262626;
-  --grid: #e3e3e3;
-  /* Stop map: marker bins from best (0) to worst (3), placeholder sequential ramp. */
-  --map-bin-0: #e4dcf2;
-  --map-bin-1: #a98ed6;
-  --map-bin-2: #6c45ad;
-  --map-bin-3: #2e1260;
-  --map-nodata: #9a9a9a;
-  --map-stop-stroke: #222222;
-  --map-route: #6b6b6b;
-  --map-route-selected: #c7741c;
-  --map-blank: #eef0f2;
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --text: #1d1a15;
+  --muted: #5f5a51;
+  --rule: #dbd7cf;
+  --panel: #f3f0ea;
+  --link: #65389f;
+  --banner-dev: #fbefc2;
+  --banner-sample: #fedcd3;
+  --early: #af7c00;
+  --on-time: #008e88;
+  --late: #a4283a;
+  --grid: #e6e2da;
+  /* Stop map: marker bins from best (0) to worst (3), one violet ramp, worst most intense. */
+  --map-bin-0: #a183d4;
+  --map-bin-1: #8561bd;
+  --map-bin-2: #6a3fa3;
+  --map-bin-3: #4e2281;
+  --map-nodata: #a8a39a;
+  --map-stop-stroke: #ffffff;
+  --map-route: #8a857b;
+  --map-route-selected: #1d1a15;
+  --map-blank: #ffffff;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%235f5a51'/%3E%3C/svg%3E");
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151411;
+    --text: #eae7e2;
+    --muted: #afaaa0;
+    --rule: #383530;
+    --panel: #201e1a;
+    --link: #bca1ed;
+    --banner-dev: #4c4219;
+    --banner-sample: #59302a;
+    --early: #b98a00;
+    --on-time: #1d9999;
+    --late: #bd404d;
+    --grid: #2b2924;
+    /* On a dark map the brightest dot is the most intense, so the ramp runs dark to light. */
+    --map-bin-0: #8059bb;
+    --map-bin-1: #9f7ed6;
+    --map-bin-2: #bea6eb;
+    --map-bin-3: #daccf7;
+    --map-nodata: #6e6a62;
+    --map-stop-stroke: #141414;
+    --map-route: #6e6a62;
+    --map-route-selected: #eae7e2;
+    --map-blank: #141414;
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23afaaa0'/%3E%3C/svg%3E");
+  }
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; }
 a { color: var(--link); }
+input, select, button { accent-color: var(--link); }
 main, .site-header, .site-footer { max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
 
 .banner { margin: 0; padding: .3rem 1rem; font-size: .85rem; font-weight: 600; text-align: center; }
@@ -87,6 +117,12 @@ table.data .def { display: block; font-weight: 400; font-size: .75rem; color: va
 .chart .dot { fill: var(--on-time); }
 .chart .hit { fill: transparent; }
 .chart-title { font-size: 1rem; margin: 0 0 .25rem; }
+/* Key for charts colored early / on time / late, so color is never the only label. */
+.chart-legend { list-style: none; padding: 0; margin: .25rem 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .85rem; }
+.chart-legend .key { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; margin-right: .35rem; vertical-align: -.05rem; }
+.chart-legend .early { background: var(--early); }
+.chart-legend .on-time { background: var(--on-time); }
+.chart-legend .late { background: var(--late); }
 .chart .bracket { fill: none; stroke: var(--text); stroke-width: 1; }
 
 /* Stop index */
@@ -101,7 +137,7 @@ table.data .def { display: block; font-weight: 400; font-size: .75rem; color: va
 .map-controls label, .multi summary { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); }
 /* Dropdowns and checkbox panels share one box style, so all five controls look alike. */
 .map-controls select, .multi-value {
-  appearance: none; font: inherit; font-size: 1rem; line-height: 1.4; color: var(--text); background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23444'/%3E%3C/svg%3E") no-repeat right .55rem center;
+  appearance: none; font: inherit; font-size: 1rem; line-height: 1.4; color: var(--text); background: var(--bg) var(--select-arrow) no-repeat right .55rem center;
   border: 1px solid var(--muted); border-radius: 4px; padding: .3rem 1.8rem .3rem .5rem; min-width: 8rem; cursor: pointer;
 }
 /* Checkbox lists that open like a dropdown */
@@ -124,3 +160,17 @@ table.data .def { display: block; font-weight: 400; font-size: .75rem; color: va
 .map-status { color: var(--muted); font-size: .9rem; }
 .map-popup { font-family: var(--font); font-size: .85rem; line-height: 1.4; }
 .map-popup div { margin: .15rem 0; }
+/* MapLibre's popup and controls are white by default; follow the page colors instead. */
+.stop-map .maplibregl-popup-content { background: var(--bg); color: var(--text); }
+.stop-map .maplibregl-popup-close-button { color: var(--text); }
+.stop-map .maplibregl-popup-anchor-top .maplibregl-popup-tip, .stop-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .stop-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--bg); }
+.stop-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .stop-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .stop-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--bg); }
+.stop-map .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--bg); }
+.stop-map .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--bg); }
+.stop-map .maplibregl-ctrl-attrib { background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--text); }
+.stop-map .maplibregl-ctrl-attrib a { color: var(--text); }
+.stop-map .maplibregl-ctrl-group { background: var(--bg); }
+.stop-map .maplibregl-ctrl-group button + button { border-top-color: var(--rule); }
+@media (prefers-color-scheme: dark) {
+  .stop-map .maplibregl-ctrl-icon, .stop-map .maplibregl-ctrl-attrib-button { filter: invert(1); }
+}

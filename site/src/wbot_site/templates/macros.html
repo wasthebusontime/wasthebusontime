@@ -131,6 +131,9 @@
 {% if c %}
 <figure class="chart">
 <h3 class="chart-title">{{ title }}</h3>
+{% if c.legend %}
+<ul class="chart-legend" aria-hidden="true"><li><span class="key early"></span>Early</li><li><span class="key on-time"></span>On time</li><li><span class="key late"></span>Late</li></ul>
+{% endif %}
 {{ c.svg | safe }}
 <figcaption>{{ c.summary }}</figcaption>
 <details class="chart-table">
