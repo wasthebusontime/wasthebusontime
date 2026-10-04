@@ -2,7 +2,7 @@
 {% block styles %}
 {{ super() }}
 {% if stop_map %}
-<link rel="stylesheet" href="/static/vendor/maplibre-gl/maplibre-gl.css">
+<link rel="stylesheet" href="{{ "/static/vendor/maplibre-gl/maplibre-gl.css" | asset }}">
 {% endif %}
 {% endblock %}
 {% block main %}
@@ -26,35 +26,25 @@
 {% endfor %}
       </select>
     </label>
-    {# Checkbox lists in small disclosures; map.js keeps each summary line up to date. #}
-    <details class="multi" data-name="daytype" data-all="Every day">
-      <summary><span class="multi-label">Days</span> <span class="multi-value">Every day</span></summary>
+    {# Checkbox lists in small disclosures, everything ticked to start. "All" ticks or
+       unticks the whole list, Reset ticks everything again; map.js keeps "All" and the
+       summary line in step with the other boxes. #}
+{% macro checklist(name, label, all_label, items) %}
+    <details class="multi" data-name="{{ name }}" data-all="{{ all_label }}">
+      <summary><span class="multi-label">{{ label }}</span> <span class="multi-value">{{ all_label }}</span></summary>
       <fieldset>
-        <legend>Days</legend>
-{% for key, label in stop_map.daytypes %}
-        <label><input type="checkbox" name="daytype" value="{{ key }}" checked> {{ label }}</label>
+        <legend>{{ label }}</legend>
+        <label class="multi-all-label"><input type="checkbox" class="multi-all" checked> All</label>
+{% for key, text in items %}
+        <label><input type="checkbox" name="{{ name }}" value="{{ key }}" checked> {{ text }}</label>
 {% endfor %}
+        <button type="button" class="multi-reset">Reset</button>
       </fieldset>
     </details>
-    <details class="multi" data-name="band" data-all="All day">
-      <summary><span class="multi-label">Time of day</span> <span class="multi-value">All day</span></summary>
-      <fieldset>
-        <legend>Time of day</legend>
-{% for key, label in stop_map.bands %}
-        <label><input type="checkbox" name="band" value="{{ key }}" checked> {{ label }}</label>
-{% endfor %}
-      </fieldset>
-    </details>
-    <details class="multi" data-name="route" data-all="All routes">
-      <summary><span class="multi-label">Routes</span> <span class="multi-value">All routes</span></summary>
-      <fieldset>
-        <legend>Routes (none ticked shows all)</legend>
-{% for slug, label in stop_map.routes %}
-        <label><input type="checkbox" name="route" value="{{ slug }}"> {{ label }}</label>
-{% endfor %}
-        <button type="button" class="multi-clear">Clear</button>
-      </fieldset>
-    </details>
+{% endmacro %}
+{{ checklist("daytype", "Days", "Every day", stop_map.daytypes) }}
+{{ checklist("band", "Time of day", "All day", stop_map.bands) }}
+{{ checklist("route", "Routes", "All routes", stop_map.routes) }}
   </form>
   <div class="map" id="map"></div>
   <ul class="map-legend" aria-label="Legend">
@@ -82,8 +72,8 @@
 {% block scripts %}
 {{ super() }}
 {% if stop_map %}
-<script src="/static/vendor/pmtiles/pmtiles.js" defer></script>
-<script src="/static/vendor/protomaps/basemaps.js" defer></script>
-<script type="module" src="/static/map.js"></script>
+<script src="{{ "/static/vendor/pmtiles/pmtiles.js" | asset }}" defer></script>
+<script src="{{ "/static/vendor/protomaps/basemaps.js" | asset }}" defer></script>
+<script type="module" src="{{ "/static/map.js" | asset }}"></script>
 {% endif %}
 {% endblock %}

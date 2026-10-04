@@ -13,3 +13,5 @@ Third-party files served from our own domain, so visitors never load anything fr
 The map tiles themselves are not in this repository: see `site/tools/make_tiles.sh`. They are OpenStreetMap data (© OpenStreetMap contributors, ODbL) processed by Protomaps, credited on the map and on `/data/`.
 
 Fetched 2026-10-04 from registry.npmjs.org tarballs and raw.githubusercontent.com.
+
+**Upgrading MapLibre:** `map.js` imports `maplibre-gl.mjs` by a fixed path, and it loads its shared and worker modules by relative path, so a browser could mix cached old and new files. Put the new version in a new folder (for example `maplibre-gl-7/`) and update the import in `map.js` and the stylesheet link in `stops.html`. The other files are linked with a content fingerprint by the build, so they are fetched fresh when they change.

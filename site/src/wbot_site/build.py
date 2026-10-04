@@ -9,6 +9,7 @@ tile file for the stop map; without it the map has no basemap.
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -76,6 +77,12 @@ def choose_stats(stats_dir: Path | None, env: str) -> Stats:
     return stats
 
 
+def asset_url(path: str) -> str:
+    """/static/site.css -> /static/site.css?v=<content hash>, so browsers never keep a stale copy."""
+    digest = hashlib.sha256((STATIC_DIR / path.removeprefix("/static/")).read_bytes()).hexdigest()[:10]
+    return f"{path}?v={digest}"
+
+
 def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
     jinja = Environment(
         loader=PackageLoader("wbot_site"),
@@ -104,6 +111,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         fraction=data.fraction,
     )
     jinja.filters.update(
+        asset=asset_url,
         number=data.number,
         delay=data.delay_text,
         date=data.date_text,

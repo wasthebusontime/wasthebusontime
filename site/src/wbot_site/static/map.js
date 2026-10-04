@@ -118,6 +118,10 @@ async function start(root) {
     return form.querySelectorAll(`input[name="${name}"]`).length;
   }
 
+  function nothingTicked() {
+    return ["daytype", "band", "route"].some((name) => ticked(name).length === 0);
+  }
+
   // Counts add up, so several days or times of day are the sum of their presets.
   // When every box is ticked, the precomputed "all" preset gives the same numbers in one file.
   let current = [];
@@ -133,14 +137,18 @@ async function start(root) {
     return current;
   }
 
+  // Keeps a panel's "All" box and its summary line in step with the other boxes.
   function summarize(details) {
-    const boxes = [...details.querySelectorAll("input")];
+    const boxes = [...details.querySelectorAll(`input[name="${details.dataset.name}"]`)];
     const on = boxes.filter((box) => box.checked);
-    const all = on.length === boxes.length || (details.dataset.name === "route" && on.length === 0);
+    const allBox = details.querySelector(".multi-all");
+    allBox.checked = on.length === boxes.length;
+    allBox.indeterminate = on.length > 0 && on.length < boxes.length;
     const names = details.dataset.name === "route"
       ? on.map((box) => box.value)
       : on.map((box) => box.parentElement.textContent.trim().replace(/ \(.*\)$/, ""));
-    details.querySelector(".multi-value").textContent = all ? details.dataset.all : names.join(", ");
+    details.querySelector(".multi-value").textContent =
+      on.length === boxes.length ? details.dataset.all : on.length === 0 ? "None" : names.join(", ");
   }
 
   async function stopFeatures() {
@@ -159,27 +167,44 @@ async function start(root) {
   // Routes narrow which stops show; a stop's numbers still cover every route serving it.
   function routeFilter() {
     const chosen = ticked("route");
-    map.setFilter("stops", chosen.length ? ["any", ...chosen.map((r) => ["in", "," + r + ",", ["get", "routes"]])] : null);
-    map.setFilter("route-selected", ["in", ["get", "slug"], ["literal", chosen]]);
-    map.setPaintProperty("routes", "line-opacity", chosen.length ? 0.25 : 0.7);
+    const some = chosen.length > 0 && chosen.length < everyBox("route");
+    map.setFilter("stops", some ? ["any", ...chosen.map((r) => ["in", "," + r + ",", ["get", "routes"]])] : null);
+    map.setFilter("route-selected", ["in", ["get", "slug"], ["literal", some ? chosen : []]]);
+    map.setPaintProperty("routes", "line-opacity", some ? 0.25 : 0.7);
   }
 
   function fitRoutes() {
     const chosen = ticked("route");
+    if (!chosen.length) return;
     const b = new maplibregl.LngLatBounds();
-    stops.filter((s) => !chosen.length || s.routes.some((r) => chosen.includes(r))).forEach((s) => b.extend([s.lon, s.lat]));
+    stops.filter((s) => s.routes.some((r) => chosen.includes(r))).forEach((s) => b.extend([s.lon, s.lat]));
     map.fitBounds(b, { padding: 40, maxZoom: 15 });
   }
 
   async function refresh() {
     // An open popup would show the previous choice's numbers.
     document.querySelectorAll(".maplibregl-popup").forEach((popup) => popup.remove());
+    if (nothingTicked()) {
+      map.getSource("stops").setData({ type: "FeatureCollection", features: [] });
+      status.textContent = "No stops shown: tick at least one day, one time of day and one route.";
+      return;
+    }
     try {
       map.getSource("stops").setData(await stopFeatures());
       status.textContent = "";
     } catch (e) {
       status.textContent = "Couldn't load the numbers for this choice.";
     }
+  }
+
+  // After any change in a checkbox panel: routes refilter, days and times reload counts.
+  function applied(details) {
+    summarize(details);
+    if (details.dataset.name === "route") {
+      routeFilter();
+      fitRoutes();
+    }
+    refresh();
   }
 
   async function openStop(i) {
@@ -218,15 +243,12 @@ async function start(root) {
 
     form.addEventListener("change", (e) => {
       const details = e.target.closest("details.multi");
-      if (details && e.target.name !== "route" && ticked(e.target.name).length === 0) {
-        e.target.checked = true; // keep at least one day and one time of day
-        status.textContent = "Keep at least one box ticked.";
-        return;
-      }
-      if (details) summarize(details);
-      if (e.target.name === "route") {
-        routeFilter();
-        fitRoutes();
+      if (details) {
+        // "All" ticks or unticks every box; the other boxes then set "All" (in summarize).
+        if (e.target.classList.contains("multi-all")) {
+          details.querySelectorAll(`input[name="${details.dataset.name}"]`).forEach((box) => (box.checked = e.target.checked));
+        }
+        applied(details);
         return;
       }
       if (e.target.name === "scope") {
@@ -252,12 +274,10 @@ async function start(root) {
   document.addEventListener("click", (e) => {
     panels.filter((d) => d.open && !d.contains(e.target)).forEach((d) => (d.open = false));
   });
-  form.querySelector(".multi-clear").addEventListener("click", () => {
-    form.querySelectorAll('input[name="route"]').forEach((box) => (box.checked = false));
-    summarize(form.querySelector('details[data-name="route"]'));
-    if (map.getLayer("stops")) {
-      routeFilter();
-      fitRoutes();
-    }
-  });
+  // Reset ticks every box in its panel again.
+  panels.forEach((details) => details.querySelector(".multi-reset").addEventListener("click", () => {
+    details.querySelectorAll("input[type=checkbox]").forEach((box) => (box.checked = true));
+    if (map.getLayer("stops")) applied(details);
+    else summarize(details);
+  }));
 }

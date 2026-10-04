@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import shutil
@@ -84,21 +85,28 @@ def test_dev_pages_have_banners_and_noindex(dev_site):
     assert (dev_site / "robots.txt").read_text() == "User-agent: *\nDisallow: /\n"
 
 
-MAP_SCRIPTS = [
-    '<script src="/static/vendor/pmtiles/pmtiles.js" defer></script>',
-    '<script src="/static/vendor/protomaps/basemaps.js" defer></script>',
-    '<script type="module" src="/static/map.js"></script>',
-]
+SITE_SCRIPTS = ["/static/site.js"]
+MAP_SCRIPTS = ["/static/vendor/pmtiles/pmtiles.js", "/static/vendor/protomaps/basemaps.js", "/static/map.js"]
 
 
 def test_pages_load_only_our_own_scripts(dev_site):
     for page in html_pages(dev_site):
         html = page.read_text(encoding="utf-8")
         # Our optional site script everywhere, the map scripts on /stops/ only; no inline scripts.
-        allowed = ['<script src="/static/site.js" defer></script>']
-        if page == dev_site / "stops" / "index.html":
-            allowed += MAP_SCRIPTS
-        assert html.count("<script") == sum(html.count(s) for s in allowed), page
+        allowed = SITE_SCRIPTS + (MAP_SCRIPTS if page == dev_site / "stops" / "index.html" else [])
+        if page == dev_site / "unavailable" / "index.html":
+            allowed = []  # self-contained: inline CSS, no scripts
+        scripts = re.findall(r"<script[^>]*>", html)
+        found = sorted(re.search(r'src="([^"?]+)\?v=[0-9a-f]{10}"', s).group(1) for s in scripts)
+        assert found == sorted(allowed), page
+
+
+def test_static_links_carry_a_content_fingerprint(dev_site, tmp_path):
+    html = (dev_site / "index.html").read_text(encoding="utf-8")
+    link = re.search(r'href="/static/site.css\?v=([0-9a-f]{10})"', html)
+    assert link
+    digest = hashlib.sha256((dev_site / "static" / "site.css").read_bytes()).hexdigest()[:10]
+    assert link.group(1) == digest
 
 
 def test_nothing_is_loaded_from_another_host(dev_site):
@@ -272,6 +280,9 @@ def test_stop_map_days_times_and_routes_are_checkboxes(dev_site):
         assert f'<input type="checkbox" name="daytype" value="{day}" checked>' in html
     for band in ("early", "am_peak", "midday", "pm_peak", "evening"):
         assert f'<input type="checkbox" name="band" value="{band}" checked>' in html
-    assert html.count('<input type="checkbox" name="route"') == 6  # unticked: all routes
+    for route in ("901", "902", "903", "904", "905", "906"):
+        assert f'<input type="checkbox" name="route" value="{route}" checked>' in html
+    assert html.count('<input type="checkbox" class="multi-all" checked> All') == 3
+    assert html.count('<button type="button" class="multi-reset">Reset</button>') == 3
     assert '<span class="multi-label">Routes</span>' in html
     assert 'name="daytype"' not in html.split('<details class="multi"')[0]  # no Days dropdown left
