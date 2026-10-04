@@ -17,6 +17,7 @@ src/wbot_site/static/vendor/  MapLibre, pmtiles, Protomaps style, fonts and icon
 content/                  Markdown pages: about (including AI use), terms, privacy, methodology, data, unavailable
 tools/make_sample.py      writes the synthetic sample stats
 tools/make_tiles.sh       cuts the basemap tile file for the stop map (not committed)
+tools/make_icons.py       draws the site icon (favicon.svg, favicon.ico, apple-touch-icon.png); run with uv run --with pillow
 sample-stats/             the committed sample (invented network, "synthetic": true)
 deploy/                   the dev VM rebuild job: script, systemd units, Caddyfile
 tests/                    pytest, with chart snapshots in tests/snapshots/

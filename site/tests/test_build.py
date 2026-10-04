@@ -127,6 +127,19 @@ def test_unavailable_page_loads_nothing_else(dev_site):
     assert 'rel="stylesheet"' not in html and "<script" not in html and "<img" not in html
 
 
+def test_every_page_has_the_icon(dev_site):
+    for name in ["favicon.ico", "apple-touch-icon.png"]:
+        assert (dev_site / name).is_file(), name
+    for page in html_pages(dev_site):
+        html = page.read_text(encoding="utf-8")
+        icons = re.findall(r'<link rel="(?:icon|apple-touch-icon)" href="([^"]+)"', html)
+        if page == dev_site / "unavailable" / "index.html":
+            # Inline, so the page still loads nothing else.
+            assert len(icons) == 1 and icons[0].startswith("data:image/svg+xml;base64,"), page
+        else:
+            assert [i.split("?")[0] for i in icons] == ["/favicon.ico", "/static/icons/favicon.svg", "/apple-touch-icon.png"], page
+
+
 def test_toggle_on_stats_pages_only(dev_site):
     assert 'id="scope-timepoints"' in (dev_site / "index.html").read_text(encoding="utf-8")
     assert 'id="scope-timepoints"' in (dev_site / "stops" / "E101" / "index.html").read_text(encoding="utf-8")

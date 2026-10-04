@@ -9,6 +9,7 @@ tile file for the stop map; without it the map has no basemap.
 """
 
 import argparse
+import base64
 import hashlib
 import json
 import logging
@@ -31,6 +32,7 @@ SITE_DIR = Path(__file__).resolve().parents[2]
 CONTENT_DIR = SITE_DIR / "content"
 SAMPLE_DIR = SITE_DIR / "sample-stats"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+ROOT_ICONS = ("favicon.ico", "apple-touch-icon.png")
 BASE_URL = "https://wasthebusontime.com"
 ENVS = ("dev", "prod")
 
@@ -83,6 +85,11 @@ def asset_url(path: str) -> str:
     return f"{path}?v={digest}"
 
 
+def inline_icon() -> str:
+    """The SVG icon as a data: URL, for the page that may load nothing else (/unavailable/)."""
+    return "data:image/svg+xml;base64," + base64.b64encode((STATIC_DIR / "icons" / "favicon.svg").read_bytes()).decode()
+
+
 def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
     jinja = Environment(
         loader=PackageLoader("wbot_site"),
@@ -98,6 +105,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         meta=stats.meta,
         synthetic=stats.synthetic,
         banner=banner,
+        inline_icon=inline_icon,
         min_sample=stats.meta["min_sample"],
         period=data.period_text(stats.meta),
         scopes=data.SCOPES,
@@ -145,6 +153,9 @@ def build(
     b.jinja.globals["stop_map"] = copy_map_data(b, tiles_url)
 
     shutil.copytree(STATIC_DIR, out / "static")
+    # Browsers ask for these two at the site root on their own, so they live there too.
+    for name in ROOT_ICONS:
+        shutil.copyfile(STATIC_DIR / "icons" / name, out / name)
     render_markdown_pages(b)
     render_stats_pages(b)
     b.render("404.html", "404.html", title="Page not found")

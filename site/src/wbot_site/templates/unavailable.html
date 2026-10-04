@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {# Shown to visitors outside the US and Canada, who are redirected away from every
    other path, so this page uses inline CSS and loads nothing else. #}
+{% block icons %}
+<link rel="icon" href="{{ inline_icon() }}" type="image/svg+xml">
+{% endblock %}
 {% block styles %}
 <style>
 :root { color-scheme: light dark; }

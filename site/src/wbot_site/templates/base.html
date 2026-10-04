@@ -8,6 +8,11 @@
 {% endif %}
 <title>WBOT - {{ title }}</title>
 <meta name="description" content="Unofficial on-time statistics for Intercity Transit buses. Intercity Transit is headquartered in Olympia, Washington, and serves a Public Transportation Benefit Area in Thurston County. Not affiliated with Intercity Transit.">
+{% block icons %}
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="{{ "/static/icons/favicon.svg" | asset }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="{{ "/static/site.css" | asset }}">
 {% endblock %}
