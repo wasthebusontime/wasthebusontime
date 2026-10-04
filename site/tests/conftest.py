@@ -10,8 +10,8 @@ from wbot_site.build import SAMPLE_DIR, build
 BUILD_TIME = datetime(2026, 11, 3, 12, 0, tzinfo=UTC)
 
 
-def make_build(stats_dir, out, env="dev"):
-    return build(stats_dir, out, env, code_commit="abc1234", stats_commit="def5678", build_time=BUILD_TIME)
+def make_build(stats_dir, out, env="dev", **kwargs):
+    return build(stats_dir, out, env, code_commit="abc1234", stats_commit="def5678", build_time=BUILD_TIME, **kwargs)
 
 
 def html_pages(out: Path) -> list[Path]:

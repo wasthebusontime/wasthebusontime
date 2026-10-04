@@ -1,4 +1,6 @@
 import json
+import re
+import shutil
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
@@ -82,11 +84,33 @@ def test_dev_pages_have_banners_and_noindex(dev_site):
     assert (dev_site / "robots.txt").read_text() == "User-agent: *\nDisallow: /\n"
 
 
-def test_pages_need_no_javascript(dev_site):
+MAP_SCRIPTS = [
+    '<script src="/static/vendor/pmtiles/pmtiles.js" defer></script>',
+    '<script src="/static/vendor/protomaps/basemaps.js" defer></script>',
+    '<script type="module" src="/static/map.js"></script>',
+]
+
+
+def test_pages_load_only_our_own_scripts(dev_site):
     for page in html_pages(dev_site):
         html = page.read_text(encoding="utf-8")
-        # Only our own optional script; no inline scripts, no third parties.
-        assert html.count("<script") == html.count('<script src="/static/site.js" defer></script>'), page
+        # Our optional site script everywhere, the map scripts on /stops/ only; no inline scripts.
+        allowed = ['<script src="/static/site.js" defer></script>']
+        if page == dev_site / "stops" / "index.html":
+            allowed += MAP_SCRIPTS
+        assert html.count("<script") == sum(html.count(s) for s in allowed), page
+
+
+def test_nothing_is_loaded_from_another_host(dev_site):
+    loads = re.compile(r'<(?:script|img|iframe)[^>]*\ssrc="([^"]*)"|<link[^>]*rel="stylesheet"[^>]*href="([^"]*)"')
+    for page in html_pages(dev_site):
+        for src in (a or b for a, b in loads.findall(page.read_text(encoding="utf-8"))):
+            assert src.startswith("/") and not src.startswith("//"), (page, src)
+    # Our scripts mention other hosts only in the map's attribution links.
+    attribution = {"https://www.openstreetmap.org/copyright", "https://protomaps.com"}
+    for script in ["map.js", "site.js"]:
+        urls = set(re.findall(r"https?://[^\s\"'<>]+", (dev_site / "static" / script).read_text(encoding="utf-8")))
+        assert urls <= attribution, (script, urls - attribution)
 
 
 def test_unavailable_page_loads_nothing_else(dev_site):
@@ -191,3 +215,52 @@ def test_tab_titles_start_with_our_name(dev_site):
         html = page.read_text(encoding="utf-8")
         assert "<title>WBOT - " in html, page
     assert "<title>WBOT - Was the Bus On Time</title>" in (dev_site / "index.html").read_text(encoding="utf-8")
+
+
+def test_stop_map_without_javascript_is_the_list(dev_site):
+    html = (dev_site / "stops" / "index.html").read_text(encoding="utf-8")
+    assert '<section class="stop-map" id="stop-map" hidden' in html
+    stops = json.loads((SAMPLE_DIR / "site" / "stops.json").read_text(encoding="utf-8"))["stops"]
+    assert html.count('<li><a href="/stops/') == len(stops)
+
+
+def test_stop_map_data_is_complete(dev_site):
+    data = dev_site / "stops" / "data"
+    stops = json.loads((data / "stops.json").read_text(encoding="utf-8"))
+    assert len(stops) == 33 and all(isinstance(s["lat"], float) and isinstance(s["lon"], float) for s in stops)
+    assert json.loads((data / "routes.geojson").read_text(encoding="utf-8"))["type"] == "FeatureCollection"
+    presets = sorted(data.glob("map/*/*.json"))
+    assert len(presets) == 3 * 4 * 6  # whole period + 2 months, 4 day types, 6 bands
+    for path in presets:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        assert len(doc["timepoints"]) == len(doc["all_stops"]) == len(stops), path
+    html = (dev_site / "stops" / "index.html").read_text(encoding="utf-8")
+    assert '<option value="2026-10">Oct 2026</option>' in html
+
+
+def test_stop_pages_link_to_the_map(dev_site):
+    html = (dev_site / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
+    assert '<a href="/stops/?stop=E120">See on the map</a>' in html
+
+
+def test_tiles_url_reaches_the_page(tmp_path):
+    make_build(SAMPLE_DIR, tmp_path / "out", tiles_url="/tiles/olympia.pmtiles")
+    assert 'data-tiles="/tiles/olympia.pmtiles"' in (tmp_path / "out" / "stops" / "index.html").read_text(encoding="utf-8")
+
+
+def test_stats_without_map_data_build_without_the_map(real_looking_stats, tmp_path):
+    shutil.rmtree(real_looking_stats / "site" / "map")
+    out = tmp_path / "out"
+    make_build(real_looking_stats, out, "prod")
+    assert 'id="stop-map"' not in (out / "stops" / "index.html").read_text(encoding="utf-8")
+    assert "See on the map" not in (out / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
+    assert not (out / "stops" / "data").exists()
+
+
+def test_map_preset_that_misses_stops_is_refused(real_looking_stats, tmp_path):
+    path = real_looking_stats / "site" / "map" / "all" / "weekday-midday.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc["all_stops"].pop()
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(StatsError, match="weekday-midday.json: 32 stops"):
+        make_build(real_looking_stats, tmp_path / "out", "prod")
