@@ -1,0 +1,19 @@
+[Unit]
+Description=Was the Bus On Time? dev site: rebuild now
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/srv/wbot-dev/code/site/deploy/rebuild.sh --force
+User=wbotdev
+Group=wbotdev
+Environment=HOME=/srv/wbot-dev/state UV_CACHE_DIR=/srv/wbot-dev/state/uv-cache UV_PYTHON_INSTALL_DIR=/srv/wbot-dev/state/uv-python
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=15min
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/wbot-dev

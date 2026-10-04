@@ -1,0 +1,23 @@
+# /etc/caddy/Caddyfile on the dev VM (VM 301). Plain HTTP on the home network only;
+# ufw allows port 80 from 192.168.1.0/24 and nothing else.
+:80 {
+	header X-Robots-Tag "noindex, nofollow"
+
+	# Last build result and log, written by rebuild.sh.
+	redir /_status /_status/
+	handle_path /_status/* {
+		root * /srv/wbot-dev/state/status
+		file_server
+	}
+
+	handle {
+		root * /srv/wbot-dev/releases/current
+		file_server
+	}
+
+	handle_errors {
+		root * /srv/wbot-dev/releases/current
+		rewrite * /404.html
+		file_server
+	}
+}
