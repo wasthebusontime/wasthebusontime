@@ -64,7 +64,7 @@ function popupContent(stop, counts, minSample, scopeLabel) {
     box.append(el("div", `${percent(onTimeAlt, n)} on time (1 min early to 5 min late)`));
     box.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
   }
-  box.append(el("a", "Stop page", { href: `/stops/${stop.code}/` }));
+  box.append(el("a", "View stop page", { href: `/stops/${stop.code}/` }));
   return box;
 }
 
