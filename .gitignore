@@ -1,0 +1,36 @@
+# Private planning notes (kept local only)
+docs/planning/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Collected data (stored outside the repo)
+data/
+*.pb
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+*.parquet
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
