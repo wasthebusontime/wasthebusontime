@@ -105,11 +105,13 @@ main { flex: 1 0 auto; }
 .site-footer p { margin: .3rem 0; }
 .non-affiliation { color: var(--text); }
 
-.lede { font-size: 1.1rem; max-width: 68ch; }
+.lede { font-size: 1.1rem; max-width: 68ch; margin: 1.25rem 0 .25rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* About 70 characters per line on text pages. */
 .prose { max-width: 68ch; }
 .notices { padding: .5rem 1rem .5rem 2rem; background: var(--panel); border-left: 4px solid var(--early); }
-.notices-line { margin: .25rem 0 1rem; padding: .35rem .75rem; background: var(--panel); border-left: 4px solid var(--early); font-size: .9rem; }
+/* One small line under the intro or title, marked with the caution color. */
+.notices-line { margin: .25rem 0 .75rem; padding-left: .6rem; border-left: 3px solid var(--early); font-size: .9rem; color: var(--muted); }
 
 /* Timepoints / all stops toggle */
 .scope-toggle { border: 1px solid var(--rule); padding: .5rem 1rem; margin: 1rem 0; }
