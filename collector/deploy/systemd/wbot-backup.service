@@ -1,0 +1,18 @@
+[Unit]
+Description=Was the Bus On Time? offsite backup to B2
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/wbot/data
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wbot/wasthebusontime/collector/.venv/bin/wbot-collector backup
+User=wbot
+Group=wbot
+EnvironmentFile=/etc/wasthebusontime/collector.env
+WorkingDirectory=/opt/wbot/wasthebusontime/collector
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/wbot/data /var/lib/wbot

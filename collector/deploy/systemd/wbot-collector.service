@@ -1,0 +1,23 @@
+[Unit]
+Description=Was the Bus On Time? real-time feed collector
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/wbot/data
+
+[Service]
+Type=simple
+ExecStart=/opt/wbot/wasthebusontime/collector/.venv/bin/wbot-collector run
+Restart=always
+RestartSec=10
+User=wbot
+Group=wbot
+EnvironmentFile=/etc/wasthebusontime/collector.env
+WorkingDirectory=/opt/wbot/wasthebusontime/collector
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/wbot/data /var/lib/wbot
+
+[Install]
+WantedBy=multi-user.target
