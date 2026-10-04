@@ -136,7 +136,9 @@ class Heartbeat:
             self.last_fresh = now
 
     def maybe_ping(self, now: float) -> None:
-        if now < self.next_ping:
+        # Wait for the first successful TripUpdates fetch rather than spending
+        # the first slot on a cycle that only fetched Alerts.
+        if now < self.next_ping or not self.last_success:
             return
         self.next_ping = now + HEARTBEAT_INTERVAL_S
         if now - self.last_success < HEARTBEAT_INTERVAL_S:

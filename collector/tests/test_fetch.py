@@ -90,6 +90,11 @@ def test_heartbeat_pings(settings, monkeypatch):
     hb = Heartbeat(settings, start=0)
     frozen = {"feed": "tripupdates", "error": None, "data_ts": 5, "entities": 3}
 
+    # An Alerts-only first cycle neither pings nor delays the first ping.
+    hb.record({"feed": "alerts", "error": None, "data_ts": None, "entities": 3}, now=5)
+    hb.maybe_ping(now=5)
+    assert pings == []
+
     hb.record(frozen, now=10)
     hb.maybe_ping(now=10)
     assert pings == ["collector", "feed_stale"]
