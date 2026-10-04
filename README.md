@@ -5,7 +5,7 @@ An **unofficial**, open-source project that collects Intercity Transit's public 
 > **This project is not affiliated with, endorsed by, or associated with Intercity Transit in any way.**
 
 ## Status
-Early development. The [collector](collector/) that archives the transit feeds is written; statistics and the website come next.
+Early development. The [collector](collector/) that archives the transit feeds is written, and the [site](site/) generator builds the website from synthetic sample data. The statistics pipeline comes next.
 
 ## Licenses
 - **Code:** [MIT](LICENSE)
