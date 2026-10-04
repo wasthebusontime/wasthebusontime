@@ -15,6 +15,13 @@
   --on-time: #008e88;
   --late: #a4283a;
   --grid: #e6e2da;
+  /* Header band and footer */
+  --head-bg: #4e2281;
+  --head-text: #ffffff;
+  --head-muted: #dcd1f4;
+  --head-link: #ffffff;
+  --foot-bg: #f0ecfa;
+  --band-stripe: #65389f;
   /* Stop map: marker bins from best (0) to worst (3), one violet ramp, worst most intense. */
   --map-bin-0: #a183d4;
   --map-bin-1: #8561bd;
@@ -42,6 +49,12 @@
     --on-time: #1d9999;
     --late: #bd404d;
     --grid: #2b2924;
+    --head-bg: #2d1b47;
+    --head-text: #eae7e2;
+    --head-muted: #c1b8d4;
+    --head-link: #d8c7f9;
+    --foot-bg: #1d162a;
+    --band-stripe: #8059bb;
     /* On a dark map the brightest dot is the most intense, so the ramp runs dark to light. */
     --map-bin-0: #8059bb;
     --map-bin-1: #9f7ed6;
@@ -57,21 +70,28 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; display: flex; flex-direction: column; min-height: 100vh; }
 a { color: var(--link); }
 input, select, button { accent-color: var(--link); }
-main, .site-header, .site-footer { max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
+main, .site-header, .site-footer { width: 100%; max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
+/* The footer sits at the bottom of the window on short pages. */
+main { flex: 1 0 auto; }
 
 .banner { margin: 0; padding: .3rem 1rem; font-size: .85rem; font-weight: 600; text-align: center; }
 .banner-dev { background: var(--banner-dev); }
 .banner-sample { background: var(--banner-sample); }
 
-.site-header { padding-top: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--rule); }
-.site-name { font-size: 1.4rem; font-weight: 700; color: var(--text); text-decoration: none; }
-.tagline, .data-through { margin: .25rem 0; color: var(--muted); font-size: .9rem; }
+/* Header and footer bands: full-width color behind the centered content. border-image with an
+   outset paints past the box sideways without extra markup and without widening the page. */
+.site-header { padding-top: 1rem; padding-bottom: .9rem; margin-bottom: 1rem; border-image: conic-gradient(var(--head-bg) 0 0) fill 0 / 0 / 0 100vmax; }
+.site-name { font-size: 1.4rem; font-weight: 700; color: var(--head-text); text-decoration: none; }
+.tagline, .data-through { margin: .25rem 0; color: var(--head-muted); font-size: .9rem; }
+.site-nav a { color: var(--head-link); }
+.site-header :focus-visible { outline-color: var(--head-text); }
 .site-nav, .footer-nav { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .5rem 0; }
 
-.site-footer { margin-top: 3rem; padding-top: 1rem; padding-bottom: 2rem; border-top: 1px solid var(--rule); font-size: .9rem; color: var(--muted); }
+.site-footer { margin-top: 4rem; padding-top: 1.25rem; padding-bottom: 2.5rem; font-size: .9rem; color: var(--muted);
+  border-image: linear-gradient(var(--band-stripe) 0 4px, var(--foot-bg) 4px) fill 0 / 0 / 0 100vmax; }
 .site-footer p { margin: .3rem 0; }
 .non-affiliation { color: var(--text); }
 
