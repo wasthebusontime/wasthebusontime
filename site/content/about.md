@@ -6,7 +6,7 @@ Was the Bus On Time? is an unofficial project. It is not affiliated with, endors
 
 ## What it is
 
-An independent, open-source project that measures how often Intercity Transit buses in Olympia, Washington leave their stops on time. It records the agency's public real-time data, compares each departure with the published schedule, and publishes the results as statistics by route, stop, hour and day.
+An independent, open-source project that measures how often Intercity Transit buses leave their stops on time. Intercity Transit is headquartered in Olympia, Washington, and serves a [Public Transportation Benefit Area (PTBA)](https://gis-intercitytransit.hub.arcgis.com/datasets/d5f34e2925c441aba160994c57fd3c8f_0/explore?location=47.019650%2C-122.784469%2C11) in Thurston County. This project records the agency's public real-time data, compares each departure with the published schedule, and publishes the results as statistics by route, stop, hour and day.
 
 ## What it isn't
 
