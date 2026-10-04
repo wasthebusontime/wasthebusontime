@@ -14,7 +14,7 @@ Early planning. Nothing to run yet.
 
 ## Data source and attribution
 Schedule and real-time data are provided **"AS IS"** by Intercity Transit. The data is used under the
-[Sound Transit Open Transit Data — Transit Data Terms of Use](https://www.soundtransit.org/help-contacts/business-information/open-transit-data-otd/transit-data-terms-use).
+[Sound Transit Open Transit Data: Transit Data Terms of Use](https://www.soundtransit.org/help-contacts/business-information/open-transit-data-otd/transit-data-terms-use).
 Intercity Transit retains all rights to its data and trademarks. Anyone who obtains transit data through this project is also bound by those terms.
 
 ## Contact
