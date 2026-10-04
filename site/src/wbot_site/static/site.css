@@ -33,7 +33,8 @@
   --map-route-selected: #1d1a15;
   --map-blank: #ffffff;
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%235f5a51'/%3E%3C/svg%3E");
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* System fonts only: no font files, no requests. */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -70,8 +71,16 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; display: flex; flex-direction: column; min-height: 100vh; }
-a { color: var(--link); }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 1rem; line-height: 1.55; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; display: flex; flex-direction: column; min-height: 100vh; }
+a { color: var(--link); text-underline-offset: .15em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 2px; }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: 2rem; margin: 1.5rem 0 .75rem; }
+h2 { font-size: 1.35rem; margin: 2rem 0 .5rem; }
+h3 { font-size: 1.1rem; margin: 1.5rem 0 .4rem; }
+@media (max-width: 30rem) { h1 { font-size: 1.6rem; } h2 { font-size: 1.25rem; } }
+p, li { text-wrap: pretty; }
 input, select, button { accent-color: var(--link); }
 main, .site-header, .site-footer { width: 100%; max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
 /* The footer sits at the bottom of the window on short pages. */
@@ -85,6 +94,7 @@ main { flex: 1 0 auto; }
    outset paints past the box sideways without extra markup and without widening the page. */
 .site-header { padding-top: 1rem; padding-bottom: .9rem; margin-bottom: 1rem; border-image: conic-gradient(var(--head-bg) 0 0) fill 0 / 0 / 0 100vmax; }
 .site-name { font-size: 1.4rem; font-weight: 700; color: var(--head-text); text-decoration: none; }
+.data-through { font-variant-numeric: tabular-nums; }
 .tagline, .data-through { margin: .25rem 0; color: var(--head-muted); font-size: .9rem; }
 .site-nav a { color: var(--head-link); }
 .site-header :focus-visible { outline-color: var(--head-text); }
@@ -95,8 +105,9 @@ main { flex: 1 0 auto; }
 .site-footer p { margin: .3rem 0; }
 .non-affiliation { color: var(--text); }
 
-.lede { font-size: 1.1rem; }
-.prose { max-width: 42rem; }
+.lede { font-size: 1.1rem; max-width: 68ch; }
+/* About 70 characters per line on text pages. */
+.prose { max-width: 68ch; }
 .notices { padding: .5rem 1rem .5rem 2rem; background: var(--panel); border-left: 4px solid var(--early); }
 
 /* Timepoints / all stops toggle */
@@ -120,13 +131,13 @@ table.data { border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
 table.data caption { text-align: left; font-weight: 600; padding-bottom: .25rem; }
 table.data th, table.data td { padding: .25rem .6rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
 table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
-table.data .def { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
+table.data .def { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
 
 /* Charts (inline SVG drawn at build time) */
 .chart { margin: 1.5rem 0; }
 .chart svg { width: 100%; height: auto; display: block; }
 .chart figcaption { font-size: .9rem; color: var(--muted); }
-.chart text { font-family: var(--font); font-size: 12px; fill: var(--text); }
+.chart text { font-family: var(--font); font-size: 12px; fill: var(--text); font-variant-numeric: tabular-nums; }
 .chart text.small { font-size: 10px; fill: var(--muted); }
 .chart .early { fill: var(--early); }
 .chart .on-time { fill: var(--on-time); }
