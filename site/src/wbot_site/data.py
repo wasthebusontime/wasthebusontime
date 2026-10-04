@@ -23,6 +23,9 @@ WINDOW_LABELS = {
     "headline": "On time (Intercity Transit's definition: 0 to 5 min late)",
     "alt": "On time (1 min early to 5 min late)",
 }
+# Stop map presets, written by the pipeline as site/map/{period}/{daytype}-{band}.json.
+MAP_DAYTYPES = ("all", *DAYTYPES)
+MAP_BANDS = ("all", "early", "am_peak", "midday", "pm_peak", "evening")
 NOTICE_CODES = {"data_loss", "low_completeness", "provisional", "methodology_change"}
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -63,6 +66,34 @@ class Stats:
     def csv_files(self) -> list[Path]:
         return sorted((self.root / "csv").glob("*.csv"))
 
+    @property
+    def map_dir(self) -> Path:
+        return self.root / "site" / "map"
+
+    @property
+    def routes_geojson(self) -> Path:
+        return self.root / "site" / "routes.geojson"
+
+    def map_periods(self) -> list[str]:
+        """Periods with stop map presets ("all" first, then months), or [] if the stats have no map."""
+        stops = self.index["stops"]
+        if not stops or not all("lat" in s and "lon" in s for s in stops) or not self.routes_geojson.is_file():
+            return []
+        periods = sorted(p.name for p in self.map_dir.iterdir() if p.is_dir()) if self.map_dir.is_dir() else []
+        return ["all", *[p for p in periods if p != "all"]] if "all" in periods else []
+
+
+def check_map(stats: Stats) -> None:
+    """Every preset file must exist and list every stop, in stops.json order."""
+    n = len(stats.index["stops"])
+    for period in stats.map_periods():
+        for daytype in MAP_DAYTYPES:
+            for band in MAP_BANDS:
+                path = stats.map_dir / period / f"{daytype}-{band}.json"
+                doc = load_json(path)
+                if len(doc["timepoints"]) != n or len(doc["all_stops"]) != n:
+                    raise StatsError(f"{path}: {len(doc['all_stops'])} stops, stops.json has {n}")
+
 
 def load_stats(stats_dir: Path) -> Stats:
     site = stats_dir / "site"
@@ -81,6 +112,7 @@ def load_stats(stats_dir: Path) -> Stats:
         stats.routes[route["slug"]] = load_json(site / "routes" / f"{route['slug']}.json")
     for stop in stats.index["stops"]:
         stats.stops[stop["code"]] = load_json(site / "stops" / f"{stop['code']}.json")
+    check_map(stats)
     return stats
 
 

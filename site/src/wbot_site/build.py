@@ -4,10 +4,12 @@
 
 WBOT_ENV=dev (the default) adds the preview banner and noindex; WBOT_ENV=prod has
 neither and refuses synthetic or missing stats. In dev, missing stats fall back to
-the committed sample with a "SAMPLE DATA" banner.
+the committed sample with a "SAMPLE DATA" banner. WBOT_TILES_URL is the basemap
+tile file for the stop map; without it the map has no basemap.
 """
 
 import argparse
+import json
 import logging
 import os
 import shutil
@@ -120,6 +122,7 @@ def build(
     code_commit: str = "unknown",
     stats_commit: str = "none",
     build_time: datetime | None = None,
+    tiles_url: str = "",
 ) -> Build:
     if env not in ENVS:
         raise ValueError(f"WBOT_ENV must be one of {ENVS}, not {env!r}")
@@ -131,6 +134,7 @@ def build(
     }
     clean_output(out)
     b = Build(out=out, env=env, stats=stats, jinja=make_jinja(env, stats, banner))
+    b.jinja.globals["stop_map"] = copy_map_data(b, tiles_url)
 
     shutil.copytree(STATIC_DIR, out / "static")
     render_markdown_pages(b)
@@ -147,6 +151,37 @@ def clean_output(out: Path) -> None:
             raise SystemExit(f"{out} is not empty and doesn't look like a site build; refusing to delete it")
         shutil.rmtree(out)
     out.mkdir(parents=True)
+
+
+MAP_DAYTYPE_LABELS = {"all": "Every day", **data.DAYTYPE_LABELS}
+MAP_BAND_LABELS = {
+    "all": "All day",
+    "early": "Early (before 6 am)",
+    "am_peak": "AM peak (6 to 9 am)",
+    "midday": "Midday (9 am to 3 pm)",
+    "pm_peak": "PM peak (3 to 6 pm)",
+    "evening": "Evening (6 pm on)",
+}
+
+
+def copy_map_data(b: Build, tiles_url: str) -> dict | None:
+    """Copies the stop map data to /stops/data/; returns the map settings, or None if the stats have none."""
+    periods = b.stats.map_periods()
+    if not periods:
+        return None
+    target = b.out / "stops" / "data"
+    shutil.copytree(b.stats.map_dir, target / "map")
+    shutil.copyfile(b.stats.routes_geojson, target / "routes.geojson")
+    stops = [{k: s[k] for k in ("code", "name", "routes", "lat", "lon")} for s in b.stats.index["stops"]]
+    text = json.dumps(stops, separators=(",", ":"), ensure_ascii=False)
+    (target / "stops.json").write_text(text + "\n", encoding="utf-8", newline="\n")
+    return {
+        "tiles": tiles_url,
+        "routes": [(r["slug"], f"Route {r['short_name']} {r['long_name']}") for r in b.stats.system["routes"]],
+        "periods": [(p, "Whole period" if p == "all" else data.month_text(p)) for p in periods],
+        "daytypes": list(MAP_DAYTYPE_LABELS.items()),
+        "bands": list(MAP_BAND_LABELS.items()),
+    }
 
 
 def render_markdown_pages(b: Build) -> None:
@@ -228,6 +263,7 @@ def main(argv: list[str] | None = None) -> None:
             env,
             code_commit=os.environ.get("WBOT_CODE_COMMIT", "unknown"),
             stats_commit=os.environ.get("WBOT_STATS_COMMIT", "none"),
+            tiles_url=os.environ.get("WBOT_TILES_URL", ""),
         )
     except (StatsError, ValueError) as e:
         log.error("%s", e)

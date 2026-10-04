@@ -2,6 +2,9 @@
 {% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, monthly_table %}
 {% block main %}
 <h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
+{% if stop_map %}
+<p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">See on the map</a></p>
+{% endif %}
 {{ notice_list(notices) }}
 {{ scope_toggle() }}
 {% call(scope) scoped() %}

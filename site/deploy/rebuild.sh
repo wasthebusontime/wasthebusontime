@@ -39,6 +39,10 @@ main() {
         return 0
     fi
 
+    # The stop map uses the basemap only if the tile file is there (see site/README.md).
+    local tiles_url=""
+    [ -f "$root/tiles/olympia.pmtiles" ] && tiles_url=/tiles/olympia.pmtiles
+
     local ts release log result
     ts=$(date -u +%Y%m%dT%H%M%SZ)
     release=$releases/$ts
@@ -47,7 +51,7 @@ main() {
 
     if sync_clone "$root/code" "$code_url" "$code_branch" >>"$log" 2>&1 &&
         sync_clone "$root/stats" "$stats_url" "$stats_branch" >>"$log" 2>&1 &&
-        WBOT_ENV=dev WBOT_STATS_DIR="$root/stats" WBOT_OUT_DIR="$release" \
+        WBOT_ENV=dev WBOT_STATS_DIR="$root/stats" WBOT_OUT_DIR="$release" WBOT_TILES_URL="$tiles_url" \
             bash "$root/code/site/build.sh" >>"$log" 2>&1; then
         # Relative link, renamed over the old one: the switch is atomic.
         ln -sfn "$ts" "$releases/current.tmp"

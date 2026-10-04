@@ -14,4 +14,6 @@ The statistics are licensed under [CC BY 4.0](https://creativecommons.org/licens
 
 The statistics are computed from real-time and schedule data provided AS IS by Intercity Transit under the [Sound Transit Open Transit Data Terms of Use](https://www.soundtransit.org/help-contacts/business-information/open-transit-data-otd/transit-data-terms-use). This site is not affiliated with or endorsed by Intercity Transit.
 
+The stop map's background is made from [OpenStreetMap](https://www.openstreetmap.org/copyright) data (© OpenStreetMap contributors, available under the Open Database License), prepared with [Protomaps](https://protomaps.com).
+
 The same files, with their history, are in the [stats repository on GitHub](https://github.com/wasthebusontime/stats).

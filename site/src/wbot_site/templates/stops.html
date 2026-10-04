@@ -1,6 +1,66 @@
 {% extends "base.html" %}
+{% block styles %}
+{{ super() }}
+{% if stop_map %}
+<link rel="stylesheet" href="/static/vendor/maplibre-gl/maplibre-gl.css">
+{% endif %}
+{% endblock %}
 {% block main %}
 <h1>Stops</h1>
+{% if stop_map %}
+{# Hidden until map.js runs, so without JavaScript the page is the list below. #}
+<section class="stop-map" id="stop-map" hidden
+  data-tiles="{{ stop_map.tiles }}" data-base="/stops/data/" data-min-sample="{{ min_sample }}">
+  <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time (Intercity Transit's definition: 0 to 5 min late).</p>
+  <form class="map-controls" id="map-controls">
+    <label>Which stops
+      <select name="scope">
+        <option value="timepoints">Timepoints</option>
+        <option value="all_stops">All stops</option>
+      </select>
+    </label>
+    <label>Period
+      <select name="period">
+{% for key, label in stop_map.periods %}
+        <option value="{{ key }}">{{ label }}</option>
+{% endfor %}
+      </select>
+    </label>
+    <label>Days
+      <select name="daytype">
+{% for key, label in stop_map.daytypes %}
+        <option value="{{ key }}">{{ label }}</option>
+{% endfor %}
+      </select>
+    </label>
+    <label>Time of day
+      <select name="band">
+{% for key, label in stop_map.bands %}
+        <option value="{{ key }}">{{ label }}</option>
+{% endfor %}
+      </select>
+    </label>
+    <label>Route
+      <select name="route">
+        <option value="">All routes</option>
+{% for slug, label in stop_map.routes %}
+        <option value="{{ slug }}">{{ label }}</option>
+{% endfor %}
+      </select>
+    </label>
+  </form>
+  <div class="map" id="map"></div>
+  <ul class="map-legend" aria-label="Legend">
+    <li><span class="swatch bin-0"></span>90% or more on time (Intercity Transit's standard)</li>
+    <li><span class="swatch bin-1"></span>80 to 89%</li>
+    <li><span class="swatch bin-2"></span>70 to 79%</li>
+    <li><span class="swatch bin-3"></span>Under 70%</li>
+    <li><span class="swatch bin-none"></span>Not enough data (fewer than {{ min_sample }} departures), or not a timepoint</li>
+  </ul>
+  <p class="map-status" id="map-status" role="status"></p>
+</section>
+{% endif %}
+<h2 id="list">All stops, A to Z</h2>
 <p>Every stop with recorded departures, in alphabetical order. Each stop page shows how often buses left that stop on time, by route and by hour.</p>
 <p class="stop-filter" id="stop-filter" hidden>
   <label for="stop-filter-input">Filter stops</label><br>
@@ -11,4 +71,12 @@
   <li><a href="/stops/{{ st.code }}/">{{ st.name }}</a> <span class="stop-routes">({{ st.code }}; Route{{ "s" if st.routes | length > 1 }} {{ st.routes | join(", ") }})</span></li>
 {% endfor %}
 </ul>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+{% if stop_map %}
+<script src="/static/vendor/pmtiles/pmtiles.js" defer></script>
+<script src="/static/vendor/protomaps/basemaps.js" defer></script>
+<script type="module" src="/static/map.js"></script>
+{% endif %}
 {% endblock %}

@@ -10,6 +10,13 @@
 		file_server
 	}
 
+	# Basemap tile file for the stop map, made by site/tools/make_tiles.sh.
+	# file_server answers HTTP range requests, which pmtiles needs.
+	handle_path /tiles/* {
+		root * /srv/wbot-dev/tiles
+		file_server
+	}
+
 	handle {
 		root * /srv/wbot-dev/releases/current
 		file_server
