@@ -1,12 +1,11 @@
 {% extends "base.html" %}
-{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, monthly_table %}
+{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table %}
 {% block main %}
 <h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
 {% if stop_map %}
 <p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">Show this stop on the map</a></p>
 {% endif %}
-{{ notice_list(notices) }}
-{{ scope_toggle() }}
+{{ notices_line(notices) }}
 {% call(scope) scoped() %}
 {% set s = stop.scopes[scope] %}
 {% if s is none %}
@@ -14,6 +13,12 @@
 {% else %}
 {{ headline(s.summary, "this stop") }}
 {{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
+{% endif %}
+{% endcall %}
+{{ scope_toggle() }}
+{% call(scope) scoped(repeat=true) %}
+{% set s = stop.scopes[scope] %}
+{% if s is not none %}
 <div class="table-wrap">
 <table class="data">
 <caption>By route</caption>
@@ -29,5 +34,6 @@
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {% endif %}
 {% endcall %}
+{{ notice_list(notices) }}
 <p><a href="/stops/">All stops</a></p>
 {% endblock %}

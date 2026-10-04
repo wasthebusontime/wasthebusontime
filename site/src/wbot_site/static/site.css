@@ -109,6 +109,7 @@ main { flex: 1 0 auto; }
 /* About 70 characters per line on text pages. */
 .prose { max-width: 68ch; }
 .notices { padding: .5rem 1rem .5rem 2rem; background: var(--panel); border-left: 4px solid var(--early); }
+.notices-line { margin: .25rem 0 1rem; padding: .35rem .75rem; background: var(--panel); border-left: 4px solid var(--early); font-size: .9rem; }
 
 /* Timepoints / all stops toggle */
 .scope-toggle { border: 1px solid var(--rule); padding: .5rem 1rem; margin: 1rem 0; }
@@ -119,6 +120,10 @@ main { flex: 1 0 auto; }
 body:has(#scope-timepoints:checked) .scope-all_stops { display: none; }
 body:has(#scope-all_stops:checked) .scope-timepoints { display: none; }
 .scope-heading { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+/* With the toggle working, the repeated heading under it is for screen readers only. */
+@supports selector(:has(a)) {
+  .scope-heading.repeat { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
 .headline .big { font-size: 2.5rem; font-weight: 700; }
 .headline .medium { font-size: 1.5rem; font-weight: 700; }

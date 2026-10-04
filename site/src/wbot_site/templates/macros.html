@@ -16,11 +16,13 @@
 </fieldset>
 {% endmacro %}
 
-{# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %} #}
-{% macro scoped() %}
+{# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %}.
+   Pages use it twice around the toggle; the second heading (repeat=true) is only
+   seen when both scopes show one after the other (no :has() support). #}
+{% macro scoped(repeat=false) %}
 {% for scope in scopes %}
 <section class="scope scope-{{ scope }}">
-<h2 class="scope-heading">{{ scope_labels[scope] }}</h2>
+<h2 class="scope-heading{{ " repeat" if repeat }}">{{ scope_labels[scope] }}</h2>
 {{ caller(scope) }}
 </section>
 {% endfor %}
@@ -68,8 +70,24 @@
 </div>
 {% endmacro %}
 
+{# One line near the top of a page, pointing to the notes at the bottom. #}
+{% macro notices_line(items) %}
+{% if items %}
+{% set gaps = items | selectattr("code", "equalto", "data_loss") | list | length %}
+{% set low = items | selectattr("code", "equalto", "low_completeness") | list | length %}
+{% set parts = [] %}
+{% if items | selectattr("code", "equalto", "provisional") | list %}{% set _ = parts.append("provisional numbers") %}{% endif %}
+{% if gaps %}{% set _ = parts.append(gaps ~ " data gap" ~ ("s" if gaps > 1)) %}{% endif %}
+{% if low %}{% set _ = parts.append(low ~ " day" ~ ("s" if low > 1) ~ " with low recording") %}{% endif %}
+{% if items | selectattr("code", "equalto", "methodology_change") | list %}{% set _ = parts.append("a method change") %}{% endif %}
+<p class="notices-line"><a href="#notes">Notes about this data</a>: {{ parts | join(", ") }}.</p>
+{% endif %}
+{% endmacro %}
+
+{# The full notes, at the bottom of a page. #}
 {% macro notices(items) %}
 {% if items %}
+<h2 id="notes">Notes about this data</h2>
 <ul class="notices">
 {% for n in items %}
 {% if n.code == "provisional" %}

@@ -146,6 +146,17 @@ def test_toggle_on_stats_pages_only(dev_site):
     assert 'id="scope-timepoints"' not in (dev_site / "about" / "index.html").read_text(encoding="utf-8")
 
 
+def test_stats_pages_put_the_toggle_under_the_headline_and_notes_at_the_end(dev_site):
+    for page in [dev_site / "index.html", dev_site / "routes" / "901" / "index.html", dev_site / "stops" / "E101" / "index.html"]:
+        html = page.read_text(encoding="utf-8")
+        markers = ['class="notices-line"', 'class="headline"', 'class="scope-toggle"', '<caption>', 'id="notes"', 'class="site-footer"']
+        order = [html.index(m) for m in markers if m in html]
+        assert order == sorted(order), page
+        assert ('class="notices-line"' in html) == ('id="notes"' in html), page
+        assert html.count('class="scope-toggle"') == 1, page
+    assert 'id="notes"' in (dev_site / "index.html").read_text(encoding="utf-8")
+
+
 def test_never_timepoint_stop_says_so(dev_site):
     stop = json.loads((SAMPLE_DIR / "site" / "stops" / "E120.json").read_text(encoding="utf-8"))
     assert stop["scopes"]["timepoints"] is None
