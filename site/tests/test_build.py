@@ -264,3 +264,14 @@ def test_map_preset_that_misses_stops_is_refused(real_looking_stats, tmp_path):
     path.write_text(json.dumps(doc), encoding="utf-8")
     with pytest.raises(StatsError, match="weekday-midday.json: 32 stops"):
         make_build(real_looking_stats, tmp_path / "out", "prod")
+
+
+def test_stop_map_days_times_and_routes_are_checkboxes(dev_site):
+    html = (dev_site / "stops" / "index.html").read_text(encoding="utf-8")
+    for day in ("weekday", "saturday", "sunday"):
+        assert f'<input type="checkbox" name="daytype" value="{day}" checked>' in html
+    for band in ("early", "am_peak", "midday", "pm_peak", "evening"):
+        assert f'<input type="checkbox" name="band" value="{band}" checked>' in html
+    assert html.count('<input type="checkbox" name="route"') == 6  # unticked: all routes
+    assert '<span class="multi-label">Routes</span>' in html
+    assert 'name="daytype"' not in html.split('<details class="multi"')[0]  # no Days dropdown left

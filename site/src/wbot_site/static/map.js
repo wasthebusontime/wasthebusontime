@@ -105,15 +105,46 @@ async function start(root) {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
   map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: false } }));
 
-  async function preset() {
-    const f = form.elements;
-    const key = `${f.period.value}/${f.daytype.value}-${f.band.value}`;
+  function load(key) {
     if (!presets.has(key)) presets.set(key, fetch(`${base}map/${key}.json`).then((r) => r.json()));
     return presets.get(key);
   }
 
+  function ticked(name) {
+    return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((box) => box.value);
+  }
+
+  function everyBox(name) {
+    return form.querySelectorAll(`input[name="${name}"]`).length;
+  }
+
+  // Counts add up, so several days or times of day are the sum of their presets.
+  // When every box is ticked, the precomputed "all" preset gives the same numbers in one file.
+  let current = [];
+  async function loadCounts() {
+    const days = ticked("daytype").length === everyBox("daytype") ? ["all"] : ticked("daytype");
+    const bands = ticked("band").length === everyBox("band") ? ["all"] : ticked("band");
+    const docs = await Promise.all(days.flatMap((d) => bands.map((b) => load(`${form.period.value}/${d}-${b}`))));
+    const scope = form.scope.value;
+    current = stops.map((_, i) => {
+      const parts = docs.map((doc) => doc[scope][i]).filter((c) => c);
+      return parts.length ? parts.reduce((sum, c) => sum.map((v, k) => v + c[k])) : null;
+    });
+    return current;
+  }
+
+  function summarize(details) {
+    const boxes = [...details.querySelectorAll("input")];
+    const on = boxes.filter((box) => box.checked);
+    const all = on.length === boxes.length || (details.dataset.name === "route" && on.length === 0);
+    const names = details.dataset.name === "route"
+      ? on.map((box) => box.value)
+      : on.map((box) => box.parentElement.textContent.trim().replace(/ \(.*\)$/, ""));
+    details.querySelector(".multi-value").textContent = all ? details.dataset.all : names.join(", ");
+  }
+
   async function stopFeatures() {
-    const counts = (await preset())[form.scope.value];
+    const counts = await loadCounts();
     return {
       type: "FeatureCollection",
       features: stops.map((s, i) => ({
@@ -125,14 +156,24 @@ async function start(root) {
     };
   }
 
+  // Routes narrow which stops show; a stop's numbers still cover every route serving it.
   function routeFilter() {
-    const route = form.route.value;
-    map.setFilter("stops", route ? ["in", "," + route + ",", ["get", "routes"]] : null);
-    map.setFilter("route-selected", ["==", ["get", "slug"], route]);
-    map.setPaintProperty("routes", "line-opacity", route ? 0.25 : 0.7);
+    const chosen = ticked("route");
+    map.setFilter("stops", chosen.length ? ["any", ...chosen.map((r) => ["in", "," + r + ",", ["get", "routes"]])] : null);
+    map.setFilter("route-selected", ["in", ["get", "slug"], ["literal", chosen]]);
+    map.setPaintProperty("routes", "line-opacity", chosen.length ? 0.25 : 0.7);
+  }
+
+  function fitRoutes() {
+    const chosen = ticked("route");
+    const b = new maplibregl.LngLatBounds();
+    stops.filter((s) => !chosen.length || s.routes.some((r) => chosen.includes(r))).forEach((s) => b.extend([s.lon, s.lat]));
+    map.fitBounds(b, { padding: 40, maxZoom: 15 });
   }
 
   async function refresh() {
+    // An open popup would show the previous choice's numbers.
+    document.querySelectorAll(".maplibregl-popup").forEach((popup) => popup.remove());
     try {
       map.getSource("stops").setData(await stopFeatures());
       status.textContent = "";
@@ -142,7 +183,7 @@ async function start(root) {
   }
 
   async function openStop(i) {
-    const counts = (await preset())[form.scope.value][i];
+    const counts = current[i];
     const label = form.scope.selectedOptions[0].textContent;
     new maplibregl.Popup({ maxWidth: "18rem" })
       .setLngLat([stops[i].lon, stops[i].lat])
@@ -176,12 +217,16 @@ async function start(root) {
     map.on("mouseleave", "stops", () => (map.getCanvas().style.cursor = ""));
 
     form.addEventListener("change", (e) => {
+      const details = e.target.closest("details.multi");
+      if (details && e.target.name !== "route" && ticked(e.target.name).length === 0) {
+        e.target.checked = true; // keep at least one day and one time of day
+        status.textContent = "Keep at least one box ticked.";
+        return;
+      }
+      if (details) summarize(details);
       if (e.target.name === "route") {
         routeFilter();
-        const route = form.route.value;
-        const b = new maplibregl.LngLatBounds();
-        stops.filter((s) => !route || s.routes.includes(route)).forEach((s) => b.extend([s.lon, s.lat]));
-        map.fitBounds(b, { padding: 40, maxZoom: 15 });
+        fitRoutes();
         return;
       }
       if (e.target.name === "scope") {
@@ -199,4 +244,20 @@ async function start(root) {
     }
   });
   form.addEventListener("submit", (e) => e.preventDefault());
+  // The checkbox panels behave like dropdowns: one open at a time, closed by a click elsewhere.
+  const panels = [...form.querySelectorAll("details.multi")];
+  panels.forEach((d) => d.addEventListener("toggle", () => {
+    if (d.open) panels.filter((other) => other !== d).forEach((other) => (other.open = false));
+  }));
+  document.addEventListener("click", (e) => {
+    panels.filter((d) => d.open && !d.contains(e.target)).forEach((d) => (d.open = false));
+  });
+  form.querySelector(".multi-clear").addEventListener("click", () => {
+    form.querySelectorAll('input[name="route"]').forEach((box) => (box.checked = false));
+    summarize(form.querySelector('details[data-name="route"]'));
+    if (map.getLayer("stops")) {
+      routeFilter();
+      fitRoutes();
+    }
+  });
 }

@@ -153,9 +153,8 @@ def clean_output(out: Path) -> None:
     out.mkdir(parents=True)
 
 
-MAP_DAYTYPE_LABELS = {"all": "Every day", **data.DAYTYPE_LABELS}
+# Checkbox labels; the "all" presets are what the map loads when every box is ticked.
 MAP_BAND_LABELS = {
-    "all": "All day",
     "early": "Early (before 6 am)",
     "am_peak": "AM peak (6 to 9 am)",
     "midday": "Midday (9 am to 3 pm)",
@@ -179,7 +178,7 @@ def copy_map_data(b: Build, tiles_url: str) -> dict | None:
         "tiles": tiles_url,
         "routes": [(r["slug"], f"Route {r['short_name']} {r['long_name']}") for r in b.stats.system["routes"]],
         "periods": [(p, "Whole period" if p == "all" else data.month_text(p)) for p in periods],
-        "daytypes": list(MAP_DAYTYPE_LABELS.items()),
+        "daytypes": list(data.DAYTYPE_LABELS.items()),
         "bands": list(MAP_BAND_LABELS.items()),
     }
 

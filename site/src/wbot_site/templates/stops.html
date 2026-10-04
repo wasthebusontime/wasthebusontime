@@ -26,28 +26,35 @@
 {% endfor %}
       </select>
     </label>
-    <label>Days
-      <select name="daytype">
+    {# Checkbox lists in small disclosures; map.js keeps each summary line up to date. #}
+    <details class="multi" data-name="daytype" data-all="Every day">
+      <summary><span class="multi-label">Days</span> <span class="multi-value">Every day</span></summary>
+      <fieldset>
+        <legend>Days</legend>
 {% for key, label in stop_map.daytypes %}
-        <option value="{{ key }}">{{ label }}</option>
+        <label><input type="checkbox" name="daytype" value="{{ key }}" checked> {{ label }}</label>
 {% endfor %}
-      </select>
-    </label>
-    <label>Time of day
-      <select name="band">
+      </fieldset>
+    </details>
+    <details class="multi" data-name="band" data-all="All day">
+      <summary><span class="multi-label">Time of day</span> <span class="multi-value">All day</span></summary>
+      <fieldset>
+        <legend>Time of day</legend>
 {% for key, label in stop_map.bands %}
-        <option value="{{ key }}">{{ label }}</option>
+        <label><input type="checkbox" name="band" value="{{ key }}" checked> {{ label }}</label>
 {% endfor %}
-      </select>
-    </label>
-    <label>Route
-      <select name="route">
-        <option value="">All routes</option>
+      </fieldset>
+    </details>
+    <details class="multi" data-name="route" data-all="All routes">
+      <summary><span class="multi-label">Routes</span> <span class="multi-value">All routes</span></summary>
+      <fieldset>
+        <legend>Routes (none ticked shows all)</legend>
 {% for slug, label in stop_map.routes %}
-        <option value="{{ slug }}">{{ label }}</option>
+        <label><input type="checkbox" name="route" value="{{ slug }}"> {{ label }}</label>
 {% endfor %}
-      </select>
-    </label>
+        <button type="button" class="multi-clear">Clear</button>
+      </fieldset>
+    </details>
   </form>
   <div class="map" id="map"></div>
   <ul class="map-legend" aria-label="Legend">
