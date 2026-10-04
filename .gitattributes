@@ -11,3 +11,5 @@
 *.jpg binary
 *.zip binary
 *.pb binary
+*.pbf binary
+*.pmtiles binary

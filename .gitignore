@@ -34,3 +34,6 @@ venv/
 # Node
 node_modules/
 dist/
+
+# Map tiles (made by site/tools/make_tiles.sh, hosted outside the repo)
+*.pmtiles
