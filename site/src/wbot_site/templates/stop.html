@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, monthly_table %}
+{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, monthly_table %}
 {% block main %}
 <h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
 {{ notice_list(notices) }}
@@ -10,6 +10,7 @@
 <p class="not-timepoint">This stop isn't a timepoint, so it has no numbers in this view. Choose "All stops" to see them.</p>
 {% else %}
 {{ headline(s.summary, "this stop") }}
+{{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
 <div class="table-wrap">
 <table class="data">
 <caption>By route</caption>
@@ -21,6 +22,7 @@
 </tbody>
 </table>
 </div>
+{{ scope_charts(s, stop.stop.name) }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {% endif %}
 {% endcall %}

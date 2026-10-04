@@ -1,0 +1,18 @@
+<svg viewBox="0 0 640 128" role="img" aria-label="Route 901, on time by day type: weekday 83%, saturday 90%, sunday not enough data." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="16" text-anchor="start">Weekday: 83% on time, 6% early, 11% late</text>
+<rect x="0.0" y="22.0" width="36.4" height="20.0" class="early"><title>Weekday: 9 early (6.0%)</title></rect>
+<rect x="38.4" y="22.0" width="531.3" height="20.0" class="on-time"><title>Weekday: 125 on time (83.3%)</title></rect>
+<rect x="571.7" y="22.0" width="66.3" height="20.0" class="late"><title>Weekday: 16 late (10.7%)</title></rect>
+<text x="0" y="66" text-anchor="start">Saturday: 90% on time, 5% early, 5% late</text>
+<rect x="0.0" y="72.0" width="30.0" height="20.0" class="early"><title>Saturday: 2 early (5.0%)</title></rect>
+<rect x="32.0" y="72.0" width="574.0" height="20.0" class="on-time"><title>Saturday: 36 on time (90.0%)</title></rect>
+<rect x="608.0" y="72.0" width="30.0" height="20.0" class="late"><title>Saturday: 2 late (5.0%)</title></rect>
+<text x="0" y="116" text-anchor="start">Sunday: not enough data (10 departures)</text>
+</svg>
+
+Route 901, on time by day type: weekday 83%, saturday 90%, sunday not enough data.
+
+Day type | Departures | Early | On time | Late
+Weekday | 150 | 9 (6.0%) | 125 (83.3%) | 16 (10.7%)
+Saturday | 40 | 2 (5.0%) | 36 (90.0%) | 2 (5.0%)
+Sunday | 10 | 1 (10.0%) | 9 (90.0%) | 0 (0.0%)

@@ -125,3 +125,37 @@
 {% macro trips_line(trips) %}
 <p>{{ trips.scheduled | number }} trips scheduled, {{ trips.observed | number }} observed, {{ trips.not_observed | number }} not observed{% if trips.cancelled %}, {{ trips.cancelled | number }} cancelled{% endif %}{% if trips.added %}, {{ trips.added | number }} added{% endif %}. {{ trips.skipped_stops | number }} stop visits were skipped (for example by detours) and are left out.</p>
 {% endmacro %}
+
+{# A chart from charts.py: the SVG, its one-sentence summary, and the same numbers as a table. #}
+{% macro chart(c, title) %}
+{% if c %}
+<figure class="chart">
+<h3 class="chart-title">{{ title }}</h3>
+{{ c.svg | safe }}
+<figcaption>{{ c.summary }}</figcaption>
+<details class="chart-table">
+<summary>Show table</summary>
+<div class="table-wrap">
+<table class="data">
+<thead><tr>{% for h in c.headers %}<th scope="col"{% if not loop.first %} class="num"{% endif %}>{{ h }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for row in c.rows %}
+<tr>{% for cell in row %}{% if loop.first %}<th scope="row">{{ cell }}</th>{% else %}<td class="num">{{ cell }}</td>{% endif %}{% endfor %}</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</details>
+</figure>
+{% endif %}
+{% endmacro %}
+
+{# The standard chart set for a scope block: by day type, by hour, daily trend, histogram. #}
+{% macro scope_charts(s, subject) %}
+{{ chart(charts.daytype_chart(s.by_daytype, subject, min_sample), "By day type") }}
+{{ chart(charts.hour_chart(s.by_hour, subject, min_sample), "By hour of the day") }}
+{% if s.daily is defined %}
+{{ chart(charts.daily_chart(s.daily, subject, min_sample), "Each day") }}
+{% endif %}
+{{ chart(charts.histogram_chart(s.summary, subject, min_sample), "How late buses left") }}
+{% endmacro %}

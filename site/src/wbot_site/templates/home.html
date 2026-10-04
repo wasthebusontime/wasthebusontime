@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, share, monthly_table, terminal, end_of_line %}
+{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, share, monthly_table, terminal, end_of_line %}
 {% block main %}
 <h1>Was the Bus On Time?</h1>
 <p class="lede">How often Intercity Transit buses leave on time, measured from the agency's public real-time data.</p>
@@ -8,6 +8,7 @@
 {% call(scope) scoped() %}
 {% set s = system.scopes[scope] %}
 {{ headline(s.summary, "the whole system") }}
+{{ chart(charts.headline_chart(s.summary, "The whole system", min_sample), "Early, on time and late") }}
 <div class="table-wrap" id="routes">
 <table class="data">
 <caption>Routes</caption>
@@ -19,11 +20,12 @@
 </tbody>
 </table>
 </div>
+{{ scope_charts(s, "The whole system") }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {% endcall %}
 <h2>Start and end of trips</h2>
 {{ terminal(system.terminal, "the whole system") }}
 {{ end_of_line(system.end_of_line) }}
-<h3>How complete the data is</h3>
+<h2>How complete the data is</h2>
 <p>{{ system.completeness.trips_observed | number }} of {{ system.completeness.trips_scheduled | number }} scheduled trips ({{ percent(system.completeness.trips_observed, system.completeness.trips_scheduled, 1) }}) and {{ system.completeness.departures_observed | number }} of {{ system.completeness.departures_scheduled | number }} scheduled timepoint departures ({{ percent(system.completeness.departures_observed, system.completeness.departures_scheduled, 1) }}) were recorded. See <a href="/data-quality/">Data quality</a>.</p>
 {% endblock %}

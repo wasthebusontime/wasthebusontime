@@ -1,0 +1,27 @@
+<svg viewBox="0 0 640 172" role="img" aria-label="Route 901, on time each day over the last 6 days: lowest 75% on Oct 31, 2026, highest 91% on Nov 3, 2026, latest 90% on Nov 4, 2026." xmlns="http://www.w3.org/2000/svg">
+<line x1="40" y1="150" x2="630" y2="150" class="grid"/>
+<text x="34" y="154" text-anchor="end" class="small">0%</text>
+<line x1="40" y1="80" x2="630" y2="80" class="grid"/>
+<text x="34" y="84" text-anchor="end" class="small">50%</text>
+<line x1="40" y1="10" x2="630" y2="10" class="grid"/>
+<text x="34" y="14" text-anchor="end" class="small">100%</text>
+<circle cx="40.0" cy="24.0" r="6" class="hit"><title>Oct 30, 2026: 90.0% on time, 50 departures</title></circle>
+<circle cx="158.0" cy="45.0" r="6" class="hit"><title>Oct 31, 2026: 75.0% on time, 40 departures</title></circle>
+<circle cx="394.0" cy="33.3" r="6" class="hit"><title>Nov 2, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="512.0" cy="22.7" r="6" class="hit"><title>Nov 3, 2026: 90.9% on time, 55 departures</title></circle>
+<circle cx="630.0" cy="24.5" r="6" class="hit"><title>Nov 4, 2026: 89.7% on time, 58 departures</title></circle>
+<polyline points="40.0,24.0 158.0,45.0" class="line"/>
+<polyline points="394.0,33.3 512.0,22.7 630.0,24.5" class="line"/>
+<text x="40" y="164" text-anchor="start" class="small">Oct 30</text>
+<text x="630" y="164" text-anchor="end" class="small">Nov 4</text>
+</svg>
+
+Route 901, on time each day over the last 6 days: lowest 75% on Oct 31, 2026, highest 91% on Nov 3, 2026, latest 90% on Nov 4, 2026.
+
+Date | Departures | Early | On time | Late
+Nov 4, 2026 | 58 | 2 (3.4%) | 52 (89.7%) | 4 (6.9%)
+Nov 3, 2026 | 55 | 1 (1.8%) | 50 (90.9%) | 4 (7.3%)
+Nov 2, 2026 | 60 | 6 (10.0%) | 50 (83.3%) | 4 (6.7%)
+Nov 1, 2026 | 5 | Not enough data |  | 
+Oct 31, 2026 | 40 | 2 (5.0%) | 30 (75.0%) | 8 (20.0%)
+Oct 30, 2026 | 50 | 2 (4.0%) | 45 (90.0%) | 3 (6.0%)

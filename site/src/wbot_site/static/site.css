@@ -10,9 +10,9 @@
   --link: #5a3e85;
   --banner-dev: #fff3c4;
   --banner-sample: #ffd9d4;
-  --early: #c7741c;
-  --on-time: #6a4c93;
-  --late: #4d4d4d;
+  --early: #d08a2e;
+  --on-time: #7a5aa8;
+  --late: #262626;
   --grid: #e3e3e3;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -75,6 +75,8 @@ table.data .def { display: block; font-weight: 400; font-size: .75rem; color: va
 .chart .axis { stroke: var(--muted); stroke-width: 1; }
 .chart .line { fill: none; stroke: var(--on-time); stroke-width: 2; }
 .chart .dot { fill: var(--on-time); }
+.chart .hit { fill: transparent; }
+.chart-title { font-size: 1rem; margin: 0 0 .25rem; }
 .chart .bracket { fill: none; stroke: var(--text); stroke-width: 1; }
 
 /* Stop index */

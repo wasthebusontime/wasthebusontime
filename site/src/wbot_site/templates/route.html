@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, monthly_table, terminal, end_of_line, trips_line %}
+{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, perf_header, perf_cells, chart, scope_charts, monthly_table, terminal, end_of_line, trips_line %}
 {% block main %}
 <h1>{{ name }} <span class="subtitle">{{ route.route.long_name }}</span></h1>
 {{ notice_list(notices) }}
@@ -7,6 +7,7 @@
 {% call(scope) scoped() %}
 {% set s = route.scopes[scope] %}
 {{ headline(s.summary, name) }}
+{{ chart(charts.headline_chart(s.summary, name, min_sample), "Early, on time and late") }}
 <div class="table-wrap">
 <table class="data">
 <caption>By direction</caption>
@@ -18,6 +19,7 @@
 </tbody>
 </table>
 </div>
+{{ scope_charts(s, name) }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {% for direction in route.stops %}
 {% set stops = direction.stops %}

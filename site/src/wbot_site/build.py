@@ -19,7 +19,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import data
+from wbot_site import charts, data
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -86,6 +86,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
     )
     jinja.globals.update(
         env=env,
+        charts=charts,
         meta=stats.meta,
         synthetic=stats.synthetic,
         banner=banner,

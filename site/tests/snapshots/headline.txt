@@ -1,0 +1,16 @@
+<svg viewBox="0 0 640 100" role="img" aria-label="Route 901: 85% on time, 6% early, 9% late, 200 departures (Intercity Transit&#x27;s definition, 0 to 5 min late)." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="16" text-anchor="start">0 to 5 min late (Intercity Transit): 85% on time, 6% early, 9% late</text>
+<rect x="0.0" y="22.0" width="36.4" height="20.0" class="early"><title>0 to 5 min late (Intercity Transit): 12 early (6.0%)</title></rect>
+<rect x="38.4" y="22.0" width="542.0" height="20.0" class="on-time"><title>0 to 5 min late (Intercity Transit): 170 on time (85.0%)</title></rect>
+<rect x="582.4" y="22.0" width="55.6" height="20.0" class="late"><title>0 to 5 min late (Intercity Transit): 18 late (9.0%)</title></rect>
+<text x="0" y="66" text-anchor="start">1 min early to 5 min late: 89% on time, 2% early, 9% late</text>
+<rect x="0.0" y="72.0" width="10.8" height="20.0" class="early"><title>1 min early to 5 min late: 4 early (2.0%)</title></rect>
+<rect x="12.8" y="72.0" width="567.6" height="20.0" class="on-time"><title>1 min early to 5 min late: 178 on time (89.0%)</title></rect>
+<rect x="582.4" y="72.0" width="55.6" height="20.0" class="late"><title>1 min early to 5 min late: 18 late (9.0%)</title></rect>
+</svg>
+
+Route 901: 85% on time, 6% early, 9% late, 200 departures (Intercity Transit's definition, 0 to 5 min late).
+
+On-time window | Departures | Early | On time | Late
+0 to 5 min late (Intercity Transit's definition) | 200 | 12 (6.0%) | 170 (85.0%) | 18 (9.0%)
+1 min early to 5 min late | 200 | 4 (2.0%) | 178 (89.0%) | 18 (9.0%)
