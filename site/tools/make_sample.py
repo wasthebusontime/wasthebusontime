@@ -63,6 +63,31 @@ ROUTES = [
 ]
 
 
+# Invented coordinates: the grid streets above laid out as a regular grid inside the
+# tile area, with the named places off the grid. They match no real street.
+STREET_LAT = {"Example St": 47.050, "Sample Ave": 47.042, "Placeholder Rd": 47.034, "Fictional Blvd": 47.026}
+PLACES = {
+    TC: (47.038, -122.940),
+    "Example Park & Ride": (47.054, -122.868),
+    "Example Hospital": (47.046, -122.872),
+    "Sample Fairgrounds": (47.064, -122.856),
+}
+# Time-of-day bands on the map, by service hour: (key, first hour, last hour + 1).
+BANDS = [("early", 0, 6), ("am_peak", 6, 9), ("midday", 9, 15), ("pm_peak", 15, 18), ("evening", 18, 48)]
+
+
+def coordinates(name: str) -> tuple[float, float]:
+    if name in PLACES:
+        return PLACES[name]
+    street, avenue = name.split(" & ")
+    n = int("".join(c for c in avenue if c.isdigit()))
+    return STREET_LAT[street], round(-122.930 + n * 0.006, 5)
+
+
+def band(hour: int) -> str:
+    return next(key for key, lo, hi in BANDS if lo <= hour < hi)
+
+
 def daytype(d: date) -> str:
     return {5: "saturday", 6: "sunday"}.get(d.weekday(), "weekday")
 
@@ -361,7 +386,8 @@ def build(out: Path) -> None:
                 for slug in serving
             ]
         write(site / "stops" / f"{code}.json", doc)
-        index.append({"code": code, "name": name, "routes": serving})
+        lat, lon = coordinates(name)
+        index.append({"code": code, "name": name, "routes": serving, "lat": lat, "lon": lon})
     write(site / "stops.json", {"schema": 1, "stops": index})
 
     days = []
@@ -377,7 +403,48 @@ def build(out: Path) -> None:
         days.append({"date": d.isoformat(), **dc})
     write(site / "quality.json", {"schema": 1, "days": days, "data_loss": DATA_LOSS})
 
+    write_map(site, observed, index, codes)
     write_csvs(out / "csv", system, route_rows)
+
+
+def write_map(site: Path, observed: list[dict], index: list[dict], codes: dict[str, str]) -> None:
+    """Route lines and the per-preset stop counts the /stops/ map colors its markers with."""
+    features = []
+    for slug, _, stops, *_ in ROUTES:
+        for direction in (0, 1):
+            pattern = stops if direction == 0 else stops[::-1]
+            features.append({
+                "type": "Feature",
+                "properties": {"slug": slug, "short_name": slug, "direction_id": direction},
+                "geometry": {"type": "LineString", "coordinates": [[coordinates(n)[1], coordinates(n)[0]] for n in pattern]},
+            })
+    write(site / "routes.geojson", {"type": "FeatureCollection", "features": features}, compact=True)
+
+    # One file per (period, day type, band); "all" means no filter on that dimension.
+    groups = defaultdict(list)
+    for e in observed:
+        for period in ("all", e["date"].isoformat()[:7]):
+            for dt in ("all", e["daytype"]):
+                for b in ("all", band(e["hour"])):
+                    groups[(period, dt, b, codes[e["stop"]])].append(e)
+    timepoint_stops = {codes[e["stop"]] for e in observed if e["timepoint"]}
+    periods = ["all"] + sorted({e["date"].isoformat()[:7] for e in observed})
+
+    def counts(events):
+        p = perf([e["delay"] for e in events], hist=False, percentiles=False)
+        return [p["n"], p["early"], p["on_time"], p["late"], p["on_time_alt"]]
+
+    for period in periods:
+        for dt in ("all", "weekday", "saturday", "sunday"):
+            for b in ["all"] + [key for key, *_ in BANDS]:
+                doc = {"schema": 1, "timepoints": [], "all_stops": []}
+                for stop in index:
+                    events = groups.get((period, dt, b, stop["code"]), [])
+                    doc["all_stops"].append(counts(events))
+                    doc["timepoints"].append(
+                        counts([e for e in events if e["timepoint"]]) if stop["code"] in timepoint_stops else None
+                    )
+                write(site / "map" / period / f"{dt}-{b}.json", doc, compact=True)
 
 
 COUNT_COLUMNS = ["n", "early", "on_time", "late", "early_alt", "on_time_alt", "late_alt"]
@@ -400,9 +467,13 @@ def write_csvs(csv_dir: Path, system: dict, route_rows: list[dict]) -> None:
                 w.writerow([r["slug"], scope, *(p[c] for c in COUNT_COLUMNS), p["p10"], p["p50"], p["p90"]])
 
 
-def write(path: Path, doc: dict) -> None:
+def write(path: Path, doc: dict, compact: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    if compact:
+        text = json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
+    else:
+        text = json.dumps(doc, indent=1, ensure_ascii=False)
+    path.write_text(text + "\n", encoding="utf-8", newline="\n")
 
 
 def main() -> None:
