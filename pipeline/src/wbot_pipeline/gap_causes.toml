@@ -1,0 +1,9 @@
+# Known gaps in collection: the cause (collector, feed or unknown) and a short note,
+# for gaps whose cause the fetch log can't tell. Times are UTC. A gap overlapping an
+# entry takes its cause and note. This is our own operations record, not feed data.
+
+[[gap]]
+start = "2026-10-04T04:32:23Z"
+end = "2026-10-04T04:50:01Z"
+cause = "collector"
+note = "alert test"

@@ -1,0 +1,31 @@
+[project]
+name = "wbot-pipeline"
+version = "0.1.0"
+description = "Computes on-time statistics from the archived feeds for Was the Bus On Time?"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.1",
+    "gtfs-realtime-bindings>=1.0",
+    "pyarrow>=17",
+    "tzdata>=2024.1",
+    "zstandard>=0.23",
+]
+
+[project.scripts]
+wbot-pipeline = "wbot_pipeline.__main__:main"
+
+[dependency-groups]
+# wbot-site is here so the tests can check the output with the site's own loader and build.
+dev = ["pytest>=8", "wbot-site"]
+
+[tool.uv.sources]
+wbot-site = { path = "../site", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
