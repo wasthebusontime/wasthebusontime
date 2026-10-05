@@ -11,6 +11,11 @@
 # atomically. On failure the previous site stays up and the log is shown at /_status/.
 # Every attempt is recorded, so a failing commit pair is not retried every 5 minutes.
 #
+# Stats come from the public stats repo once it has data. Until then, during the
+# evaluation phase, VM 300 copies its unpublished site files into private-stats/
+# (pipeline/deploy/devcopy/), and the build uses those; without either, build.sh falls
+# back to the sample data. Delete private-stats/ when publishing is on.
+#
 # Everything is inside main() because the script resets the clone it lives in: bash
 # reads the whole function before running it, so a new version takes effect next run.
 set -euo pipefail
@@ -31,10 +36,13 @@ main() {
         return 0
     fi
 
-    local code_head stats_head wanted
+    local code_head stats_head wanted private=$root/private-stats
     code_head=$(remote_head "$code_url" "$code_branch")
     stats_head=$(remote_head "$stats_url" "$stats_branch")
     wanted="code $code_head stats $stats_head"
+    if [ -f "$private/site/meta.json" ]; then
+        wanted="$wanted private $(fingerprint "$private")"
+    fi
     if [ "${1:-}" != "--force" ] && [ "$wanted" = "$(cat "$state/last_attempt" 2>/dev/null || true)" ]; then
         return 0
     fi
@@ -49,9 +57,11 @@ main() {
     log=$state/build.log
     echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC') building $wanted" | tee "$log"
 
+    local stats_dir=$root/stats
     if sync_clone "$root/code" "$code_url" "$code_branch" >>"$log" 2>&1 &&
         sync_clone "$root/stats" "$stats_url" "$stats_branch" >>"$log" 2>&1 &&
-        WBOT_ENV=dev WBOT_STATS_DIR="$root/stats" WBOT_OUT_DIR="$release" WBOT_TILES_URL="$tiles_url" \
+        stats_dir=$(pick_stats "$root/stats" "$private" 2>>"$log") &&
+        WBOT_ENV=dev WBOT_STATS_DIR="$stats_dir" WBOT_OUT_DIR="$release" WBOT_TILES_URL="$tiles_url" \
             bash "$root/code/site/build.sh" >>"$log" 2>&1; then
         # Relative link, renamed over the old one: the switch is atomic.
         ln -sfn "$ts" "$releases/current.tmp"
@@ -77,6 +87,23 @@ remote_head() {
         return 1
     fi
     echo "${head:0:12}"
+}
+
+# Changes whenever rsync changes a file (it keeps sizes and modification times).
+fingerprint() {
+    (cd "$1" && { find site csv -type f -printf '%P %s %T@\n' 2>/dev/null || true; } | sort | sha1sum | cut -c1-12)
+}
+
+pick_stats() {
+    local repo=$1 private=$2
+    if [ -f "$repo/site/meta.json" ]; then
+        echo "$repo"
+    elif [ -f "$private/site/meta.json" ]; then
+        echo "using the unpublished copy from VM 300 in $private" >&2
+        echo "$private"
+    else
+        echo "$repo"
+    fi
 }
 
 sync_clone() {

@@ -115,6 +115,7 @@ The collector's hourly backup copies `derived/` (except `tmp/` and `out/`) to B2
        git clone git@github.com:wasthebusontime/stats.git /var/lib/wbot/stats
    ```
 4. Set `WBOT_PIPELINE_PUBLISH=1` in the env file. The next run commits `site/` and `csv/` if anything changed and pushes. Commits use the project's GitHub noreply address.
+5. Remove the evaluation-phase dev copy: steps in [deploy/devcopy/README.md](deploy/devcopy/README.md).
 
 ### Monitoring
 

@@ -1,0 +1,21 @@
+# Temporary, evaluation phase only: see README.md in this folder.
+[Unit]
+Description=Was the Bus On Time? copy site files to the dev VM (evaluation phase)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wbot/wasthebusontime/pipeline/deploy/devcopy/devcopy.sh
+User=wbot
+Group=wbot
+# Read for WBOT_PIPELINE_PUBLISH and WBOT_DERIVED_DIR.
+EnvironmentFile=/etc/wasthebusontime/pipeline.env
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=10min
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadOnlyPaths=/srv/wbot/data /var/lib/wbot
