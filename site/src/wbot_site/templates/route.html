@@ -5,7 +5,7 @@
 {{ notices_line(notices) }}
 {% call(scope) scoped() %}
 {% set s = route.scopes[scope] %}
-{{ headline(s.summary, name) }}
+{{ headline(s.summary, name, scope) }}
 {{ chart(charts.headline_chart(s.summary, name, min_sample), "Early, on time and late") }}
 {% endcall %}
 {{ scope_toggle() }}

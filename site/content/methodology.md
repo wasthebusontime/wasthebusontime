@@ -21,6 +21,8 @@ A second, common industry window is shown alongside and always labeled: 1 minute
 
 On-time status is measured when the bus leaves a stop, as in the agency's definition. The last stop of a trip has no departure, so it is not part of the on-time percentages. Arrivals at the last stop are shown separately as end-of-line arrivals; buses often arrive there early because schedules include recovery time at the end of a trip.
 
+We count departures, not trips. A departure is one bus leaving one stop on one trip, so a single trip adds several departures: one for each timepoint it leaves in the timepoints view, or one for each stop in the all stops view. Trips are counted separately, as scheduled, recorded and not recorded, on each route page and on the [Data quality](/data-quality/) page.
+
 ## Which stops
 
 Every page has a choice between two sets of stops:
@@ -40,7 +42,7 @@ Each departure is compared with the schedule that was in effect on that day, inc
 
 - Departures that weren't recorded are left out. They are never guessed and never counted as late or missed.
 - A trip with no tracked bus may have been cancelled, or may have run without working tracking. We can't tell the difference, so it is reported as **not recorded**.
-- Short interruptions in our recording (up to about 14 minutes) lose nothing, because the data keeps recent departures for a while. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
+- Short interruptions in our recording (up to about 14 minutes) lose almost nothing, because the data keeps recent departures for a while. The exception is the last few stops of a trip that ends during the interruption. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
 - A percentage is shown only when at least 30 departures are behind it. Otherwise the page says "Not enough data".
 
 ## Rounding

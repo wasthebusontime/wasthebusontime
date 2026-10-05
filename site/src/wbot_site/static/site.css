@@ -118,6 +118,7 @@ main { flex: 1 0 auto; }
 .scope-option { margin: .25rem 0; }
 .scope-option label { font-weight: 600; }
 .scope-help { margin: 0 0 0 1.6rem; font-size: .85rem; color: var(--muted); }
+.scope-note { margin: .6rem 0 0; }
 @supports not selector(:has(a)) { .scope-toggle { display: none; } }
 body:has(#scope-timepoints:checked) .scope-all_stops { display: none; }
 body:has(#scope-all_stops:checked) .scope-timepoints { display: none; }

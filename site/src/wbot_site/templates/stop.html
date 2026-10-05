@@ -11,7 +11,7 @@
 {% if s is none %}
 <p class="not-timepoint">This stop isn't a timepoint, so it has no numbers in this view. Choose "All stops" to see them.</p>
 {% else %}
-{{ headline(s.summary, "this stop") }}
+{{ headline(s.summary, "this stop", scope) }}
 {{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
 {% endif %}
 {% endcall %}

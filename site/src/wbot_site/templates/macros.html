@@ -13,6 +13,7 @@
     <label for="scope-all_stops">All stops</label>
     <p class="scope-help">At stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
   </div>
+  <p class="scope-help scope-note">Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
 </fieldset>
 {% endmacro %}
 
@@ -58,11 +59,12 @@
 {% endmacro %}
 
 {# Big numbers at the top of a page, both windows labeled. #}
-{% macro headline(perf, subject) %}
+{% macro headline(perf, subject, scope) %}
+{% set what = "a timepoint" if scope == "timepoints" else "a stop" %}
 <div class="headline">
 {% if enough(perf, min_sample) %}
   <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ window_labels.headline }}</p>
-  <p class="headline-parts">{{ share(perf, "early") }} early, {{ share(perf, "late") }} late, out of {{ perf.n | number }} departures.</p>
+  <p class="headline-parts">{{ share(perf, "early") }} early, {{ share(perf, "late") }} late, out of {{ perf.n | number }} departures (each time a bus left {{ what }}).</p>
   <p class="headline-alt"><span class="medium">{{ share(perf, window="alt") }}</span> {{ window_labels.alt }}</p>
 {% else %}
   <p class="headline-main"><span class="nodata">Not enough data</span> for {{ subject }} yet ({{ perf.n | number }} departures; at least {{ min_sample }} are needed).</p>
