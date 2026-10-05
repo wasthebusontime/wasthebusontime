@@ -8,8 +8,9 @@ from .config import Settings
 
 log = logging.getLogger(__name__)
 
-# The spool is excluded on purpose: only verified archives go offsite.
-BACKUP_DIRS = ("archive", "static", "log")
+# The spool is excluded on purpose: only verified archives go offsite. "derived" is
+# the stats pipeline's output (stop events, facts, aggregates), when it exists.
+BACKUP_DIRS = ("archive", "static", "log", "derived")
 
 
 def rclone_commands(settings: Settings) -> list[list[str]]:
@@ -22,6 +23,16 @@ def rclone_commands(settings: Settings) -> list[list[str]]:
             f"{settings.b2_remote}:{settings.b2_bucket}/{d}",
             "--exclude",
             ".tmp-*",
+            # The pipeline's scratch space, its site files (published, and rebuilt each
+            # night from what is backed up) and half-written files.
+            "--exclude",
+            "tmp/**",
+            "--exclude",
+            "out*/**",
+            "--exclude",
+            "*.tmp",
+            "--exclude",
+            "*.tmp/**",
         ]
         for d in BACKUP_DIRS
         if (settings.data_dir / d).exists()
