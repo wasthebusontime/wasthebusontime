@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # httpx logs every request URL at INFO, and healthchecks ping URLs are secrets.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     settings = load_settings()
     settings.data_dir.mkdir(parents=True, exist_ok=True)
 
