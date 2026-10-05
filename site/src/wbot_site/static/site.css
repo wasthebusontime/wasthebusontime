@@ -23,10 +23,10 @@
   --foot-bg: #f0ecfa;
   --band-stripe: #65389f;
   /* Stop map: marker bins from best (0) to worst (3), one violet ramp, worst most intense. */
-  --map-bin-0: #a183d4;
-  --map-bin-1: #8561bd;
-  --map-bin-2: #6a3fa3;
-  --map-bin-3: #4e2281;
+  --map-bin-0: #009b95;
+  --map-bin-1: #f4a294;
+  --map-bin-2: #e05b4a;
+  --map-bin-3: #941424;
   --map-nodata: #a8a39a;
   --map-stop-stroke: #ffffff;
   --map-route: #8a857b;
@@ -57,10 +57,10 @@
     --foot-bg: #1d162a;
     --band-stripe: #8059bb;
     /* On a dark map the brightest dot is the most intense, so the ramp runs dark to light. */
-    --map-bin-0: #8059bb;
-    --map-bin-1: #9f7ed6;
-    --map-bin-2: #bea6eb;
-    --map-bin-3: #daccf7;
+    --map-bin-0: #009b95;
+    --map-bin-1: #993a2e;
+    --map-bin-2: #e36650;
+    --map-bin-3: #fec0b2;
     --map-nodata: #6e6a62;
     --map-stop-stroke: #141414;
     --map-route: #6e6a62;
