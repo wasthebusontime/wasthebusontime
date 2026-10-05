@@ -42,7 +42,7 @@ def test_sample_builds_every_page(dev_site):
     stats_pages = 1 + 6 + 1 + 33 + 1  # home, routes, stop index, stops, data quality
     text_pages = 6  # about (with AI use), terms, privacy, methodology, data, unavailable
     assert len(html_pages(dev_site)) == stats_pages + text_pages + 1  # + 404
-    for path in ["routes/901/index.html", "stops/E101/index.html", "data/routes.csv",
+    for path in ["routes/901/index.html", "stops/E101/index.html", "data/routes_daily.csv",
                  "static/site.css", "sitemap.xml", "robots.txt", "404.html"]:
         assert (dev_site / path).is_file(), path
 

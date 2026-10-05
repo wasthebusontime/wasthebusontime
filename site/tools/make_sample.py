@@ -404,7 +404,7 @@ def build(out: Path) -> None:
     write(site / "quality.json", {"schema": 1, "days": days, "data_loss": DATA_LOSS})
 
     write_map(site, observed, index, codes)
-    write_csvs(out / "csv", system, route_rows)
+    write_csvs(out / "csv", observed, arrs, deps, trips, days, codes)
 
 
 def write_map(site: Path, observed: list[dict], index: list[dict], codes: dict[str, str]) -> None:
@@ -448,23 +448,79 @@ def write_map(site: Path, observed: list[dict], index: list[dict], codes: dict[s
 
 
 COUNT_COLUMNS = ["n", "early", "on_time", "late", "early_alt", "on_time_alt", "late_alt"]
+HIST_COLUMNS = ["under", *(f"m{m}".replace("-", "_") for m in range(HIST_START_MIN, HIST_START_MIN + HIST_BUCKETS)), "over"]
 
 
-def write_csvs(csv_dir: Path, system: dict, route_rows: list[dict]) -> None:
+def write_csvs(csv_dir: Path, observed: list[dict], arrivals: list[dict], deps: list[dict], trips: list[dict],
+               days: list[dict], codes: dict[str, str]) -> None:
+    """The same files and columns the stats pipeline writes (see its opendata module)."""
     csv_dir.mkdir(parents=True, exist_ok=True)
-    with open(csv_dir / "system_daily.csv", "w", newline="", encoding="utf-8") as f:
+    month = lambda e: e["date"].isoformat()[:7]
+    scoped = [(scope, e) for e in observed for scope in ("timepoints", "all_stops") if scope == "all_stops" or e["timepoint"]]
+
+    def counts(keyf, events, hist=False):
+        groups = defaultdict(list)
+        for scope, e in events:
+            groups[keyf(scope, e)].append(e["delay"])
+        rows = []
+        for key in sorted(groups):
+            p = perf(groups[key], hist=hist, percentiles=False)
+            row = [*key, *(p[c] for c in COUNT_COLUMNS)]
+            if hist:
+                row += [p["hist"]["under"], *p["hist"]["counts"], p["hist"]["over"]]
+            rows.append(row)
+        return rows
+
+    names = {code: name for name, code in codes.items()}
+    tables = {
+        "system_daily": (["date", "scope"], counts(lambda s, e: (e["date"].isoformat(), s), scoped, True), True),
+        "routes_daily": (["date", "route", "direction_id", "scope"],
+                         counts(lambda s, e: (e["date"].isoformat(), e["slug"], e["direction"], s), scoped), False),
+        "routes_monthly": (["month", "route", "direction_id", "scope", "day_type"],
+                           counts(lambda s, e: (month(e), e["slug"], e["direction"], s, e["daytype"]), scoped, True), True),
+        "routes_hourly_monthly": (["month", "route", "scope", "day_type", "hour"],
+                                  counts(lambda s, e: (month(e), e["slug"], s, e["daytype"], e["hour"]), scoped), False),
+        "stops_monthly": (["month", "stop_code", "route", "scope"],
+                          counts(lambda s, e: (month(e), codes[e["stop"]], e["slug"], s), scoped), False),
+        "terminal_monthly": (["month", "route"],
+                             counts(lambda s, e: (month(e), e["slug"]), [(s, e) for s, e in scoped
+                                                                        if s == "all_stops" and e["terminal"]]), False),
+    }
+    for name, (keys, rows, hist) in tables.items():
+        header = keys + COUNT_COLUMNS + (HIST_COLUMNS if hist else [])
+        if name == "stops_monthly":
+            header.insert(2, "stop_name")
+            rows = [[r[0], r[1], names[r[1]], *r[2:]] for r in rows]
+        write_csv(csv_dir / f"{name}.csv", header, rows)
+
+    eol = defaultdict(list)
+    for a in arrivals:
+        if a["observed"]:
+            eol[(a["date"].isoformat()[:7], a["slug"])].append(a["delay"])
+    rows = []
+    for key in sorted(eol):
+        ds = sorted(eol[key])
+        rows.append([*key, len(ds), sum(1 for v in ds if v < 0),
+                     percentile(ds, 0.1), percentile(ds, 0.5), percentile(ds, 0.9)])
+    write_csv(csv_dir / "end_of_line_monthly.csv", ["month", "route", "n", "early", "p10", "p50", "p90"], rows)
+
+    rows = []
+    for d in days:
+        day = date.fromisoformat(d["date"])
+        skipped = sum(e["skipped"] for e in deps if e["date"] == day)
+        rows.append([d["date"], d["trips_scheduled"], d["trips_observed"], d["trips_scheduled"] - d["trips_observed"],
+                     0, 0, skipped, d["departures_scheduled"], d["departures_observed"], d["uptime_service_hours"]])
+    write_csv(csv_dir / "quality_daily.csv",
+              ["date", "trips_scheduled", "trips_observed", "trips_not_observed", "cancelled", "added", "skipped_stops",
+               "departures_scheduled", "departures_observed", "uptime_service_hours"], rows)
+    write_csv(csv_dir / "data_loss.csv", ["start", "end", "cause"], [[w["start"], w["end"], w["cause"]] for w in DATA_LOSS])
+
+
+def write_csv(path: Path, header: list[str], rows: list[list]) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, lineterminator="\n")
-        w.writerow(["date", "scope", *COUNT_COLUMNS])
-        for scope, block in system["scopes"].items():
-            for row in block["daily"]:
-                w.writerow([row["date"], scope, *(row[c] for c in COUNT_COLUMNS)])
-    with open(csv_dir / "routes.csv", "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f, lineterminator="\n")
-        w.writerow(["route", "scope", *COUNT_COLUMNS, "p10", "p50", "p90"])
-        for r in route_rows:
-            for scope in ("timepoints", "all_stops"):
-                p = r[scope]
-                w.writerow([r["slug"], scope, *(p[c] for c in COUNT_COLUMNS), p["p10"], p["p50"], p["p90"]])
+        w.writerow(header)
+        w.writerows(rows)
 
 
 def write(path: Path, doc: dict, compact: bool = False) -> None:
