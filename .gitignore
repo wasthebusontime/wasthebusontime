@@ -24,6 +24,7 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/settings.local.json
 
 # Python
 __pycache__/
