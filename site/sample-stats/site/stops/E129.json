@@ -4,7 +4,10 @@
   "code": "E129",
   "stop_id": "SE129",
   "name": "Sample Ave & 5th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "902"
+  ]
  },
  "scopes": {
   "timepoints": {

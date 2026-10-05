@@ -60,7 +60,7 @@
 
 {# Big numbers at the top of a page, both windows labeled. #}
 {% macro headline(perf, subject, scope) %}
-{% set what = "a timepoint" if scope == "timepoints" else "a stop" %}
+{% set what = {"timepoints": "a timepoint", "stop": "this stop"}.get(scope, "a stop") %}
 <div class="headline">
 {% if enough(perf, min_sample) %}
   <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ window_labels.headline }}</p>

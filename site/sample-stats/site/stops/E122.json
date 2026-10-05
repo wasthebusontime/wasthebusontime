@@ -4,7 +4,10 @@
   "code": "E122",
   "stop_id": "SE122",
   "name": "Placeholder Rd & 6th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "903"
+  ]
  },
  "scopes": {
   "timepoints": {

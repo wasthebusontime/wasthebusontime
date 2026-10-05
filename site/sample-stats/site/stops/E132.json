@@ -4,7 +4,10 @@
   "code": "E132",
   "stop_id": "SE132",
   "name": "Sample Fairgrounds",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "906"
+  ]
  },
  "scopes": {
   "timepoints": {

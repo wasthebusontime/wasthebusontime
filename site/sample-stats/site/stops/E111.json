@@ -4,7 +4,10 @@
   "code": "E111",
   "stop_id": "SE111",
   "name": "Fictional Blvd & 1st Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "905"
+  ]
  },
  "scopes": {
   "timepoints": {

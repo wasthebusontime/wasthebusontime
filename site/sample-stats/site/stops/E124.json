@@ -4,7 +4,10 @@
   "code": "E124",
   "stop_id": "SE124",
   "name": "Placeholder Rd & 8th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "903"
+  ]
  },
  "scopes": {
   "timepoints": {

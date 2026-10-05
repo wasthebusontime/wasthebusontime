@@ -142,12 +142,13 @@ def test_every_page_has_the_icon(dev_site):
 
 def test_toggle_on_stats_pages_only(dev_site):
     assert 'id="scope-timepoints"' in (dev_site / "index.html").read_text(encoding="utf-8")
-    assert 'id="scope-timepoints"' in (dev_site / "stops" / "E101" / "index.html").read_text(encoding="utf-8")
+    # A stop page is about one stop: every departure from it, no toggle.
+    assert 'id="scope-timepoints"' not in (dev_site / "stops" / "E101" / "index.html").read_text(encoding="utf-8")
     assert 'id="scope-timepoints"' not in (dev_site / "about" / "index.html").read_text(encoding="utf-8")
 
 
 def test_stats_pages_put_the_toggle_under_the_headline_and_notes_at_the_end(dev_site):
-    for page in [dev_site / "index.html", dev_site / "routes" / "901" / "index.html", dev_site / "stops" / "E101" / "index.html"]:
+    for page in [dev_site / "index.html", dev_site / "routes" / "901" / "index.html"]:
         html = page.read_text(encoding="utf-8")
         markers = ['class="notices-line"', 'class="headline"', 'class="scope-toggle"', '<caption>', 'id="notes"', 'class="site-footer"']
         order = [html.index(m) for m in markers if m in html]
@@ -157,10 +158,17 @@ def test_stats_pages_put_the_toggle_under_the_headline_and_notes_at_the_end(dev_
     assert 'id="notes"' in (dev_site / "index.html").read_text(encoding="utf-8")
 
 
-def test_never_timepoint_stop_says_so(dev_site):
+def test_stop_pages_say_whether_the_stop_is_a_timepoint(dev_site):
     stop = json.loads((SAMPLE_DIR / "site" / "stops" / "E120.json").read_text(encoding="utf-8"))
-    assert stop["scopes"]["timepoints"] is None
-    assert "This stop isn't a timepoint" in (dev_site / "stops" / "E120" / "index.html").read_text(encoding="utf-8")
+    assert stop["scopes"]["timepoints"] is None and stop["stop"]["timepoint_routes"] == []
+    page = lambda code: (dev_site / "stops" / code / "index.html").read_text(encoding="utf-8")
+    assert "This stop isn't a timepoint." in page("E120")
+    assert "This stop is a timepoint: it has times printed" in page("E105")
+    # E102 is a timepoint for Route 901 but not for the Saturday shuttle, Route 906.
+    assert "This stop is a timepoint for Route 901, but not for Route 906." in page("E102")
+    assert page("E102").count('<span class="def">Timepoint</span>') == 1
+    assert "(each time a bus left this stop)" in page("E105")
+    assert 'class="scope-heading' not in page("E105")
 
 
 def test_small_route_shows_not_enough_data(dev_site):

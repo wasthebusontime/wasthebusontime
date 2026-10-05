@@ -4,7 +4,10 @@
   "code": "E118",
   "stop_id": "SE118",
   "name": "Placeholder Rd & 2nd Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "903"
+  ]
  },
  "scopes": {
   "timepoints": {

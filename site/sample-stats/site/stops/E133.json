@@ -4,7 +4,15 @@
   "code": "E133",
   "stop_id": "SE133",
   "name": "Sample Transit Center",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "901",
+   "902",
+   "903",
+   "904",
+   "905",
+   "906"
+  ]
  },
  "scopes": {
   "timepoints": {

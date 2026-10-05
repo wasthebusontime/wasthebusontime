@@ -4,7 +4,10 @@
   "code": "E102",
   "stop_id": "SE102",
   "name": "Example Park & Ride",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "901"
+  ]
  },
  "scopes": {
   "timepoints": {

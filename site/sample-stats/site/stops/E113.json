@@ -4,7 +4,10 @@
   "code": "E113",
   "stop_id": "SE113",
   "name": "Fictional Blvd & 3rd Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "904"
+  ]
  },
  "scopes": {
   "timepoints": {

@@ -368,10 +368,12 @@ def build(out: Path) -> None:
     for name, code in sorted(codes.items()):
         s_obs = [e for e in observed if e["stop"] == name]
         serving = sorted({slug for slug, pattern in patterns.items() if name in pattern})
-        timepoint_somewhere = any(e["timepoint"] for e in deps if e["stop"] == name)
+        timepoint_routes = sorted({e["slug"] for e in deps if e["stop"] == name and e["timepoint"]})
+        timepoint_somewhere = bool(timepoint_routes)
         doc = {
             "schema": 1,
-            "stop": {"code": code, "stop_id": f"S{code}", "name": name, "timepoint_somewhere": timepoint_somewhere},
+            "stop": {"code": code, "stop_id": f"S{code}", "name": name, "timepoint_somewhere": timepoint_somewhere,
+                     "timepoint_routes": timepoint_routes},
             "scopes": scopes(s_obs, daily=False),
             "notices": [],
         }

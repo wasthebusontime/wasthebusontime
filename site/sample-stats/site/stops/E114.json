@@ -4,7 +4,10 @@
   "code": "E114",
   "stop_id": "SE114",
   "name": "Fictional Blvd & 4th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "905"
+  ]
  },
  "scopes": {
   "timepoints": {

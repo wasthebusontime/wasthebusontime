@@ -4,7 +4,8 @@
   "code": "E116",
   "stop_id": "SE116",
   "name": "Fictional Blvd & 6th Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

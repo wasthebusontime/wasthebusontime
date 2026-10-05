@@ -4,7 +4,8 @@
   "code": "E115",
   "stop_id": "SE115",
   "name": "Fictional Blvd & 5th Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

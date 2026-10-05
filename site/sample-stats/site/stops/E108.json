@@ -4,7 +4,10 @@
   "code": "E108",
   "stop_id": "SE108",
   "name": "Example St & 6th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "901"
+  ]
  },
  "scopes": {
   "timepoints": {

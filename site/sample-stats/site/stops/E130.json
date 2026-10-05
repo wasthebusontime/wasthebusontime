@@ -4,7 +4,10 @@
   "code": "E130",
   "stop_id": "SE130",
   "name": "Sample Ave & 6th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "902"
+  ]
  },
  "scopes": {
   "timepoints": {

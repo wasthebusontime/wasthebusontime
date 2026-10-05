@@ -4,7 +4,10 @@
   "code": "E119",
   "stop_id": "SE119",
   "name": "Placeholder Rd & 3rd Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "903"
+  ]
  },
  "scopes": {
   "timepoints": {

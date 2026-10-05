@@ -138,6 +138,10 @@ def test_route_stops_in_order_and_stop_pages(world):
     assert tc["routes"] == ["901"] and tc["lat"] == 47.04 and tc["lon"] == -122.9
     stop = load(world, "stops", "E202.json")
     assert stop["stop"]["timepoint_somewhere"] is False and stop["scopes"]["timepoints"] is None
+    assert stop["stop"]["timepoint_routes"] == []
+    assert load(world, "stops", "E201.json")["stop"]["timepoint_routes"] == ["901"]
+    # E205 is a timepoint on both routes (901 ends there, the 902 loop starts there).
+    assert load(world, "stops", "E205.json")["stop"]["timepoint_routes"] == ["901", "902"]
     assert "daily" not in stop["scopes"]["all_stops"]
     assert [r["slug"] for r in stop["scopes"]["all_stops"]["by_route"]] == ["901"]
 

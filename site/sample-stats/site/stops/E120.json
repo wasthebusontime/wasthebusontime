@@ -4,7 +4,8 @@
   "code": "E120",
   "stop_id": "SE120",
   "name": "Placeholder Rd & 4th Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

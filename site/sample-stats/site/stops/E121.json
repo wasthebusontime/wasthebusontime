@@ -4,7 +4,10 @@
   "code": "E121",
   "stop_id": "SE121",
   "name": "Placeholder Rd & 5th Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "903"
+  ]
  },
  "scopes": {
   "timepoints": {

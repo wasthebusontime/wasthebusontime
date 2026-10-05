@@ -4,7 +4,8 @@
   "code": "E112",
   "stop_id": "SE112",
   "name": "Fictional Blvd & 2nd Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

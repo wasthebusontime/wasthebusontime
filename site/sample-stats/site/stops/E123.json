@@ -4,7 +4,8 @@
   "code": "E123",
   "stop_id": "SE123",
   "name": "Placeholder Rd & 7th Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

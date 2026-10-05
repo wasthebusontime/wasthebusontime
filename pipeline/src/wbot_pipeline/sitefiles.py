@@ -451,8 +451,12 @@ def write_stops(stage: Stage, site: Path) -> list[dict]:
     serving = {}
     for code, slug in con.execute("SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled").fetchall():
         serving.setdefault(code, set()).add(slug)
-    timepoint_somewhere = {r[0] for r in con.execute(
-        "SELECT DISTINCT stop_code FROM ev WHERE scheduled AND is_timepoint AND NOT is_last").fetchall()}
+    # Routes for which each stop is a timepoint (a departure from it is timed).
+    timepoint_routes = {}
+    for code, slug in con.execute(
+            "SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled AND is_timepoint AND NOT is_last").fetchall():
+        timepoint_routes.setdefault(code, set()).add(slug)
+    timepoint_somewhere = set(timepoint_routes)
     blocks = scope_blocks(stage, "stop", daily=False)
     by_route = pq.get(["scope", "stop", "route"])
     index = []
@@ -473,7 +477,8 @@ def write_stops(stage: Stage, site: Path) -> list[dict]:
         write(site / "stops" / f"{code}.json", {
             "schema": SCHEMA,
             "stop": {"code": code, "stop_id": info["stop_id"], "name": info["name"],
-                     "timepoint_somewhere": code in timepoint_somewhere},
+                     "timepoint_somewhere": code in timepoint_somewhere,
+                     "timepoint_routes": sorted(timepoint_routes.get(code, ()), key=route_order)},
             "scopes": scopes,
             "notices": [],
         })

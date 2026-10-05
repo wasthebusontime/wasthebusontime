@@ -4,7 +4,8 @@
   "code": "E131",
   "stop_id": "SE131",
   "name": "Sample Ave & 7th Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

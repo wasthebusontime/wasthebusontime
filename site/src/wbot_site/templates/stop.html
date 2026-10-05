@@ -1,39 +1,43 @@
 {% extends "base.html" %}
-{% from "macros.html" import scope_toggle, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table %}
+{% from "macros.html" import headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table %}
+{# "Route 13", "Routes 13 and 41", "Routes 13, 21 and 41" #}
+{% macro route_list(names) -%}
+{{ "Route" if names | length == 1 else "Routes" }} {% if names | length <= 2 %}{{ names | join(" and ") }}{% else %}{{ names[:-1] | join(", ") }} and {{ names[-1] }}{% endif %}
+{%- endmacro %}
 {% block main %}
+{# One stop: every departure from it, so no timepoints / all stops toggle. A line under
+   the title says whether its departures are timed (a timepoint) on each route. #}
+{% set s = stop.scopes.all_stops %}
+{% set tp = stop.stop.get("timepoint_routes", []) %}
+{% set timed = s.by_route | selectattr("slug", "in", tp) | map(attribute="short_name") | list %}
+{% set untimed = s.by_route | rejectattr("slug", "in", tp) | map(attribute="short_name") | list %}
 <h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
 {% if stop_map %}
 <p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">Show this stop on the map</a></p>
 {% endif %}
-{{ notices_line(notices) }}
-{% call(scope) scoped() %}
-{% set s = stop.scopes[scope] %}
-{% if s is none %}
-<p class="not-timepoint">This stop isn't a timepoint, so it has no numbers in this view. Choose "All stops" to see them.</p>
+{% if not timed %}
+<p class="stop-kind">This stop isn't a timepoint. Its schedule times are estimates between timepoints, so buses often show as early here. To see how a route keeps to its printed times, see the route's page.</p>
+{% elif not untimed %}
+<p class="stop-kind">This stop is a timepoint: it has times printed in the schedule, and drivers are expected not to leave it early.</p>
 {% else %}
-{{ headline(s.summary, "this stop", scope) }}
-{{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
+<p class="stop-kind">This stop is a timepoint for {{ route_list(timed) }}, but not for {{ route_list(untimed) }}. Where it isn't a timepoint, its schedule times are estimates, so buses often show as early there.</p>
 {% endif %}
-{% endcall %}
-{{ scope_toggle() }}
-{% call(scope) scoped(repeat=true) %}
-{% set s = stop.scopes[scope] %}
-{% if s is not none %}
+{{ notices_line(notices) }}
+{{ headline(s.summary, "this stop", "stop") }}
+{{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
 <div class="table-wrap">
 <table class="data">
 <caption>By route</caption>
 <thead><tr><th scope="col">Route</th>{{ perf_header() }}</tr></thead>
 <tbody>
 {% for r in s.by_route %}
-<tr><th scope="row"><a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a></th>{{ perf_cells(r) }}</tr>
+<tr><th scope="row"><a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a>{% if r.slug in tp %} <span class="def">Timepoint</span>{% endif %}</th>{{ perf_cells(r) }}</tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
 {{ scope_charts(s, stop.stop.name) }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
-{% endif %}
-{% endcall %}
 {{ notice_list(notices) }}
 <p><a href="/stops/">All stops</a></p>
 {% endblock %}

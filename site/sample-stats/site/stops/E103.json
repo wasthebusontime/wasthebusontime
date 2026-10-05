@@ -4,7 +4,8 @@
   "code": "E103",
   "stop_id": "SE103",
   "name": "Example St & 1st Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

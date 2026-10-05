@@ -4,7 +4,10 @@
   "code": "E126",
   "stop_id": "SE126",
   "name": "Sample Ave & 2nd Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "902"
+  ]
  },
  "scopes": {
   "timepoints": {

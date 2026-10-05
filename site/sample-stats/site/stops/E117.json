@@ -4,7 +4,8 @@
   "code": "E117",
   "stop_id": "SE117",
   "name": "Placeholder Rd & 1st Ave",
-  "timepoint_somewhere": false
+  "timepoint_somewhere": false,
+  "timepoint_routes": []
  },
  "scopes": {
   "timepoints": null,

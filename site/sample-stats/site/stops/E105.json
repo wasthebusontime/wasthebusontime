@@ -4,7 +4,11 @@
   "code": "E105",
   "stop_id": "SE105",
   "name": "Example St & 3rd Ave",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "901",
+   "904"
+  ]
  },
  "scopes": {
   "timepoints": {

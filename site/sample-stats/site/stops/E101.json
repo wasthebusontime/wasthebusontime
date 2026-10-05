@@ -4,7 +4,10 @@
   "code": "E101",
   "stop_id": "SE101",
   "name": "Example Hospital",
-  "timepoint_somewhere": true
+  "timepoint_somewhere": true,
+  "timepoint_routes": [
+   "902"
+  ]
  },
  "scopes": {
   "timepoints": {
