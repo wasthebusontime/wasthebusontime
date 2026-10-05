@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly stats pipeline, after the service day ends
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 America/Los_Angeles
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,28 @@
+[Unit]
+Description=Was the Bus On Time? nightly stats pipeline
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/wbot/data
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wbot/wasthebusontime/pipeline/.venv/bin/wbot-pipeline run
+User=wbot
+Group=wbot
+EnvironmentFile=/etc/wasthebusontime/pipeline.env
+WorkingDirectory=/opt/wbot/wasthebusontime/pipeline
+# The collector always wins: lowest CPU and disk priority, and a memory cap.
+Nice=19
+CPUWeight=idle
+IOSchedulingClass=idle
+MemoryHigh=400M
+MemoryMax=700M
+# A full rebuild takes about 25 s per service date.
+TimeoutStartSec=12h
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# The archive is read-only to the pipeline; it writes only its own directories.
+ReadOnlyPaths=/srv/wbot/data
+ReadWritePaths=/srv/wbot/data/derived /var/lib/wbot/stats
