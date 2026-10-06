@@ -1,4 +1,4 @@
-<svg viewBox="0 0 320 172" role="img" aria-label="Route 901, on time each day over the last 6 days: lowest 75% on Oct 31, 2026, highest 91% on Nov 3, 2026, latest 90% on Nov 4, 2026." xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 320 172" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
 <line x1="32" y1="150" x2="314" y2="150" class="grid"/>
 <text x="26" y="154" text-anchor="end" class="small">0%</text>
 <line x1="32" y1="80" x2="314" y2="80" class="grid"/>

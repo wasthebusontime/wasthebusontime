@@ -126,6 +126,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         month=data.month_text,
         hour=data.hour_text,
         timestamp=data.timestamp_text,
+        directions=data.directions_html,
     )
     return jinja
 
@@ -226,19 +227,20 @@ def render_stats_pages(b: Build) -> None:
     stats = b.stats
     system = stats.system
     b.render(
-        "home.html", "", title="Was the Bus On Time",
+        "home.html", "", title=None,
         system=system, notices=data.known_notices(system["notices"], "system.json"),
     )
     for slug, route in stats.routes.items():
         name = route_name(route["route"])
         b.render(
-            "route.html", f"routes/{slug}/", title=name, name=name, route=route,
+            "route.html", f"routes/{slug}/", title=" ".join(filter(None, [name, route["route"].get("long_name")])),
+            name=name, route=route,
             notices=data.known_notices(route["notices"], f"routes/{slug}.json"),
         )
     b.render("stops.html", "stops/", title="Stops", stops=stats.index["stops"], route_names=route_names(stats))
     for code, stop in stats.stops.items():
         b.render(
-            "stop.html", f"stops/{code}/", title=stop["stop"]["name"], stop=stop, route_names=route_names(stats),
+            "stop.html", f"stops/{code}/", title=f"{data.directions_text(stop['stop']['name'])}, stop {code}", stop=stop, route_names=route_names(stats),
             notices=data.known_notices(stop["notices"], f"stops/{code}.json"),
         )
     b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=system["completeness"])

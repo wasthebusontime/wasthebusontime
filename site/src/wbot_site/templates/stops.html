@@ -11,7 +11,8 @@
 {# Hidden until map.js runs, so without JavaScript the page is the list below. #}
 <section class="stop-map" id="stop-map" hidden
   data-tiles="{{ stop_map.tiles }}" data-base="/stops/data/" data-min-sample="{{ min_sample }}">
-  <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time (Intercity Transit's definition: 0 to 5 min late).</p>
+  <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time (Intercity Transit's definition: 0 to 5 min late). Every stop is also in the <a href="#list">list of stops below the map</a>.</p>
+  <p class="map-keys" id="map-keys">With a keyboard: move to the map, use the arrow keys to move it and + or - to zoom, then press Enter to open the stop nearest the center (marked with a cross). Press Escape to close it, and Enter again for the next nearest stop.</p>
   <form class="map-controls" id="map-controls">
     <label>Which stops
       <select name="scope">
@@ -34,11 +35,11 @@
       <summary><span class="multi-label">{{ label }}</span> <span class="multi-value">{{ all_label }}</span></summary>
       <fieldset>
         <legend>{{ label }}</legend>
-        <label class="multi-all-label"><input type="checkbox" class="multi-all" checked> All</label>
+        <label class="multi-all-label"><input type="checkbox" class="multi-all" checked> All<span class="visually-hidden"> {{ label | lower }}</span></label>
 {% for key, text in items %}
         <label><input type="checkbox" name="{{ name }}" value="{{ key }}" checked> {{ text }}</label>
 {% endfor %}
-        <button type="button" class="multi-reset">Reset</button>
+        <button type="button" class="multi-reset">Reset<span class="visually-hidden"> {{ label | lower }}</span></button>
       </fieldset>
     </details>
 {% endmacro %}
@@ -62,10 +63,11 @@
 <p class="stop-filter" id="stop-filter" hidden>
   <label for="stop-filter-input">Filter stops</label><br>
   <input type="search" id="stop-filter-input" autocomplete="off" placeholder="Street name or stop code">
+  <span class="stop-filter-count" id="stop-filter-count" role="status"></span>
 </p>
 <ul class="stop-list" id="stop-list">
 {% for st in stops %}
-  <li><a href="/stops/{{ st.code }}/">{{ st.name }}</a> <span class="stop-routes">({{ st.code }}; Route{{ "s" if st.routes | length > 1 }} {{ st.routes | join(", ") }})</span></li>
+  <li><a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a> <span class="stop-routes">({{ st.code }}; Route{{ "s" if st.routes | length > 1 }} {{ st.routes | join(", ") }})</span></li>
 {% endfor %}
 </ul>
 {% endblock %}

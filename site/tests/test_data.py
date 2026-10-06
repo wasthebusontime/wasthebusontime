@@ -28,10 +28,17 @@ def test_minimum_sample():
     assert not data.enough(None, 30)
 
 
+def test_direction_codes_are_read_as_words():
+    html = str(data.directions_html("Example St & 1st Ave [sb]"))
+    assert html == ('Example St &amp; 1st Ave <span aria-hidden="true">[sb]</span>'
+                    '<span class="visually-hidden">southbound</span>')
+    assert str(data.directions_html("<b>[xb]</b>")) == "&lt;b&gt;[xb]&lt;/b&gt;"
+
+
 def test_text_formats():
     assert data.delay_text(0) == "on schedule"
-    assert data.delay_text(45) == "45 s late"
-    assert data.delay_text(-75) == "1 min 15 s early"
+    assert data.delay_text(45) == "45 sec late"
+    assert data.delay_text(-75) == "1 min 15 sec early"
     assert data.delay_text(120) == "2 min late"
     assert data.delay_text(None) == "n/a"
     assert data.hour_text(0) == "12 am"

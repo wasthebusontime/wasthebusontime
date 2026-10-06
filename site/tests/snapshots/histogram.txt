@@ -1,22 +1,22 @@
-<svg viewBox="0 0 640 182" role="img" aria-label="Route 901: median departure 1 min 15 s late; 80% of departures were between 20 s early and 4 min 50 s late." xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 640 182" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
 <line x1="40" y1="146" x2="630" y2="146" class="axis"/>
-<rect x="41.0" y="143.3" width="16.4" height="2.7" class="early"><title>before -10 min: 1 departures</title></rect>
-<rect x="188.5" y="143.3" width="16.4" height="2.7" class="early"><title>-3 to -2 min: 1 departures</title></rect>
-<rect x="206.9" y="138.0" width="16.4" height="8.0" class="early"><title>-2 to -1 min: 3 departures</title></rect>
-<rect x="225.4" y="127.3" width="16.4" height="18.7" class="early"><title>-1 to 0 min: 7 departures</title></rect>
-<rect x="243.8" y="39.3" width="16.4" height="106.7" class="on-time"><title>0 to 1 min: 40 departures</title></rect>
-<rect x="262.2" y="26.0" width="16.4" height="120.0" class="on-time"><title>1 to 2 min: 45 departures</title></rect>
-<rect x="280.7" y="52.7" width="16.4" height="93.3" class="on-time"><title>2 to 3 min: 35 departures</title></rect>
-<rect x="299.1" y="79.3" width="16.4" height="66.7" class="on-time"><title>3 to 4 min: 25 departures</title></rect>
-<rect x="317.6" y="106.0" width="16.4" height="40.0" class="on-time"><title>4 to 5 min: 15 departures</title></rect>
-<rect x="336.0" y="124.7" width="16.4" height="21.3" class="late"><title>5 to 6 min: 8 departures</title></rect>
-<rect x="354.4" y="132.7" width="16.4" height="13.3" class="late"><title>6 to 7 min: 5 departures</title></rect>
-<rect x="372.9" y="138.0" width="16.4" height="8.0" class="late"><title>7 to 8 min: 3 departures</title></rect>
-<rect x="391.3" y="140.7" width="16.4" height="5.3" class="late"><title>8 to 9 min: 2 departures</title></rect>
-<rect x="409.8" y="143.3" width="16.4" height="2.7" class="late"><title>9 to 10 min: 1 departures</title></rect>
-<rect x="428.2" y="143.3" width="16.4" height="2.7" class="late"><title>10 to 11 min: 1 departures</title></rect>
-<rect x="446.6" y="143.3" width="16.4" height="2.7" class="late"><title>11 to 12 min: 1 departures</title></rect>
-<rect x="612.6" y="127.3" width="16.4" height="18.7" class="late"><title>20 min or more: 7 departures</title></rect>
+<rect x="41.0" y="143.3" width="16.4" height="2.7" class="early"><title>more than 10 min early: 1 departure</title></rect>
+<rect x="188.5" y="143.3" width="16.4" height="2.7" class="early"><title>2 to 3 min early: 1 departure</title></rect>
+<rect x="206.9" y="138.0" width="16.4" height="8.0" class="early"><title>1 to 2 min early: 3 departures</title></rect>
+<rect x="225.4" y="127.3" width="16.4" height="18.7" class="early"><title>0 to 1 min early: 7 departures</title></rect>
+<rect x="243.8" y="39.3" width="16.4" height="106.7" class="on-time"><title>0 to 1 min late: 40 departures</title></rect>
+<rect x="262.2" y="26.0" width="16.4" height="120.0" class="on-time"><title>1 to 2 min late: 45 departures</title></rect>
+<rect x="280.7" y="52.7" width="16.4" height="93.3" class="on-time"><title>2 to 3 min late: 35 departures</title></rect>
+<rect x="299.1" y="79.3" width="16.4" height="66.7" class="on-time"><title>3 to 4 min late: 25 departures</title></rect>
+<rect x="317.6" y="106.0" width="16.4" height="40.0" class="on-time"><title>4 to 5 min late: 15 departures</title></rect>
+<rect x="336.0" y="124.7" width="16.4" height="21.3" class="late"><title>5 to 6 min late: 8 departures</title></rect>
+<rect x="354.4" y="132.7" width="16.4" height="13.3" class="late"><title>6 to 7 min late: 5 departures</title></rect>
+<rect x="372.9" y="138.0" width="16.4" height="8.0" class="late"><title>7 to 8 min late: 3 departures</title></rect>
+<rect x="391.3" y="140.7" width="16.4" height="5.3" class="late"><title>8 to 9 min late: 2 departures</title></rect>
+<rect x="409.8" y="143.3" width="16.4" height="2.7" class="late"><title>9 to 10 min late: 1 departure</title></rect>
+<rect x="428.2" y="143.3" width="16.4" height="2.7" class="late"><title>10 to 11 min late: 1 departure</title></rect>
+<rect x="446.6" y="143.3" width="16.4" height="2.7" class="late"><title>11 to 12 min late: 1 departure</title></rect>
+<rect x="612.6" y="127.3" width="16.4" height="18.7" class="late"><title>20 min or more late: 7 departures</title></rect>
 <path d="M242.8 32 V26 H335.0 V32" class="bracket"/>
 <text x="288.906" y="22" text-anchor="middle">On time</text>
 <text x="58.4375" y="160" text-anchor="middle" class="small">-10</text>
@@ -29,38 +29,38 @@
 <text x="335" y="176" text-anchor="middle" class="small">Minutes late (negative is early)</text>
 </svg>
 
-Route 901: median departure 1 min 15 s late; 80% of departures were between 20 s early and 4 min 50 s late.
+Route 901: median departure 1 min 15 sec late; 80% of departures were between 20 sec early and 4 min 50 sec late.
 
 Delay | Departures
-before -10 min | 1
--10 to -9 min | 0
--9 to -8 min | 0
--8 to -7 min | 0
--7 to -6 min | 0
--6 to -5 min | 0
--5 to -4 min | 0
--4 to -3 min | 0
--3 to -2 min | 1
--2 to -1 min | 3
--1 to 0 min | 7
-0 to 1 min | 40
-1 to 2 min | 45
-2 to 3 min | 35
-3 to 4 min | 25
-4 to 5 min | 15
-5 to 6 min | 8
-6 to 7 min | 5
-7 to 8 min | 3
-8 to 9 min | 2
-9 to 10 min | 1
-10 to 11 min | 1
-11 to 12 min | 1
-12 to 13 min | 0
-13 to 14 min | 0
-14 to 15 min | 0
-15 to 16 min | 0
-16 to 17 min | 0
-17 to 18 min | 0
-18 to 19 min | 0
-19 to 20 min | 0
-20 min or more | 7
+more than 10 min early | 1
+9 to 10 min early | 0
+8 to 9 min early | 0
+7 to 8 min early | 0
+6 to 7 min early | 0
+5 to 6 min early | 0
+4 to 5 min early | 0
+3 to 4 min early | 0
+2 to 3 min early | 1
+1 to 2 min early | 3
+0 to 1 min early | 7
+0 to 1 min late | 40
+1 to 2 min late | 45
+2 to 3 min late | 35
+3 to 4 min late | 25
+4 to 5 min late | 15
+5 to 6 min late | 8
+6 to 7 min late | 5
+7 to 8 min late | 3
+8 to 9 min late | 2
+9 to 10 min late | 1
+10 to 11 min late | 1
+11 to 12 min late | 1
+12 to 13 min late | 0
+13 to 14 min late | 0
+14 to 15 min late | 0
+15 to 16 min late | 0
+16 to 17 min late | 0
+17 to 18 min late | 0
+18 to 19 min late | 0
+19 to 20 min late | 0
+20 min or more late | 7

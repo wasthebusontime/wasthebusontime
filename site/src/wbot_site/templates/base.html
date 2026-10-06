@@ -6,7 +6,7 @@
 {% if noindex %}
 <meta name="robots" content="noindex, nofollow">
 {% endif %}
-<title>WBOT - {{ title }}</title>
+<title>{% if title %}{{ title }} - {% endif %}Was the Bus On Time?</title>
 <meta name="description" content="Unofficial on-time statistics for Intercity Transit buses. Intercity Transit is headquartered in Olympia, Washington, and serves a Public Transportation Benefit Area in Thurston County. Not affiliated with Intercity Transit.">
 {% block icons %}
 <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -18,11 +18,16 @@
 {% endblock %}
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to main content</a>
+{% if env == "dev" or synthetic %}
+<aside aria-label="Build notice">
 {% if env == "dev" %}
 <p class="banner banner-dev">DEV PREVIEW: code {{ banner.code }}, stats {{ banner.stats }}, built {{ banner.time }}</p>
 {% endif %}
 {% if synthetic %}
 <p class="banner banner-sample">SAMPLE DATA: every route, stop and number on this site is invented for testing.</p>
+{% endif %}
+</aside>
 {% endif %}
 <header class="site-header">
   <a class="site-name" href="/">Was the Bus On Time?</a>
@@ -37,7 +42,7 @@
   </nav>
   <p class="data-through">Data through {{ meta.data_through | date }}, {{ period }}.</p>
 </header>
-<main id="main">
+<main id="main" tabindex="-1">
 {% block main %}{% endblock %}
 </main>
 {% include "footer.html" %}

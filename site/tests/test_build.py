@@ -250,11 +250,18 @@ def test_output_dir_that_is_not_a_build_is_left_alone(tmp_path):
     assert (out / "notes.txt").read_text() == "keep me"
 
 
-def test_tab_titles_start_with_our_name(dev_site):
+def test_tab_titles_name_the_page_first(dev_site):
+    titles = {}
     for page in html_pages(dev_site):
         html = page.read_text(encoding="utf-8")
-        assert "<title>WBOT - " in html, page
-    assert "<title>WBOT - Was the Bus On Time</title>" in (dev_site / "index.html").read_text(encoding="utf-8")
+        assert "Was the Bus On Time?</title>" in html, page
+        assert '<a class="skip-link" href="#main">' in html, page
+        titles[page] = html.split("<title>")[1].split("</title>")[0]
+    assert titles[dev_site / "index.html"] == "Was the Bus On Time?"
+    assert titles[dev_site / "routes" / "901" / "index.html"].startswith("Route 901 ")
+    assert titles[dev_site / "stops" / "E101" / "index.html"].endswith(", stop E101 - Was the Bus On Time?")
+    stop_titles = [t for p, t in titles.items() if p.parent.parent.name == "stops"]
+    assert len(stop_titles) == len(set(stop_titles))
 
 
 def test_stop_map_without_javascript_is_the_list(dev_site):
@@ -314,7 +321,8 @@ def test_stop_map_days_times_and_routes_are_checkboxes(dev_site):
         assert f'<input type="checkbox" name="band" value="{band}" checked>' in html
     for route in ("901", "902", "903", "904", "905", "906"):
         assert f'<input type="checkbox" name="route" value="{route}" checked>' in html
-    assert html.count('<input type="checkbox" class="multi-all" checked> All') == 3
-    assert html.count('<button type="button" class="multi-reset">Reset</button>') == 3
+    for label in ("days", "time of day", "routes"):
+        assert f'class="multi-all" checked> All<span class="visually-hidden"> {label}</span>' in html
+        assert f'class="multi-reset">Reset<span class="visually-hidden"> {label}</span></button>' in html
     assert '<span class="multi-label">Routes</span>' in html
     assert 'name="daytype"' not in html.split('<details class="multi"')[0]  # no Days dropdown left

@@ -57,21 +57,41 @@ function el(tag, text, attrs) {
   return node;
 }
 
+// Stop names keep the agency's "[sb]"-style codes on screen; screen readers hear the word.
+const DIRECTIONS = { nb: "northbound", sb: "southbound", eb: "eastbound", wb: "westbound" };
+
+function stopName(name) {
+  const node = el("strong", "", { id: "map-popup-name" });
+  name.split(/(\[(?:nb|sb|eb|wb)\])/).forEach((part) => {
+    const code = part.match(/^\[(nb|sb|eb|wb)\]$/);
+    if (code) {
+      node.append(el("span", part, { "aria-hidden": "true" }), el("span", DIRECTIONS[code[1]], { class: "visually-hidden" }));
+    } else if (part) {
+      node.append(part);
+    }
+  });
+  return node;
+}
+
 function popupContent(stop, counts, minSample, scopeLabel) {
   const box = el("div", "", { class: "map-popup" });
-  box.append(el("strong", stop.name));
-  box.append(el("div", `Stop ${stop.code}, Route${stop.routes.length > 1 ? "s" : ""} ${stop.routes.join(", ")}`));
+  box.append(stopName(stop.name));
+  const details = el("div", "", { id: "map-popup-details" });
+  box.append(details);
+  details.append(el("div", `Stop ${stop.code}, Route${stop.routes.length > 1 ? "s" : ""} ${stop.routes.join(", ")}`));
   if (!counts) {
-    box.append(el("div", "Not a timepoint. Choose \"All stops\" to see its numbers."));
+    details.append(el("div", "Not a timepoint. Choose \"All stops\" to see its numbers."));
   } else if (counts[0] < minSample) {
-    box.append(el("div", `Not enough data (${counts[0]} departures).`));
+    details.append(el("div", `Not enough data (${counts[0]} departure${counts[0] === 1 ? "" : "s"}).`));
   } else {
     const [n, early, onTime, late, onTimeAlt] = counts;
-    box.append(el("div", `${percent(onTime, n)} on time (0 to 5 min late), ${percent(early, n)} early, ${percent(late, n)} late`));
-    box.append(el("div", `${percent(onTimeAlt, n)} on time (1 min early to 5 min late)`));
-    box.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
+    details.append(el("div", `${percent(onTime, n)} on time (0 to 5 min late), ${percent(early, n)} early, ${percent(late, n)} late`));
+    details.append(el("div", `${percent(onTimeAlt, n)} on time (1 min early to 5 min late)`));
+    details.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
   }
-  box.append(el("a", "View stop page", { href: `/stops/${stop.code}/` }));
+  const link = el("a", "View stop page", { href: `/stops/${stop.code}/` });
+  link.append(el("span", ` for stop ${stop.code}`, { class: "visually-hidden" }));
+  box.append(link);
   return box;
 }
 
@@ -109,6 +129,7 @@ async function start(root) {
     attributionControl: { compact: true },
     cooperativeGestures: true,
   });
+  map.getCanvas().setAttribute("aria-describedby", "map-keys");
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
   map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: false } }));
 
@@ -214,14 +235,72 @@ async function start(root) {
     refresh();
   }
 
+  // The popup is a small dialog named after the stop. Escape closes it, and closing it
+  // puts focus back on the map rather than losing it.
   async function openStop(i) {
     const counts = current[i];
     const label = form.scope.selectedOptions[0].textContent;
-    new maplibregl.Popup({ maxWidth: "18rem" })
+    // One popup at a time (the click handler gets this from MapLibre, Enter doesn't).
+    document.querySelectorAll(".maplibregl-popup").forEach((old) => old.remove());
+    const popup = new maplibregl.Popup({ maxWidth: "18rem" })
       .setLngLat([stops[i].lon, stops[i].lat])
       .setDOMContent(popupContent(stops[i], counts, minSample, label))
       .addTo(map);
+    const box = popup.getElement();
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-labelledby", "map-popup-name");
+    box.setAttribute("aria-describedby", "map-popup-details");
+    box.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") popup.remove();
+    });
+    popup.on("close", () => {
+      if (!document.activeElement || document.activeElement === document.body || box.contains(document.activeElement)) {
+        map.getCanvas().focus();
+      }
+    });
   }
+
+  // Keyboard selection: Enter on the focused map opens the stop nearest the center cross;
+  // Enter again without moving the map opens the next nearest. Messages show on the map
+  // itself, where a keyboard user is looking.
+  const note = el("p", "", { class: "map-note", role: "status" });
+  map.getContainer().append(note);
+  let nearby = [];
+  let nearbyAt = "";
+  let nearbyNext = 0;
+  map.on("movestart", () => (note.textContent = ""));
+  map.getCanvas().addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".maplibregl-popup").forEach((old) => old.remove());
+      return;
+    }
+    if (e.key !== "Enter" || !map.getLayer("stops")) return;
+    e.preventDefault();
+    const center = map.project(map.getCenter());
+    const at = `${map.getCenter().toArray()} ${map.getZoom()}`;
+    if (at !== nearbyAt) {
+      // Wider than one arrow-key step (100 px), so panning always brings a stop within reach.
+      const reach = 60;
+      const distance = (f) => {
+        const p = map.project(f.geometry.coordinates);
+        return (p.x - center.x) ** 2 + (p.y - center.y) ** 2;
+      };
+      nearby = map.queryRenderedFeatures(
+        [[center.x - reach, center.y - reach], [center.x + reach, center.y + reach]], { layers: ["stops"] })
+        .sort((a, b) => distance(a) - distance(b));
+      nearbyAt = at;
+      nearbyNext = 0;
+    }
+    if (!nearby.length) {
+      note.textContent = "No stop near the cross. Move the map or zoom out, then press Enter again.";
+      return;
+    }
+    // Stepping through more than a few stops is slower than zooming in, so say that instead.
+    note.textContent = nearby.length > 5 ? "Many stops are near the cross. Zoom in with + to pick one."
+      : nearby.length > 1 ? `Stop ${nearbyNext + 1} of ${nearby.length} near the cross. Press Escape, then Enter for the next.` : "";
+    openStop(nearby[nearbyNext].properties.i);
+    nearbyNext = (nearbyNext + 1) % nearby.length;
+  });
 
   map.on("load", async () => {
     const colors = ["--map-bin-0", "--map-bin-1", "--map-bin-2", "--map-bin-3"].map(css);
@@ -298,11 +377,23 @@ async function start(root) {
     }
   });
   form.addEventListener("submit", (e) => e.preventDefault());
-  // The checkbox panels behave like dropdowns: one open at a time, closed by a click elsewhere.
+  // The checkbox panels behave like dropdowns: one open at a time, closed by a click
+  // elsewhere, by focus moving out of them, or by Escape (which returns focus to the panel's button).
   const panels = [...form.querySelectorAll("details.multi")];
-  panels.forEach((d) => d.addEventListener("toggle", () => {
-    if (d.open) panels.filter((other) => other !== d).forEach((other) => (other.open = false));
-  }));
+  panels.forEach((d) => {
+    d.addEventListener("toggle", () => {
+      if (d.open) panels.filter((other) => other !== d).forEach((other) => (other.open = false));
+    });
+    d.addEventListener("focusout", (e) => {
+      if (e.relatedTarget && !d.contains(e.relatedTarget)) d.open = false;
+    });
+    d.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && d.open) {
+        d.open = false;
+        d.querySelector("summary").focus();
+      }
+    });
+  });
   document.addEventListener("click", (e) => {
     panels.filter((d) => d.open && !d.contains(e.target)).forEach((d) => (d.open = false));
   });

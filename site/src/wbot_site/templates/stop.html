@@ -11,7 +11,7 @@
 {% set tp = stop.stop.get("timepoint_routes", []) %}
 {% set timed = s.by_route | selectattr("slug", "in", tp) | map(attribute="short_name") | list %}
 {% set untimed = s.by_route | rejectattr("slug", "in", tp) | map(attribute="short_name") | list %}
-<h1>{{ stop.stop.name }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
+<h1>{{ stop.stop.name | directions }} <span class="subtitle">Stop {{ stop.stop.code }}</span></h1>
 {% if stop_map %}
 <p class="see-on-map"><a href="/stops/?stop={{ stop.stop.code }}">Show this stop on the map</a></p>
 {% endif %}
@@ -23,8 +23,10 @@
 <p class="stop-kind">This stop is a timepoint for {{ route_list(timed) }}, but not for {{ route_list(untimed) }}. Where it isn't a timepoint, its schedule times are estimates, so buses often show as early there.</p>
 {% endif %}
 {{ notices_line(notices) }}
+<h2>Summary</h2>
 {{ headline(s.summary, "this stop", "stop") }}
 {{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
+<h2>Details</h2>
 <div class="table-wrap">
 <table class="data">
 <caption>By route</caption>

@@ -14,6 +14,8 @@
     <p class="scope-help">At stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
   </div>
   <p class="scope-help scope-note">Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
+  {# site.js says here what changed, since the numbers above the toggle change too. #}
+  <p class="visually-hidden" id="scope-status" role="status"></p>
 </fieldset>
 {% endmacro %}
 
@@ -23,7 +25,7 @@
 {% macro scoped(repeat=false) %}
 {% for scope in scopes %}
 <section class="scope scope-{{ scope }}">
-<h2 class="scope-heading{{ " repeat" if repeat }}">{{ scope_labels[scope] }}</h2>
+<h2 class="scope-heading{{ " repeat" if repeat }}">{{ scope_labels[scope] }}{% if repeat %}: details{% endif %}</h2>
 {{ caller(scope) }}
 </section>
 {% endfor %}
@@ -146,7 +148,8 @@
 <p>{{ trips.scheduled | number }} trips scheduled, {{ trips.observed | number }} recorded, {{ trips.not_observed | number }} not recorded (cancelled, or run without tracking; we can't tell which){% if trips.cancelled %}, {{ trips.cancelled | number }} cancelled{% endif %}{% if trips.added %}, {{ trips.added | number }} added{% endif %}. {{ trips.skipped_stops | number }} stops were skipped, for example by detours, and are left out.</p>
 {% endmacro %}
 
-{# A chart from charts.py: the SVG, its one-sentence summary, and the same numbers as a table. #}
+{# A chart from charts.py: the SVG (hidden from screen readers), its one-sentence summary,
+   and the same numbers as a table. #}
 {% macro chart(c, title) %}
 {% if c %}
 <figure class="chart">
@@ -160,11 +163,12 @@
 <div class="chart-svg chart-narrow">
 {{ c.svg_narrow | safe }}
 </div>
-<figcaption>{{ c.summary }}</figcaption>
+<figcaption>{{ c.summary | directions }}</figcaption>
 <details class="chart-table">
-<summary>Show table</summary>
+<summary>Show table <span class="visually-hidden">({{ title }})</span></summary>
 <div class="table-wrap">
 <table class="data">
+<caption class="visually-hidden">{{ title }}</caption>
 <thead><tr>{% for h in c.headers %}<th scope="col"{% if not loop.first %} class="num"{% endif %}>{{ h }}</th>{% endfor %}</tr></thead>
 <tbody>
 {% for row in c.rows %}

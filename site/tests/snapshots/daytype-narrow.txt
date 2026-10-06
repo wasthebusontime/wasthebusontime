@@ -1,4 +1,4 @@
-<svg viewBox="0 0 320 176" role="img" aria-label="Route 901, on time by day type: weekday 83%, saturday 90%, sunday not enough data." xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 320 176" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
 <text x="0" y="16" text-anchor="start">Weekday:</text>
 <text x="0" y="32" text-anchor="start">83% on time, 6% early, 11% late</text>
 <rect x="0.0" y="38.0" width="17.2" height="20.0" class="early"><title>Weekday: 9 early (6.0%)</title></rect>

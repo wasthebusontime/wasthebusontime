@@ -5,9 +5,12 @@ The stats directory has the same layout as the stats repo: `site/*.json` plus `c
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
+
+from markupsafe import Markup, escape
 
 log = logging.getLogger("wbot_site")
 
@@ -152,8 +155,27 @@ def delay_text(seconds: int | None) -> str:
     if seconds == 0:
         return "on schedule"
     m, s = divmod(abs(seconds), 60)
-    amount = f"{m} min {s} s" if m and s else f"{m} min" if m else f"{s} s"
+    amount = f"{m} min {s} sec" if m and s else f"{m} min" if m else f"{s} sec"
     return f"{amount} {'early' if seconds < 0 else 'late'}"
+
+
+# Stop names carry the agency's direction codes ("Example St & 1st Ave [sb]"). Pages show
+# them as written, with the word for screen readers.
+DIRECTIONS = {"nb": "northbound", "sb": "southbound", "eb": "eastbound", "wb": "westbound"}
+DIRECTION_CODE = re.compile(r"\[(nb|sb|eb|wb)\]")
+
+
+def directions_html(text: str) -> Markup:
+    """Escaped text with each [sb]-style code read out as its word."""
+    return Markup(DIRECTION_CODE.sub(
+        lambda m: f'<span aria-hidden="true">{m.group(0)}</span><span class="visually-hidden">{DIRECTIONS[m.group(1)]}</span>',
+        str(escape(text)),
+    ))
+
+
+def directions_text(text: str) -> str:
+    """Plain text with each code as its word in brackets, for tab titles."""
+    return DIRECTION_CODE.sub(lambda m: f"({DIRECTIONS[m.group(1)]})", text)
 
 
 def date_text(iso: str) -> str:

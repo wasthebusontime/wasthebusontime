@@ -13,7 +13,7 @@
 <thead><tr><th scope="col">Start</th><th scope="col">End</th><th scope="col">Cause</th></tr></thead>
 <tbody>
 {% for w in quality.data_loss %}
-<tr><td>{{ w.start | timestamp }}</td><td>{{ w.end | timestamp }}</td><td>{{ cause_text(w.cause) | capitalize }}</td></tr>
+<tr><th scope="row">{{ w.start | timestamp }}</th><td>{{ w.end | timestamp }}</td><td>{{ cause_text(w.cause) | capitalize }}</td></tr>
 {% endfor %}
 </tbody>
 </table>

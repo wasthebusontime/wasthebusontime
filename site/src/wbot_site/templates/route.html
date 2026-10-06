@@ -28,12 +28,12 @@
 {% set stops = direction.stops %}
 <div class="table-wrap">
 <table class="data">
-<caption>Stops to {{ stops[-1].name }}, in route order</caption>
+<caption>Stops to {{ stops[-1].name | directions }}, in route order</caption>
 <thead><tr><th scope="col">Stop</th>{{ perf_header() }}</tr></thead>
 <tbody>
 {% for st in stops %}
 <tr>
-<th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name }}</a>{% if st.timepoint %} <span class="def">Timepoint</span>{% endif %}</th>
+<th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a>{% if st.timepoint %} <span class="def">Timepoint</span>{% endif %}</th>
 {% if loop.last %}
 <td class="num" colspan="5"><span class="nodata">Last stop: arrivals only (see End-of-line arrivals below)</span></td>
 {% else %}

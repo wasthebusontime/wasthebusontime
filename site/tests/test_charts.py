@@ -101,7 +101,8 @@ def test_every_mark_has_a_title():
         rects = re.findall(r"<rect [^>]*>(.*?)</rect>", svg)
         assert len(rects) == svg.count("<rect") and "<title>" in svg
         assert all(r.startswith("<title>") for r in rects)
-        assert 'role="img"' in svg and "aria-label=" in svg
+        # Screen readers get the summary and the table instead of the drawing.
+        assert 'aria-hidden="true"' in svg and 'role="img"' not in svg
 
 
 def test_small_samples_draw_no_chart():
