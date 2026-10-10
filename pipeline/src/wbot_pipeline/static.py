@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 # empty tables or NULL columns, so queries can always name them.
 COLUMNS = {
     "routes": ["route_id", "route_short_name", "route_long_name"],
-    "trips": ["trip_id", "route_id", "service_id", "direction_id", "trip_headsign", "shape_id"],
+    "trips": ["trip_id", "route_id", "service_id", "direction_id", "trip_headsign", "block_id", "shape_id"],
     "stop_times": ["trip_id", "stop_sequence", "stop_id", "arrival_time", "departure_time", "timepoint"],
     "stops": ["stop_id", "stop_code", "stop_name", "stop_lat", "stop_lon"],
     "calendar": ["service_id", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
@@ -34,7 +34,7 @@ COLUMNS = {
     "calendar_dates": ["service_id", "date", "exception_type"],
     "shapes": ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"],
 }
-CACHE_VERSION = 1
+CACHE_VERSION = 2
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
