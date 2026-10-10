@@ -3,7 +3,7 @@
 <rect x="33.0" y="143.3" width="6.8" height="2.7" class="early"><title>more than 10 min early: 1 departure</title></rect>
 <rect x="103.5" y="143.3" width="6.8" height="2.7" class="early"><title>2 to 3 min early: 1 departure</title></rect>
 <rect x="112.3" y="138.0" width="6.8" height="8.0" class="early"><title>1 to 2 min early: 3 departures</title></rect>
-<rect x="121.1" y="127.3" width="6.8" height="18.7" class="early"><title>0 to 1 min early: 7 departures</title></rect>
+<rect x="121.1" y="127.3" width="6.8" height="18.7" class="on-time"><title>0 to 1 min early: 7 departures</title></rect>
 <rect x="129.9" y="39.3" width="6.8" height="106.7" class="on-time"><title>0 to 1 min late: 40 departures</title></rect>
 <rect x="138.8" y="26.0" width="6.8" height="120.0" class="on-time"><title>1 to 2 min late: 45 departures</title></rect>
 <rect x="147.6" y="52.7" width="6.8" height="93.3" class="on-time"><title>2 to 3 min late: 35 departures</title></rect>
@@ -17,8 +17,8 @@
 <rect x="218.1" y="143.3" width="6.8" height="2.7" class="late"><title>10 to 11 min late: 1 departure</title></rect>
 <rect x="226.9" y="143.3" width="6.8" height="2.7" class="late"><title>11 to 12 min late: 1 departure</title></rect>
 <rect x="306.2" y="127.3" width="6.8" height="18.7" class="late"><title>20 min or more late: 7 departures</title></rect>
-<path d="M128.9 32 V26 H173.0 V32" class="bracket"/>
-<text x="150.969" y="22" text-anchor="middle">On time</text>
+<path d="M120.1 32 V26 H173.0 V32" class="bracket"/>
+<text x="146.562" y="22" text-anchor="middle">On time</text>
 <text x="40.8125" y="160" text-anchor="middle" class="small">-10</text>
 <text x="84.875" y="160" text-anchor="middle" class="small">-5</text>
 <text x="128.938" y="160" text-anchor="middle" class="small">0</text>

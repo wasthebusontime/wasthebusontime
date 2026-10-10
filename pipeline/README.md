@@ -34,7 +34,7 @@ A date waits until all of its hours are packed. The site files are then rewritte
 
 ### Settings
 
-Environment variables; see [deploy/pipeline.env.example](deploy/pipeline.env.example). The methodology's provisional thresholds are all settings: `WBOT_PIPELINE_TRIP_COVERAGE_MIN` (0.5), `WBOT_PIPELINE_MIN_SAMPLE` (30), `WBOT_PIPELINE_GAP_TOLERANCE_S` (840), `WBOT_PIPELINE_LOW_COMPLETENESS_BELOW` (0.8), plus `WBOT_PIPELINE_PROVISIONAL` and `WBOT_PIPELINE_METHODOLOGY_VERSION`. The on-time windows (0 to 300 s, and -60 to 300 s) are fixed: the site's labels describe exactly those.
+Environment variables; see [deploy/pipeline.env.example](deploy/pipeline.env.example). The methodology's provisional thresholds are all settings: `WBOT_PIPELINE_TRIP_COVERAGE_MIN` (0.5), `WBOT_PIPELINE_MIN_SAMPLE` (30), `WBOT_PIPELINE_GAP_TOLERANCE_S` (840), `WBOT_PIPELINE_LOW_COMPLETENESS_BELOW` (0.8), plus `WBOT_PIPELINE_PROVISIONAL` and `WBOT_PIPELINE_METHODOLOGY_VERSION`. The on-time windows (-60 to 300 s as the headline, and 0 to 300 s, Intercity Transit's own) are fixed: the site's labels describe exactly those.
 
 ## Development
 

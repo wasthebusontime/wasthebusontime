@@ -83,7 +83,7 @@ def test_meta(world):
     assert meta["data_through"] == DAY2.isoformat() and meta["collection_start"] == DAY.isoformat()
     assert meta["generated_at"] == GENERATED
     assert meta["static_versions"] == ["test1"] and meta["min_sample"] == 30
-    assert meta["windows"] == {"headline": [0, 300], "alt": [-60, 300]}
+    assert meta["windows"] == {"headline": [-60, 300], "alt": [0, 300]}
     assert len(meta["inputs_sha256"]) == 64
 
 
@@ -107,7 +107,7 @@ def test_window_boundaries(world):
     route = load(world, "routes", "901.json")
     # 901-1-0 on day 1: -61, -60, -1, 300 at its non-last stops (plus every other trip at +30).
     by_dir = {d["direction_id"]: d for d in route["scopes"]["all_stops"]["by_direction"]}
-    assert by_dir[1]["early"] == 3 and by_dir[1]["early_alt"] == 1
+    assert by_dir[1]["early"] == 1 and by_dir[1]["early_alt"] == 3
 
 
 def test_trip_facts_and_notices(world):

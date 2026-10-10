@@ -85,8 +85,9 @@ function popupContent(stop, counts, minSample, scopeLabel) {
     details.append(el("div", `Not enough data (${counts[0]} departure${counts[0] === 1 ? "" : "s"}).`));
   } else {
     const [n, early, onTime, late, onTimeAlt] = counts;
-    details.append(el("div", `${percent(onTime, n)} on time (0 to 5 min late), ${percent(early, n)} early, ${percent(late, n)} late`));
-    details.append(el("div", `${percent(onTimeAlt, n)} on time (1 min early to 5 min late)`));
+    details.append(el("div", `${percent(onTime, n)} on time (1 min early to 5 min late), ${percent(early, n)} early, ${percent(late, n)} late`));
+    // Hidden for now: Intercity Transit's own window.
+    // details.append(el("div", `${percent(onTimeAlt, n)} on time (0 to 5 min late, Intercity Transit's own definition)`));
     details.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
   }
   const link = el("a", "View stop page", { href: `/stops/${stop.code}/` });

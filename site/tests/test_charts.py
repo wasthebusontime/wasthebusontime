@@ -90,7 +90,7 @@ def test_charts_are_deterministic():
 
 def test_summaries_carry_the_numbers():
     assert charts.headline_chart(SUMMARY, "Route 901", MIN).summary == (
-        "Route 901: 85% on time, 6% early, 9% late, 200 departures (Intercity Transit's definition, 0 to 5 min late)."
+        "Route 901: 85% on time, 6% early, 9% late, 200 departures (1 min early to 5 min late)."
     )
     assert "sunday not enough data" in charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN).summary
 

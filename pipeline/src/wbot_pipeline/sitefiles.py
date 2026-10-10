@@ -194,7 +194,8 @@ def end_of_line(stage: Stage, entity: str | None) -> dict:
     for key, p in stage.eol.get([entity] if entity else []).items():
         out[key[0] if entity else None] = {
             "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-            "early_share": round(p["early"] / p["n"], 3),
+            # Early means any time before the schedule, which is the alt window's lower edge.
+            "early_share": round(p["early_alt"] / p["n"], 3),
         }
     return out
 
@@ -496,10 +497,11 @@ def write_map(stage: Stage, site: Path, index: list) -> None:
     if not index or not all("lat" in e for e, _ in index):
         return
     cells = {}
-    for scope, month, dt, b, stop, n, early, on_time, late, on_time_alt in stage.con.execute("""
+    (h_lo, h_hi), (a_lo, a_hi) = HEADLINE, ALT
+    for scope, month, dt, b, stop, n, early, on_time, late, on_time_alt in stage.con.execute(f"""
         SELECT scope, month, day_type, band, stop, count(*),
-               count(*) FILTER (WHERE delay < 0), count(*) FILTER (WHERE delay BETWEEN 0 AND 300),
-               count(*) FILTER (WHERE delay > 300), count(*) FILTER (WHERE delay BETWEEN -60 AND 300)
+               count(*) FILTER (WHERE delay < {h_lo}), count(*) FILTER (WHERE delay BETWEEN {h_lo} AND {h_hi}),
+               count(*) FILTER (WHERE delay > {h_hi}), count(*) FILTER (WHERE delay BETWEEN {a_lo} AND {a_hi})
         FROM d GROUP BY ALL
     """).fetchall():
         for period in ("all", month):

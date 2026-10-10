@@ -5,7 +5,7 @@ carry the 1-minute histogram instead. The one exception is end_of_line_monthly.c
 whose percentiles are per row and say so in the column names.
 
   C = n, early, on_time, late, early_alt, on_time_alt, late_alt
-      (headline window 0 to 300 s; alt window -60 to 300 s)
+      (headline window -60 to 300 s; alt window 0 to 300 s)
   H = under, m_10 ... m_1, m0 ... m19, over (departures per 1-minute delay bucket;
       m_3 is 3 to 2 minutes early, m4 is 4 to 5 minutes late)
 """
@@ -66,7 +66,8 @@ def write(stage, csv_dir: Path, agg_dir: Path) -> None:
 
     eol = []
     for (month, route), p in stage.eol.get(["month", "route"]).items():
-        eol.append([month, route, p["n"], p["early"], p["p10"], p["p50"], p["p90"]])
+        # Early means any time before the schedule, which is the alt window's lower edge.
+        eol.append([month, route, p["n"], p["early_alt"], p["p10"], p["p50"], p["p90"]])
     tables["end_of_line_monthly"] = (["month", "route", "n", "early", "p10", "p50", "p90"], sorted(eol, key=_sort_key))
 
     days = quality_days(stage)

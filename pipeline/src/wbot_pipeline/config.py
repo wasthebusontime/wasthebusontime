@@ -15,8 +15,10 @@ from pathlib import Path
 EVENTS_VERSION = 1
 
 SCHEMA = 1
-HEADLINE = (0, 300)
-ALT = (-60, 300)
+# On-time windows in seconds late, inclusive. The headline is the common industry
+# window (1 min early to 5 min late); the alt is Intercity Transit's own (0 to 5).
+HEADLINE = (-60, 300)
+ALT = (0, 300)
 HIST_START_MIN = -10
 HIST_BUCKETS = 30
 SCOPES = ("timepoints", "all_stops")

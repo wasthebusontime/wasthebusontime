@@ -21,10 +21,10 @@ DAYTYPES = ("weekday", "saturday", "sunday")
 DAYTYPE_LABELS = {"weekday": "Weekday", "saturday": "Saturday", "sunday": "Sunday"}
 
 # The labels describe these exact windows, so the build refuses any others.
-WINDOWS = {"headline": [0, 300], "alt": [-60, 300]}
+WINDOWS = {"headline": [-60, 300], "alt": [0, 300]}
 WINDOW_LABELS = {
-    "headline": "On time (Intercity Transit's definition: 0 to 5 min late)",
-    "alt": "On time (1 min early to 5 min late)",
+    "headline": "On time (1 min early to 5 min late)",
+    "alt": "On time (Intercity Transit's own definition: 0 to 5 min late)",
 }
 # Stop map presets, written by the pipeline as site/map/{period}/{daytype}-{band}.json.
 MAP_DAYTYPES = ("all", *DAYTYPES)

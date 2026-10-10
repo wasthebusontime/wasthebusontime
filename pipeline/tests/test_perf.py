@@ -17,8 +17,8 @@ def query(delays_by_group):
 
 def test_window_boundaries():
     p = reference([-61, -60, -1, 0, 300, 301], hist=False, percentiles=False)
-    assert (p["early"], p["on_time"], p["late"]) == (3, 2, 1)
-    assert (p["early_alt"], p["on_time_alt"], p["late_alt"]) == (1, 4, 1)
+    assert (p["early"], p["on_time"], p["late"]) == (1, 4, 1)
+    assert (p["early_alt"], p["on_time_alt"], p["late_alt"]) == (3, 2, 1)
 
 
 def test_nearest_rank():

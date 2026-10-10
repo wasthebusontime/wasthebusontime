@@ -124,14 +124,15 @@ def headline_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
     """Early / on time / late under both on-time windows."""
     if not enough(perf, min_sample):
         return None
-    rows_in = [("0 to 5 min late (Intercity Transit)", perf, "headline"), ("1 min early to 5 min late", perf, "alt")]
+    # Intercity Transit's own window is hidden for now; add ("0 to 5 min late (Intercity Transit)", perf, "alt") back to show it.
+    rows_in = [("1 min early to 5 min late", perf, "headline")]
     summary = (
         f"{subject}: {_pct(perf)} on time, {_pct(perf, 'early')} early, {_pct(perf, 'late')} late, "
-        f"{number(perf['n'])} departures (Intercity Transit's definition, 0 to 5 min late)."
+        f"{number(perf['n'])} departures (1 min early to 5 min late)."
     )
     rows = [
-        ["0 to 5 min late (Intercity Transit's definition)", *_count_cells(perf)],
-        ["1 min early to 5 min late", *_count_cells(perf, "alt")],
+        ["1 min early to 5 min late", *_count_cells(perf)],
+        # ["0 to 5 min late (Intercity Transit's own definition)", *_count_cells(perf, "alt")],
     ]
     wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample))
     return Chart(wide, summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
@@ -162,9 +163,9 @@ def _histogram(L: Layout, hist: dict, values: list[int], kinds: list[str], label
         h = plot_h * v / peak
         if v:
             body.append(_rect(L.left + i * step + 1, base - h, step - 2, h, kind, f"{label}: {number(v)} departure{'' if v == 1 else 's'}"))
-    # Bracket over the on-time window (0 to 5 min late, buckets 0 to 4).
-    x0 = L.left + (1 - start) * step
-    x1 = x0 + 5 * step
+    # Bracket over the on-time window (1 min early to 5 min late, buckets -1 to 4).
+    x0 = L.left + -start * step
+    x1 = x0 + 6 * step
     body.append(f'<path d="M{x0:.1f} {top + 6} V{top} H{x1:.1f} V{top + 6}" class="bracket"/>')
     body.append(_text((x0 + x1) / 2, top - 4, "On time", "middle"))
     for m in range(start, start + len(counts) + 1, 5):
@@ -188,7 +189,7 @@ def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
     values = [hist["under"], *counts, hist["over"]]
     labels = [f"more than {-start} min early"] + [_bucket(m) for m in range(start, start + len(counts))]
     labels.append(f"{start + len(counts)} min or more late")
-    kinds = ["early"] + ["early" if m < 0 else "on-time" if m < 5 else "late" for m in range(start, start + len(counts))] + ["late"]
+    kinds = ["early"] + ["early" if m < -1 else "on-time" if m < 5 else "late" for m in range(start, start + len(counts))] + ["late"]
     summary = (
         f"{subject}: median departure {delay_text(perf['p50'])}; 80% of departures were between "
         f"{delay_text(perf['p10'])} and {delay_text(perf['p90'])}."

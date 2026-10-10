@@ -23,7 +23,7 @@ Every file counts recorded departures. Rows can be added together, for example t
 Columns:
 
 - `scope` is `timepoints` or `all_stops`, the same choice as the toggle on each page. `day_type` is `weekday`, `saturday` or `sunday`. `hour` is the scheduled hour of the day, where 24 and later are trips after midnight that belong to the day before. `direction_id` is 0 or 1.
-- `n` is the number of recorded departures. `early`, `on_time` and `late` use Intercity Transit's definition (0 to 5 min late). `early_alt`, `on_time_alt` and `late_alt` use 1 min early to 5 min late.
+- `n` is the number of recorded departures. `early`, `on_time` and `late` use 1 min early to 5 min late. `early_alt`, `on_time_alt` and `late_alt` use Intercity Transit's own definition (0 to 5 min late).
 - `under`, `m_10` to `m_1`, `m0` to `m19` and `over` count departures by how many minutes late they left: `m0` is 0 to 1 minute late, `m_1` is up to 1 minute early, `under` is more than 10 minutes early and `over` is 20 or more minutes late.
 - In `end_of_line_monthly.csv`, `early` counts buses that arrived early, and `p10`, `p50` and `p90` are how late (in seconds; negative is early) the 10%, 50% and 90% marks of those arrivals were.
 
