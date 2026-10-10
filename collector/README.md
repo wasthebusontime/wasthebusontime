@@ -27,7 +27,7 @@ static/{feed_version}_{sha256 prefix}.json               when and how it was fet
 state/                                                   small runtime state
 ```
 
-Feeds are `tripupdates`, `vehiclepositions`, and `alerts`. An hour that received files after it was packed gets a second archive named `...THH.1.tar.zst`.
+Feeds are `tripupdates`, `vehiclepositions`, and `alerts`. If `WBOT_WSDOT_ACCESS_CODE` is set, `wsdot_traveltimes` (every 2 minutes) and `wsdot_alerts` (every 5 minutes) are collected too, as unmodified `.json` responses from the WSDOT Traveler Information API, to give I-5 traffic context for routes that use the freeway. The access code is sent as a query parameter and is kept out of the fetch log and error messages. An hour that received files after it was packed gets a second archive named `...THH.1.tar.zst`.
 
 Each fetch log line has `fetched_at`, `feed`, `url`, `status`, `bytes`, `elapsed_ms`, `sha256`, `header_ts` (the feed header timestamp, which this server sets at request time), `data_ts` (newest vehicle or trip update timestamp), `entities`, `path`, and `error`. Failed fetches are logged too, so gaps in the data are documented.
 
@@ -102,6 +102,8 @@ sudo systemctl restart wbot-collector
 ## Configuration
 
 Environment variables, set in `/etc/wasthebusontime/collector.env` (see [deploy/collector.env.example](deploy/collector.env.example)). That file holds secrets: keep it out of the repository and readable by root only.
+
+To start collecting WSDOT data, request a free access code at <https://wsdot.wa.gov/traffic/api/>, set `WBOT_WSDOT_ACCESS_CODE` (and optionally the `WBOT_HC_WSDOT` check), and restart `wbot-collector`. Leave it blank to skip WSDOT.
 
 ## Data terms
 

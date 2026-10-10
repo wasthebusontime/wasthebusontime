@@ -1,7 +1,9 @@
 """The real-time poll loop: fetch each feed on schedule and spool the raw bytes."""
 
+import json
 import logging
 import math
+import re
 import signal
 import threading
 import time
@@ -15,7 +17,6 @@ from google.transit import gtfs_realtime_pb2
 from . import health
 from .config import (
     FEED_STALE_AFTER_S,
-    FEEDS,
     HEARTBEAT_INTERVAL_S,
     HTTP_TIMEOUT_S,
     USER_AGENT,
@@ -61,13 +62,41 @@ def summarize(content: bytes) -> dict:
     }
 
 
-def spool_path(spool_dir: Path, feed: str, ts: datetime) -> Path:
+_DOTNET_DATE = re.compile(r"/Date\((-?\d+)")
+# WSDOT's field names for when an entry was last updated.
+_JSON_STAMP_KEYS = ("TimeUpdated", "LastUpdatedTime")
+
+
+def summarize_json(content: bytes) -> dict:
+    """Entry count and newest update time for a WSDOT JSON list; all None if unparseable.
+
+    WSDOT writes times as /Date(milliseconds-offset)/. There is no feed header,
+    so header_ts is always None.
+    """
+    try:
+        data = json.loads(content)
+    except ValueError:
+        return {"header_ts": None, "data_ts": None, "entities": None}
+    if not isinstance(data, list):
+        return {"header_ts": None, "data_ts": None, "entities": None}
+    stamps = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        for key in _JSON_STAMP_KEYS:
+            m = _DOTNET_DATE.match(str(item.get(key) or ""))
+            if m:
+                stamps.append(int(m.group(1)) // 1000)
+    return {"header_ts": None, "data_ts": max(stamps) if stamps else None, "entities": len(data)}
+
+
+def spool_path(spool_dir: Path, feed: str, ts: datetime, ext: str = ".pb") -> Path:
     ts = ts.astimezone(UTC)
     hour_dir = spool_dir / feed / f"{ts:%Y-%m-%d}" / f"{ts:%H}"
-    path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}.pb"
+    path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}{ext}"
     n = 1
     while path.exists():  # Only possible after a restart within the same second.
-        path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}-{n}.pb"
+        path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}-{n}{ext}"
         n += 1
     return path
 
@@ -90,7 +119,8 @@ def fetch_one(client: httpx.Client, feed: Feed, settings: Settings, now: datetim
     }
     t0 = time.monotonic()
     try:
-        resp = client.get(feed.url)
+        params = {"AccessCode": feed.access_code} if feed.access_code else None
+        resp = client.get(feed.url, params=params)
         record["status"] = resp.status_code
         content = resp.content
         record["bytes"] = len(content)
@@ -99,13 +129,16 @@ def fetch_one(client: httpx.Client, feed: Feed, settings: Settings, now: datetim
         elif not content:
             record["error"] = "empty response"
         else:
-            path = spool_path(settings.spool_dir, feed.name, now)
+            path = spool_path(settings.spool_dir, feed.name, now, feed.ext)
             write_atomic(path, content)
             record["sha256"] = sha256_hex(content)
-            record.update(summarize(content))
+            record.update(summarize_json(content) if feed.kind == "json" else summarize(content))
             record["path"] = path.relative_to(settings.data_dir).as_posix()
     except httpx.HTTPError as e:
+        # Some httpx errors quote the request URL, which would include the access code.
         record["error"] = f"{type(e).__name__}: {e}"
+        if feed.access_code:
+            record["error"] = record["error"].replace(feed.access_code, "***")
     finally:
         record["elapsed_ms"] = round((time.monotonic() - t0) * 1000)
     append_log(settings.log_dir, record, now)
@@ -126,9 +159,12 @@ class Heartbeat:
         self.settings = settings
         self.last_success = 0.0
         self.last_fresh = 0.0
+        self.last_wsdot = 0.0
         self.next_ping = start
 
     def record(self, rec: dict, now: float) -> None:
+        if rec["feed"] == "wsdot_traveltimes" and not rec["error"]:
+            self.last_wsdot = now
         if rec["feed"] != "tripupdates" or rec["error"]:
             return
         self.last_success = now
@@ -145,10 +181,14 @@ class Heartbeat:
             health.ping(self.settings, "collector")
         if now - self.last_fresh < HEARTBEAT_INTERVAL_S:
             health.ping(self.settings, "feed_stale")
+        # Separate check, so a WSDOT outage never looks like a bus-feed outage.
+        if self.last_wsdot and now - self.last_wsdot < HEARTBEAT_INTERVAL_S:
+            health.ping(self.settings, "wsdot")
 
 
-def run(settings: Settings, feeds: tuple[Feed, ...] = FEEDS, max_cycles: int | None = None) -> None:
+def run(settings: Settings, feeds: tuple[Feed, ...] | None = None, max_cycles: int | None = None) -> None:
     """Poll forever (or for max_cycles scheduling rounds) until SIGTERM/SIGINT."""
+    feeds = settings.feeds if feeds is None else feeds
     stop = threading.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, lambda *_: stop.set())

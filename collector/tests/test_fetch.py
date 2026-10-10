@@ -1,13 +1,16 @@
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 
 from conftest import make_feed
-from wbot_collector.config import Feed
-from wbot_collector.fetch import Heartbeat, fetch_one, next_slot, summarize
+from wbot_collector.config import FEEDS, Feed, Settings, load_settings, wsdot_feeds
+from wbot_collector.fetch import Heartbeat, fetch_one, next_slot, summarize, summarize_json
 
 FEED = Feed("tripupdates", "https://example.invalid/tu", 30)
+CODE = "s3cret-code"
+WSDOT = Feed("wsdot_traveltimes", "https://example.invalid/tt", 120, kind="json", access_code=CODE)
 NOW = datetime(2026, 10, 4, 2, 9, 46, 123000, tzinfo=UTC)
 
 
@@ -112,4 +115,81 @@ def test_heartbeat_pings(settings, monkeypatch):
     pings.clear()
     hb.record({"feed": "tripupdates", "error": None, "data_ts": None, "entities": 0}, now=1500)
     hb.maybe_ping(now=1510)
+    assert pings == ["collector", "feed_stale"]
+
+
+def test_summarize_json():
+    body = json.dumps(
+        [
+            {"TravelTimeID": 1, "TimeUpdated": "/Date(1791000000000-0700)/"},
+            {"TravelTimeID": 2, "TimeUpdated": "/Date(1791000120000-0700)/"},
+            {"AlertID": 3, "LastUpdatedTime": "/Date(1791000060000-0700)/"},
+            {"AlertID": 4, "LastUpdatedTime": None},
+        ]
+    ).encode()
+    assert summarize_json(body) == {"header_ts": None, "data_ts": 1_791_000_120, "entities": 4}
+    assert summarize_json(b"[]") == {"header_ts": None, "data_ts": None, "entities": 0}
+    assert summarize_json(b"<html>nope</html>") == {"header_ts": None, "data_ts": None, "entities": None}
+    assert summarize_json(b'{"not": "a list"}') == {"header_ts": None, "data_ts": None, "entities": None}
+
+
+def test_wsdot_fetch_sends_code_and_keeps_it_out_of_the_log(settings):
+    seen = []
+
+    def handler(req):
+        seen.append(req.url.params.get("AccessCode"))
+        return httpx.Response(200, content=b'[{"TimeUpdated": "/Date(1791000000000-0700)/"}]')
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    rec = fetch_one(client, WSDOT, settings, NOW)
+
+    assert seen == [CODE]
+    assert rec["path"] == "spool/wsdot_traveltimes/2026-10-04/02/wsdot_traveltimes-20261004T020946Z.json"
+    assert rec["entities"] == 1
+    assert rec["data_ts"] == 1_791_000_000
+    assert CODE not in (settings.log_dir / "2026-10-04.jsonl").read_text()
+    assert CODE not in repr(WSDOT)
+
+
+def test_wsdot_error_text_is_redacted(settings):
+    def boom(req):
+        raise httpx.ConnectError(f"cannot reach {req.url}")
+
+    client = httpx.Client(transport=httpx.MockTransport(boom))
+    rec = fetch_one(client, WSDOT, settings, NOW)
+    assert "ConnectError" in rec["error"]
+    assert CODE not in rec["error"]
+    assert CODE not in (settings.log_dir / "2026-10-04.jsonl").read_text()
+
+
+def test_wsdot_feeds_only_with_access_code():
+    assert wsdot_feeds("") == ()
+    assert Settings(data_dir=Path("unused")).feeds == FEEDS
+    on = load_settings({"WBOT_DATA_DIR": "d", "WBOT_WSDOT_ACCESS_CODE": f" {CODE} "})
+    names = [f.name for f in on.feeds]
+    assert names == ["tripupdates", "vehiclepositions", "alerts", "wsdot_traveltimes", "wsdot_alerts"]
+    assert all(f.access_code == CODE for f in on.feeds[3:])
+    # WSDOT refreshes about every 2 minutes; never poll faster than that.
+    assert min(f.interval_s for f in on.feeds[3:]) >= 120
+
+
+def test_heartbeat_pings_wsdot_separately(settings, monkeypatch):
+    pings = []
+    monkeypatch.setattr("wbot_collector.health.ping", lambda s, check, **kw: pings.append(check))
+    hb = Heartbeat(settings, start=0)
+    hb.record({"feed": "tripupdates", "error": None, "data_ts": 5, "entities": 3}, now=10)
+    hb.maybe_ping(now=10)
+    assert "wsdot" not in pings  # not configured, or not yet fetched
+
+    pings.clear()
+    hb.record({"feed": "wsdot_traveltimes", "error": None, "data_ts": 5, "entities": 3}, now=315)
+    hb.record({"feed": "tripupdates", "error": None, "data_ts": 310, "entities": 3}, now=315)
+    hb.maybe_ping(now=320)
+    assert "wsdot" in pings
+
+    # WSDOT erroring does not touch the bus-feed checks, and the wsdot ping stops.
+    pings.clear()
+    hb.record({"feed": "wsdot_traveltimes", "error": "HTTP 503", "data_ts": None, "entities": None}, now=600)
+    hb.record({"feed": "tripupdates", "error": None, "data_ts": 600, "entities": 3}, now=600)
+    hb.maybe_ping(now=630)
     assert pings == ["collector", "feed_stale"]
