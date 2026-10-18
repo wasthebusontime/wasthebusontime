@@ -1,17 +1,36 @@
-<svg viewBox="0 0 320 172" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-<line x1="32" y1="150" x2="314" y2="150" class="grid"/>
-<text x="26" y="154" text-anchor="end" class="small">0%</text>
-<line x1="32" y1="80" x2="314" y2="80" class="grid"/>
-<text x="26" y="84" text-anchor="end" class="small">50%</text>
+<svg viewBox="0 0 320 214" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<rect x="60.2" y="10.0" width="56.4" height="180.0" class="saturday"><title>Sat, Oct 31, 2026</title></rect>
+<rect x="116.6" y="10.0" width="56.4" height="180.0" class="sunday"><title>Sun, Nov 1, 2026</title></rect>
+<line x1="32" y1="190" x2="314" y2="190" class="grid"/>
+<text x="26" y="194" text-anchor="end" class="small">70%</text>
+<line x1="32" y1="130" x2="314" y2="130" class="grid"/>
+<text x="26" y="134" text-anchor="end" class="small">80%</text>
+<line x1="32" y1="70" x2="314" y2="70" class="grid"/>
+<text x="26" y="74" text-anchor="end" class="small">90%</text>
 <line x1="32" y1="10" x2="314" y2="10" class="grid"/>
 <text x="26" y="14" text-anchor="end" class="small">100%</text>
-<circle cx="32.0" cy="24.0" r="6" class="hit"><title>Oct 30, 2026: 90.0% on time, 50 departures</title></circle>
-<circle cx="88.4" cy="45.0" r="6" class="hit"><title>Oct 31, 2026: 75.0% on time, 40 departures</title></circle>
-<circle cx="201.2" cy="33.3" r="6" class="hit"><title>Nov 2, 2026: 83.3% on time, 60 departures</title></circle>
-<circle cx="257.6" cy="22.7" r="6" class="hit"><title>Nov 3, 2026: 90.9% on time, 55 departures</title></circle>
-<circle cx="314.0" cy="24.5" r="6" class="hit"><title>Nov 4, 2026: 89.7% on time, 58 departures</title></circle>
-<polyline points="32.0,24.0 88.4,45.0" class="line"/>
-<polyline points="201.2,33.3 257.6,22.7 314.0,24.5" class="line"/>
-<text x="32" y="164" text-anchor="start" class="small">Oct 30</text>
-<text x="314" y="164" text-anchor="end" class="small">Nov 4</text>
+<line x1="32.0" y1="190" x2="32.0" y2="194" class="axis"/>
+<line x1="88.4" y1="190" x2="88.4" y2="194" class="axis"/>
+<line x1="144.8" y1="190" x2="144.8" y2="194" class="axis"/>
+<line x1="201.2" y1="10" x2="201.2" y2="190" class="grid"/>
+<line x1="201.2" y1="190" x2="201.2" y2="194" class="axis"/>
+<line x1="257.6" y1="190" x2="257.6" y2="194" class="axis"/>
+<line x1="314.0" y1="190" x2="314.0" y2="194" class="axis"/>
+<line x1="32" y1="92.1" x2="314" y2="92.1" class="average"/>
+<polyline points="32.0,70.0 88.4,160.0" class="line"/>
+<polyline points="201.2,110.0 257.6,64.5 314.0,72.1" class="line"/>
+<circle cx="32.0" cy="70.0" r="4" class="dot"/>
+<circle cx="88.4" cy="160.0" r="4" class="dot"/>
+<circle cx="201.2" cy="110.0" r="4" class="dot"/>
+<circle cx="257.6" cy="64.5" r="4" class="dot"/>
+<circle cx="314.0" cy="72.1" r="4" class="dot"/>
+<text x="36" y="87.1" text-anchor="start" class="average-label">Average 86%</text>
+<circle cx="32.0" cy="70.0" r="6" class="hit"><title>Fri, Oct 30, 2026: 90.0% on time, 50 departures</title></circle>
+<circle cx="88.4" cy="160.0" r="6" class="hit"><title>Sat, Oct 31, 2026: 75.0% on time, 40 departures</title></circle>
+<circle cx="201.2" cy="110.0" r="6" class="hit"><title>Mon, Nov 2, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="257.6" cy="64.5" r="6" class="hit"><title>Tue, Nov 3, 2026: 90.9% on time, 55 departures</title></circle>
+<circle cx="314.0" cy="72.1" r="6" class="hit"><title>Wed, Nov 4, 2026: 89.7% on time, 58 departures</title></circle>
+<text x="32" y="206" text-anchor="start" class="small">Oct 30</text>
+<text x="201.2" y="206" text-anchor="middle" class="small">Nov 2</text>
+<text x="314" y="206" text-anchor="end" class="small">Nov 4</text>
 </svg>

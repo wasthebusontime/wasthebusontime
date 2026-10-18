@@ -20,6 +20,7 @@ log = logging.getLogger("wbot_site")
 
 SCOPE_LABELS = {"timepoints": "Timepoints", "all_stops": "All stops"}
 DAYTYPE_LABELS = {"weekday": "Weekday", "saturday": "Saturday", "sunday": "Sunday"}
+WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
@@ -155,6 +156,11 @@ def directions_text(text: str) -> str:
 def date_text(iso: str) -> str:
     year, month, day = iso.split("-")
     return f"{MONTHS[int(month) - 1]} {int(day)}, {year}"
+
+
+def weekday_date_text(iso: str) -> str:
+    """'2026-10-11' -> 'Sun, Oct 11, 2026'."""
+    return f"{WEEKDAYS[datetime.fromisoformat(iso).weekday()]}, {date_text(iso)}"
 
 
 def month_text(iso: str) -> str:

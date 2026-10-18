@@ -1,27 +1,46 @@
-<svg viewBox="0 0 640 172" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 640 174" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<rect x="99.0" y="10.0" width="118.0" height="140.0" class="saturday"><title>Sat, Oct 31, 2026</title></rect>
+<rect x="217.0" y="10.0" width="118.0" height="140.0" class="sunday"><title>Sun, Nov 1, 2026</title></rect>
 <line x1="40" y1="150" x2="630" y2="150" class="grid"/>
-<text x="34" y="154" text-anchor="end" class="small">0%</text>
-<line x1="40" y1="80" x2="630" y2="80" class="grid"/>
-<text x="34" y="84" text-anchor="end" class="small">50%</text>
+<text x="34" y="154" text-anchor="end" class="small">70%</text>
+<line x1="40" y1="103.333" x2="630" y2="103.333" class="grid"/>
+<text x="34" y="107.333" text-anchor="end" class="small">80%</text>
+<line x1="40" y1="56.6667" x2="630" y2="56.6667" class="grid"/>
+<text x="34" y="60.6667" text-anchor="end" class="small">90%</text>
 <line x1="40" y1="10" x2="630" y2="10" class="grid"/>
 <text x="34" y="14" text-anchor="end" class="small">100%</text>
-<circle cx="40.0" cy="24.0" r="6" class="hit"><title>Oct 30, 2026: 90.0% on time, 50 departures</title></circle>
-<circle cx="158.0" cy="45.0" r="6" class="hit"><title>Oct 31, 2026: 75.0% on time, 40 departures</title></circle>
-<circle cx="394.0" cy="33.3" r="6" class="hit"><title>Nov 2, 2026: 83.3% on time, 60 departures</title></circle>
-<circle cx="512.0" cy="22.7" r="6" class="hit"><title>Nov 3, 2026: 90.9% on time, 55 departures</title></circle>
-<circle cx="630.0" cy="24.5" r="6" class="hit"><title>Nov 4, 2026: 89.7% on time, 58 departures</title></circle>
-<polyline points="40.0,24.0 158.0,45.0" class="line"/>
-<polyline points="394.0,33.3 512.0,22.7 630.0,24.5" class="line"/>
-<text x="40" y="164" text-anchor="start" class="small">Oct 30</text>
-<text x="630" y="164" text-anchor="end" class="small">Nov 4</text>
+<line x1="40.0" y1="150" x2="40.0" y2="154" class="axis"/>
+<line x1="158.0" y1="150" x2="158.0" y2="154" class="axis"/>
+<line x1="276.0" y1="150" x2="276.0" y2="154" class="axis"/>
+<line x1="394.0" y1="10" x2="394.0" y2="150" class="grid"/>
+<line x1="394.0" y1="150" x2="394.0" y2="154" class="axis"/>
+<line x1="512.0" y1="150" x2="512.0" y2="154" class="axis"/>
+<line x1="630.0" y1="150" x2="630.0" y2="154" class="axis"/>
+<line x1="40" y1="73.9" x2="630" y2="73.9" class="average"/>
+<polyline points="40.0,56.7 158.0,126.7" class="line"/>
+<polyline points="394.0,87.8 512.0,52.4 630.0,58.3" class="line"/>
+<circle cx="40.0" cy="56.7" r="4" class="dot"/>
+<circle cx="158.0" cy="126.7" r="4" class="dot"/>
+<circle cx="394.0" cy="87.8" r="4" class="dot"/>
+<circle cx="512.0" cy="52.4" r="4" class="dot"/>
+<circle cx="630.0" cy="58.3" r="4" class="dot"/>
+<text x="44" y="68.9" text-anchor="start" class="average-label">Average 86%</text>
+<circle cx="40.0" cy="56.7" r="6" class="hit"><title>Fri, Oct 30, 2026: 90.0% on time, 50 departures</title></circle>
+<circle cx="158.0" cy="126.7" r="6" class="hit"><title>Sat, Oct 31, 2026: 75.0% on time, 40 departures</title></circle>
+<circle cx="394.0" cy="87.8" r="6" class="hit"><title>Mon, Nov 2, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="512.0" cy="52.4" r="6" class="hit"><title>Tue, Nov 3, 2026: 90.9% on time, 55 departures</title></circle>
+<circle cx="630.0" cy="58.3" r="6" class="hit"><title>Wed, Nov 4, 2026: 89.7% on time, 58 departures</title></circle>
+<text x="40" y="166" text-anchor="start" class="small">Oct 30</text>
+<text x="394" y="166" text-anchor="middle" class="small">Nov 2</text>
+<text x="630" y="166" text-anchor="end" class="small">Nov 4</text>
 </svg>
 
-Route 901, on time each day over the last 6 days: lowest 75% on Oct 31, 2026, highest 91% on Nov 3, 2026, latest 90% on Nov 4, 2026.
+Route 901, on time each day over the last 6 days: average 86%, lowest 75% on Oct 31, 2026, highest 91% on Nov 3, 2026, latest 90% on Nov 4, 2026.
 
 Date | Departures | Early | On time | Late
-Nov 4, 2026 | 58 | 2 (3.4%) | 52 (89.7%) | 4 (6.9%)
-Nov 3, 2026 | 55 | 1 (1.8%) | 50 (90.9%) | 4 (7.3%)
-Nov 2, 2026 | 60 | 6 (10.0%) | 50 (83.3%) | 4 (6.7%)
-Nov 1, 2026 | 5 | Not enough data |  | 
-Oct 31, 2026 | 40 | 2 (5.0%) | 30 (75.0%) | 8 (20.0%)
-Oct 30, 2026 | 50 | 2 (4.0%) | 45 (90.0%) | 3 (6.0%)
+Wed, Nov 4, 2026 | 58 | 2 (3.4%) | 52 (89.7%) | 4 (6.9%)
+Tue, Nov 3, 2026 | 55 | 1 (1.8%) | 50 (90.9%) | 4 (7.3%)
+Mon, Nov 2, 2026 | 60 | 6 (10.0%) | 50 (83.3%) | 4 (6.7%)
+Sun, Nov 1, 2026 | 5 | Not enough data |  | 
+Sat, Oct 31, 2026 | 40 | 2 (5.0%) | 30 (75.0%) | 8 (20.0%)
+Fri, Oct 30, 2026 | 50 | 2 (4.0%) | 45 (90.0%) | 3 (6.0%)

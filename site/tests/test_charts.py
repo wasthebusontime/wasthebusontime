@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -147,3 +148,58 @@ def test_headline_chart_shows_the_alt_window_only_when_asked():
     assert [r[0] for r in hidden.rows] == ["1 min early to 5 min late"]
     assert [r[0] for r in shown.rows] == ["1 min early to 5 min late", "0 to 5 min late (Intercity Transit's own definition)"]
     assert "Intercity Transit" not in hidden.svg and "0 to 5 min late (Intercity Transit)" in shown.svg
+
+
+def days(start, shares, n=100):
+    """Daily rows from a start date, one on-time share per day (None: too few departures)."""
+    first = date.fromisoformat(start)
+    return [{"date": (first + timedelta(days=i)).isoformat(),
+             **(perf(5, 0, 5, 0) if s is None else perf(n, 0, round(n * s), n - round(n * s)))}
+            for i, s in enumerate(shares)]
+
+
+def test_daily_axis_zooms_to_the_data():
+    # The lowest day, rounded down to 10%, with at least 20 points of range.
+    assert charts._floor(days("2026-10-05", [0.9, 0.75, 0.88])) == 70
+    assert charts._floor(days("2026-10-05", [0.97, 0.99])) == 80
+    assert charts._floor(days("2026-10-05", [0.9, 0.3])) == 30
+    svg = charts.daily_chart(days("2026-10-05", [0.9, 0.75, 0.88]), "Route 901", MIN).svg
+    assert ">70%<" in svg and ">100%<" in svg and ">60%<" not in svg
+
+
+def test_daily_average_is_weighted_by_departures():
+    rows = [{"date": "2026-10-05", **perf(300, 0, 270, 30)}, {"date": "2026-10-06", **perf(30, 0, 15, 15)}]
+    chart = charts.daily_chart(rows, "Route 901", MIN)
+    # 285 of 330 departures, not the 70% mean of the two days.
+    assert "average 86%" in chart.summary and ">Average 86%<" in chart.svg
+
+
+def test_daily_labels_mondays_without_collisions():
+    rows = days("2026-08-03", [0.9] * 90)  # a Monday; 13 Mondays in all
+    mondays = [i for i, r in enumerate(rows) if date.fromisoformat(r["date"]).weekday() == 0]
+    for layout in (charts.WIDE, charts.NARROW):
+        step = layout.plot / 89
+        labels = charts._date_labels(layout, rows, step)
+        spans = []
+        for i, anchor in labels:
+            w = len(charts._short_date(rows[i])) * (6.4 if layout.narrow else 5.6)
+            x = layout.left + i * step
+            spans.append({"start": (x, x + w), "end": (x - w, x), "middle": (x - w / 2, x + w / 2)}[anchor])
+        assert all(a[1] < b[0] for a, b in zip(spans, spans[1:])), layout
+        labeled_mondays = [i for i, _ in labels if i in mondays]
+        if layout.narrow:
+            assert 3 <= len(labeled_mondays) < len(mondays)
+        else:
+            assert labeled_mondays == mondays
+    # Short ranges label every Monday and both ends.
+    labels = charts._date_labels(charts.NARROW, rows[:13], charts.NARROW.plot / 12)
+    assert [i for i, _ in labels] == [0, 7, 12]
+
+
+def test_daily_marks_weekends_and_names_weekdays():
+    chart = charts.daily_chart(DAILY, "Route 901", MIN)
+    assert 'class="saturday"><title>Sat, Oct 31, 2026</title>' in chart.svg
+    assert 'class="sunday"><title>Sun, Nov 1, 2026</title>' in chart.svg
+    assert chart.weekend_key and chart.rows[0][0] == "Wed, Nov 4, 2026"
+    weekdays_only = charts.daily_chart(days("2026-10-05", [0.9] * 5), "Route 901", MIN)
+    assert not weekdays_only.weekend_key and 'class="saturday"' not in weekdays_only.svg

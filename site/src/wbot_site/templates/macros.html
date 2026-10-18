@@ -202,6 +202,9 @@
 <div class="chart-svg chart-narrow">
 {{ c.svg_narrow | safe }}
 </div>
+{% if c.weekend_key %}
+<ul class="chart-legend" aria-hidden="true"><li><span class="key saturday"></span>Saturday</li><li><span class="key sunday"></span>Sunday</li></ul>
+{% endif %}
 <figcaption>{{ c.summary | directions }}</figcaption>
 <details class="chart-table">
 <summary>Show table <span class="visually-hidden">({{ title }})</span></summary>

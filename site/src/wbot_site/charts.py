@@ -11,11 +11,14 @@ where it shows at about 1:1 so the text stays readable). CSS shows one of the tw
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from html import escape
 
 from wbot_site import agency
 from wbot_site.contract import DAYTYPES
-from wbot_site.data import DAYTYPE_LABELS, date_text, delay_text, enough, hour_text, number, percent, split
+from wbot_site.data import (
+    DAYTYPE_LABELS, date_text, delay_text, enough, hour_text, number, percent, split, weekday_date_text,
+)
 from wbot_site.windows import Windows
 
 PARTS = (("early", "early"), ("on_time", "on-time"), ("late", "late"))
@@ -46,6 +49,7 @@ class Chart:
     rows: list[list[str]]
     legend: bool = False  # colored early / on time / late, so the page shows a key
     svg_narrow: str = ""
+    weekend_key: bool = False  # shaded Saturdays and Sundays, so the page shows a key
 
 
 # The drawing is hidden from screen readers: the summary sentence under it and the table
@@ -206,9 +210,9 @@ def histogram_chart(perf: dict, subject: str, min_sample: int, windows: Windows)
 # On time by hour
 
 
-def _axis_y(L: Layout, body: list[str], top: int, plot_h: int) -> None:
-    for pct in (0, 50, 100):
-        y = top + plot_h * (100 - pct) / 100
+def _axis_y(L: Layout, body: list[str], top: int, plot_h: int, ticks: tuple[int, ...] = (0, 50, 100)) -> None:
+    for pct in ticks:
+        y = top + plot_h * (100 - pct) / (100 - ticks[0])
         body.append(f'<line x1="{L.left}" y1="{y:g}" x2="{L.width - L.right}" y2="{y:g}" class="grid"/>')
         body.append(_text(L.left - 6, y + 4, f"{pct}%", "end", "small"))
 
@@ -255,56 +259,132 @@ def hour_chart(by_hour: list[dict], subject: str, min_sample: int) -> Chart | No
 # Daily trend
 
 
+def _share(d: dict) -> float:
+    return d["on_time"] / d["n"]
+
+
+def _weekday(d: dict) -> int:
+    return datetime.fromisoformat(d["date"]).weekday()
+
+
+def _average(usable: list[dict]) -> str:
+    """On time over all the days shown, weighted by departures."""
+    return percent(sum(d["on_time"] for d in usable), sum(d["n"] for d in usable))
+
+
+def _floor(usable: list[dict]) -> int:
+    """Bottom of the y-axis in percent: the lowest day or the average, rounded down to a
+    multiple of 10, and never above 80, so the axis always spans at least 20 points."""
+    average = sum(d["on_time"] for d in usable) / sum(d["n"] for d in usable)
+    low = min(min(_share(d) for d in usable), average) * 100
+    return min(int(low // 10) * 10, 80)
+
+
+def _short_date(d: dict) -> str:
+    return date_text(d["date"]).rsplit(",", 1)[0]
+
+
+def _date_labels(L: Layout, daily: list[dict], step: float) -> list[tuple[int, str]]:
+    """(index, anchor) of the dates to label: Mondays, thinned so their labels never touch,
+    then the first and last day where they fit beside them."""
+    gap = 8
+    last = len(daily) - 1
+
+    def span(i: int, anchor: str) -> tuple[float, float]:
+        # A rough width of the small label (10px wide, 11.5px narrow), in drawing units.
+        w = len(_short_date(daily[i])) * (6.4 if L.narrow else 5.6)
+        x = L.left + i * step
+        return {"start": (x, x + w), "end": (x - w, x), "middle": (x - w / 2, x + w / 2)}[anchor]
+
+    def clear(i: int, anchor: str, labels: list[tuple[int, str]]) -> bool:
+        lo, hi = span(i, anchor)
+        return all(hi + gap <= span(j, a)[0] or span(j, a)[1] + gap <= lo for j, a in labels)
+
+    mondays = [i for i, d in enumerate(daily) if _weekday(d) == 0]
+    every = 1
+    while 7 * every * step < 6 * (6.4 if L.narrow else 5.6) + gap:
+        every += 1
+    labels = [(i, "middle") for i in mondays[::every]]
+    for i, anchor in ((0, "start"), (last, "end")):
+        others = [(j, a) for j, a in labels if j != i]
+        if len(others) < len(labels) or clear(i, anchor, others):
+            labels = [*others, (i, anchor)]
+    return sorted(labels)
+
+
 def _days(L: Layout, daily: list[dict], min_sample: int) -> tuple[list[str], int]:
-    top, plot_h = 10, 140
+    usable = [d for d in daily if enough(d, min_sample)]
+    top, plot_h = 10, 180 if L.narrow else 140
     base = top + plot_h
+    lo = _floor(usable)
     step = L.plot / max(len(daily) - 1, 1)
+    right = L.left + L.plot
+    x = lambda i: L.left + i * step
+    y = lambda share: top + plot_h * (100 - share * 100) / (100 - lo)
     body: list[str] = []
-    _axis_y(L, body, top, plot_h)
+
+    # Saturdays and Sundays as shaded columns behind everything, one day wide.
+    for i, d in enumerate(daily):
+        kind = {5: "saturday", 6: "sunday"}.get(_weekday(d))
+        if kind:
+            x0, x1 = max(x(i) - step / 2, L.left), min(x(i) + step / 2, right)
+            body.append(_rect(x0, top, x1 - x0, plot_h, kind, weekday_date_text(d["date"])))
+    _axis_y(L, body, top, plot_h, tuple(range(lo, 101, 10)))
+    # A line at the start of each week, and a tick for each day where they have room.
+    for i, d in enumerate(daily):
+        if _weekday(d) == 0:
+            body.append(f'<line x1="{x(i):.1f}" y1="{top}" x2="{x(i):.1f}" y2="{base}" class="grid"/>')
+        if step >= 6:
+            body.append(f'<line x1="{x(i):.1f}" y1="{base}" x2="{x(i):.1f}" y2="{base + 4}" class="axis"/>')
+
+    # The average of the days shown. Its label goes on top of the data line, later.
+    average = sum(d["on_time"] for d in usable) / sum(d["n"] for d in usable)
+    ya = y(average)
+    body.append(f'<line x1="{L.left}" y1="{ya:.1f}" x2="{right}" y2="{ya:.1f}" class="average"/>')
 
     # Days without enough data break the line rather than being bridged.
-    segment: list[str] = []
-    segments: list[list[str]] = []
+    segment: list[tuple[float, float]] = []
+    segments: list[list[tuple[float, float]]] = []
     for i, d in enumerate(daily):
         if enough(d, min_sample):
-            x = L.left + i * step
-            y = top + plot_h * (1 - d["on_time"] / d["n"])
-            segment.append(f"{x:.1f},{y:.1f}")
-            body.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" class="hit"><title>'
-                        f'{escape(date_text(d["date"]))}: {_pct(d, digits=1)} on time, {number(d["n"])} departures</title></circle>')
+            segment.append((x(i), y(_share(d))))
         elif segment:
             segments.append(segment)
             segment = []
     if segment:
         segments.append(segment)
     for seg in segments:
-        if len(seg) == 1:
-            x, y = seg[0].split(",")
-            body.append(f'<circle cx="{x}" cy="{y}" r="3" class="dot"/>')
-        else:
-            body.append(f'<polyline points="{" ".join(seg)}" class="line"/>')
-    # Label the first and last day and each first of the month, skipping any that would crowd them.
-    last = len(daily) - 1
+        if len(seg) > 1:
+            body.append(f'<polyline points="{" ".join(f"{px:.1f},{py:.1f}" for px, py in seg)}" class="line"/>')
+    # A dot for every day when they have room, otherwise only for days standing alone.
+    for seg in segments:
+        if step >= 10 or len(seg) == 1:
+            body.extend(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" class="dot"/>' for px, py in seg)
+    # Above the left end of the average line (below it when near the top), haloed in CSS.
+    body.append(_text(L.left + 4, round(ya - 5 if ya - 5 >= top + 12 else ya + 15, 1), f"Average {_average(usable)}", "start", "average-label"))
     for i, d in enumerate(daily):
-        if i in (0, last) or (d["date"].endswith("-01") and 4 <= i <= last - 4):
-            anchor = "start" if i == 0 else "end" if i == last else "middle"
-            body.append(_text(L.left + i * step, base + 14, date_text(d["date"]).rsplit(",", 1)[0], anchor, "small"))
-    return body, base + 22
+        if enough(d, min_sample):
+            body.append(f'<circle cx="{x(i):.1f}" cy="{y(_share(d)):.1f}" r="6" class="hit"><title>'
+                        f'{escape(weekday_date_text(d["date"]))}: {_pct(d, digits=1)} on time, {number(d["n"])} departures</title></circle>')
+
+    for i, anchor in _date_labels(L, daily, step):
+        body.append(_text(x(i), base + 16, _short_date(daily[i]), anchor, "small"))
+    return body, base + 24
 
 
 def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | None:
     usable = [d for d in daily if enough(d, min_sample)]
     if len(usable) < 2:
         return None
-    shares = [(d["on_time"] / d["n"], d) for d in usable]
-    low = min(shares, key=lambda s: (s[0], s[1]["date"]))[1]
-    high = max(shares, key=lambda s: (s[0], s[1]["date"]))[1]
+    low = min(usable, key=lambda d: (_share(d), d["date"]))
+    high = max(usable, key=lambda d: (_share(d), d["date"]))
     summary = (
-        f"{subject}, on time each day over the last {len(daily)} days: "
+        f"{subject}, on time each day over the last {len(daily)} days: average {_average(usable)}, "
         f"lowest {_pct(low)} on {date_text(low['date'])}, highest {_pct(high)} on {date_text(high['date'])}, "
         f"latest {_pct(usable[-1])} on {date_text(usable[-1]['date'])}."
     )
-    rows = [[date_text(d["date"]), *_count_cells(d)] if enough(d, min_sample)
-            else [date_text(d["date"]), number(d["n"]), "Not enough data", "", ""] for d in reversed(daily)]
+    rows = [[weekday_date_text(d["date"]), *_count_cells(d)] if enough(d, min_sample)
+            else [weekday_date_text(d["date"]), number(d["n"]), "Not enough data", "", ""] for d in reversed(daily)]
     wide, narrow = _both(lambda L: _days(L, daily, min_sample))
-    return Chart(wide, summary, ["Date", "Departures", "Early", "On time", "Late"], rows, svg_narrow=narrow)
+    return Chart(wide, summary, ["Date", "Departures", "Early", "On time", "Late"], rows,
+                 svg_narrow=narrow, weekend_key=any(_weekday(d) >= 5 for d in daily))
