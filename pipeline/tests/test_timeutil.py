@@ -37,7 +37,3 @@ def test_day_type_and_band():
     assert [timeutil.band(h) for h in (5, 6, 9, 15, 18, 25)] == \
         ["early", "am_peak", "midday", "pm_peak", "evening", "evening"]
 
-
-def test_snapshot_time_from_collector_file_name():
-    assert timeutil.snapshot_time("tripupdates-20261004T032400Z.pb") == utc(2026, 10, 4, 3, 24)
-    assert timeutil.snapshot_time("other.pb") is None

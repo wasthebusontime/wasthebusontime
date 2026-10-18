@@ -46,7 +46,7 @@ uv sync
 uv run pytest
 ```
 
-Tests build an invented network and simulated feeds in code (`tests/synth.py`), written in the collector's layout. No real feed data is stored in this repository, and nothing derived from it. The end-to-end tests check the output with the site's own loader and build. `wbot-site` is a runtime dependency because the site files format is defined in `wbot_site.contract`, which `sitefiles` checks the output against before replacing the last good copy.
+Tests build an invented network and simulated feeds in code (`tests/synth.py`), written in the collector's layout. No real feed data is stored in this repository, and nothing derived from it. The end-to-end tests check the output with the site's own loader and build. `wbot-collector` is a runtime dependency for `wbot_collector.layout`, the collector's data layout, which the archive, gap and static readers use; `tests/test_collector_layout.py` writes data with the collector's own code and reads it back. `wbot-site` is a runtime dependency because the site files format is defined in `wbot_site.contract`, which `sitefiles` checks the output against before replacing the last good copy.
 
 `tests/make_sample.py` writes the site's committed sample stats (`site/sample-stats/`) with the pipeline's own site files step, from simulated departures on an invented network. After a change that alters the output, regenerate it with `uv run python tests/make_sample.py`; `tests/test_sample.py` fails until you do.
 

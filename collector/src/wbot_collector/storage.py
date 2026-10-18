@@ -6,15 +6,13 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
+from . import layout
+
 TMP_PREFIX = ".tmp-"
 
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
-
-
-def iso(ts: datetime) -> str:
-    return ts.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def sha256_hex(data: bytes) -> str:
@@ -47,6 +45,6 @@ def write_atomic(path: Path, data: bytes) -> None:
 def append_log(log_dir: Path, record: dict, ts: datetime) -> None:
     """Append one JSON line to the fetch log for the UTC day of ts."""
     log_dir.mkdir(parents=True, exist_ok=True)
-    path = log_dir / f"{ts.astimezone(UTC):%Y-%m-%d}.jsonl"
+    path = layout.log_path(log_dir, ts.astimezone(UTC).date())
     with open(path, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(record, separators=(",", ":")) + "\n")

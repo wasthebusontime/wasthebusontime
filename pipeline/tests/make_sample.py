@@ -22,7 +22,8 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-from synth import Trip, write_gtfs
+from synth import Trip, fetch, write_gtfs
+from synth import write_log as append_log
 
 from wbot_pipeline import events, gaps, sitefiles, static, timeutil
 from wbot_pipeline.config import EVENTS_VERSION, POLL_S, load_settings
@@ -209,26 +210,19 @@ def write_parquet(path: Path, rows: list[dict], types: dict) -> None:
 def write_log(log_dir: Path) -> None:
     """A TripUpdates fetch every POLL_S seconds from before the first service date to after
     the last, except inside the data-loss windows, which show their cause."""
-    log_dir.mkdir(parents=True, exist_ok=True)
-    files = {}
+    records = []
     end = timeutil.day_end(END) + 6 * 3600
     for ts in range(timeutil.origin(START), end, POLL_S):
         fetched = datetime.fromtimestamp(ts, UTC)
-        line = {"fetched_at": fetched.strftime("%Y-%m-%dT%H:%M:%S.000Z"), "feed": "tripupdates",
-                "url": "https://example.invalid/tu", "elapsed_ms": 100, "path": None}
         window = next((w for w, (a, b) in zip(DATA_LOSS, LOSS_WINDOWS) if a <= ts < b), None)
         if window is None:
-            line.update(status=200, bytes=1000, sha256="x", header_ts=ts, data_ts=ts - 5, entities=40, error=None)
-        elif window["cause"] == "collector":
-            continue
+            records.append(fetch(fetched, status=200, bytes=1000, sha256="x", header_ts=ts, data_ts=ts - 5,
+                                 entities=40))
         elif window["cause"] == "feed":
-            line.update(status=503, bytes=0, sha256=None, header_ts=None, data_ts=None, entities=None, error="HTTP 503")
-        else:
-            line.update(status=None, bytes=0, sha256=None, header_ts=None, data_ts=None, entities=None,
-                        error="timed out")
-        files.setdefault(fetched.date(), []).append(json.dumps(line))
-    for day, lines in files.items():
-        (log_dir / f"{day.isoformat()}.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+            records.append(fetch(fetched, status=503, bytes=0, error="HTTP 503"))
+        elif window["cause"] != "collector":
+            records.append(fetch(fetched, bytes=0, error="timed out"))
+    append_log(log_dir, records)
 
 
 def write_day(settings, version: static.Version, d: date, rows: list[dict], trips: list[dict]) -> None:

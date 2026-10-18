@@ -14,7 +14,7 @@ from pathlib import Path
 
 import zstandard
 
-from . import health
+from . import health, layout
 from .config import Settings
 from .storage import TMP_PREFIX, fsync_dir
 
@@ -27,13 +27,6 @@ GRACE = timedelta(minutes=2)
 
 class VerifyError(Exception):
     pass
-
-
-def _hour_start(date_dir: Path, hour_dir: Path) -> datetime | None:
-    try:
-        return datetime.strptime(f"{date_dir.name} {hour_dir.name}", "%Y-%m-%d %H").replace(tzinfo=UTC)
-    except ValueError:
-        return None
 
 
 def archive_hashes(path: Path) -> dict[str, str]:
@@ -68,11 +61,6 @@ def _write_archive(path: Path, files: list[Path]) -> None:
     fsync_dir(path.parent)
 
 
-def _archive_path(archive_dir: Path, feed: str, hour: datetime, n: int) -> Path:
-    suffix = "" if n == 0 else f".{n}"
-    return archive_dir / feed / f"{hour:%Y/%m/%d}" / f"{feed}-{hour:%Y-%m-%dT%H}{suffix}.tar.zst"
-
-
 def pack_hour(settings: Settings, feed: str, hour: datetime, hour_dir: Path) -> int:
     """Pack one spool hour directory. Returns the number of files archived."""
     # Leftover temp files are interrupted writes; they never completed.
@@ -85,7 +73,7 @@ def pack_hour(settings: Settings, feed: str, hour: datetime, hour_dir: Path) -> 
     # or late files may have arrived. Anything already archived intact is done;
     # the rest goes into the next numbered archive for the hour.
     n = 0
-    while (existing := _archive_path(settings.archive_dir, feed, hour, n)).exists():
+    while (existing := layout.pack_path(settings.archive_dir, feed, hour, n)).exists():
         for name, h in archive_hashes(existing).items():
             if hashes.get(name) == h:
                 (hour_dir / name).unlink()
@@ -95,7 +83,7 @@ def pack_hour(settings: Settings, feed: str, hour: datetime, hour_dir: Path) -> 
 
     packed = 0
     if files:
-        path = _archive_path(settings.archive_dir, feed, hour, n)
+        path = layout.pack_path(settings.archive_dir, feed, hour, n)
         path.parent.mkdir(parents=True, exist_ok=True)
         _write_archive(path, files)
         got = archive_hashes(path)
@@ -120,7 +108,7 @@ def pack_completed(settings: Settings, now: datetime | None = None) -> int:
     for feed_dir in sorted(p for p in settings.spool_dir.iterdir() if p.is_dir()):
         for date_dir in sorted(p for p in feed_dir.iterdir() if p.is_dir()):
             for hour_dir in sorted(p for p in date_dir.iterdir() if p.is_dir()):
-                hour = _hour_start(date_dir, hour_dir)
+                hour = layout.spool_hour(date_dir, hour_dir)
                 if hour is None:
                     log.warning("skipping unexpected directory %s", hour_dir)
                     continue

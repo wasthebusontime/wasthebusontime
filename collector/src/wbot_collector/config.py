@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import __version__
+from . import __version__, layout
 
 USER_AGENT = (
     f"wasthebusontime-collector/{__version__} "
@@ -38,9 +38,9 @@ class Feed:
 
 # Never poll any feed more often than every 30 seconds.
 FEEDS = (
-    Feed("tripupdates", f"{REALTIME_BASE}?Type=TripUpdate", 30),
-    Feed("vehiclepositions", f"{REALTIME_BASE}?Type=VehiclePosition", 30),
-    Feed("alerts", f"{REALTIME_BASE}?Type=alert", 300, offset_s=15),
+    Feed(layout.TRIPUPDATES, f"{REALTIME_BASE}?Type=TripUpdate", 30),
+    Feed(layout.VEHICLEPOSITIONS, f"{REALTIME_BASE}?Type=VehiclePosition", 30),
+    Feed(layout.ALERTS, f"{REALTIME_BASE}?Type=alert", 300, offset_s=15),
 )
 
 
@@ -55,7 +55,7 @@ def wsdot_feeds(access_code: str) -> tuple[Feed, ...]:
         return ()
     return (
         Feed(
-            "wsdot_traveltimes",
+            layout.WSDOT_TRAVELTIMES,
             f"{WSDOT_BASE}/TravelTimes/TravelTimesREST.svc/GetTravelTimesAsJson",
             120,
             offset_s=7,
@@ -63,7 +63,7 @@ def wsdot_feeds(access_code: str) -> tuple[Feed, ...]:
             access_code=access_code,
         ),
         Feed(
-            "wsdot_alerts",
+            layout.WSDOT_ALERTS,
             f"{WSDOT_BASE}/HighwayAlerts/HighwayAlertsREST.svc/GetAlertsAsJson",
             300,
             offset_s=40,
@@ -95,23 +95,23 @@ class Settings:
 
     @property
     def spool_dir(self) -> Path:
-        return self.data_dir / "spool"
+        return self.data_dir / layout.SPOOL
 
     @property
     def log_dir(self) -> Path:
-        return self.data_dir / "log"
+        return self.data_dir / layout.LOG
 
     @property
     def archive_dir(self) -> Path:
-        return self.data_dir / "archive"
+        return self.data_dir / layout.ARCHIVE
 
     @property
     def static_dir(self) -> Path:
-        return self.data_dir / "static"
+        return self.data_dir / layout.STATIC
 
     @property
     def state_dir(self) -> Path:
-        return self.data_dir / "state"
+        return self.data_dir / layout.STATE
 
 
 HC_CHECKS = ("collector", "feed_stale", "pack", "backup", "static", "disk", "wsdot")

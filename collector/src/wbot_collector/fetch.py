@@ -14,7 +14,7 @@ import httpx
 from google.protobuf.message import DecodeError
 from google.transit import gtfs_realtime_pb2
 
-from . import health
+from . import health, layout
 from .config import (
     FEED_STALE_AFTER_S,
     HEARTBEAT_INTERVAL_S,
@@ -23,7 +23,7 @@ from .config import (
     Feed,
     Settings,
 )
-from .storage import append_log, iso, sha256_hex, write_atomic
+from .storage import append_log, sha256_hex, write_atomic
 
 log = logging.getLogger(__name__)
 
@@ -91,32 +91,16 @@ def summarize_json(content: bytes) -> dict:
 
 
 def spool_path(spool_dir: Path, feed: str, ts: datetime, ext: str = ".pb") -> Path:
-    ts = ts.astimezone(UTC)
-    hour_dir = spool_dir / feed / f"{ts:%Y-%m-%d}" / f"{ts:%H}"
-    path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}{ext}"
-    n = 1
-    while path.exists():  # Only possible after a restart within the same second.
-        path = hour_dir / f"{feed}-{ts:%Y%m%dT%H%M%SZ}-{n}{ext}"
-        n += 1
+    """A free spool path for a snapshot fetched at ts."""
+    n = 0
+    while (path := layout.spool_path(spool_dir, feed, ts, ext, n)).exists():
+        n += 1  # Only possible after a restart within the same second.
     return path
 
 
-def fetch_one(client: httpx.Client, feed: Feed, settings: Settings, now: datetime) -> dict:
+def fetch_one(client: httpx.Client, feed: Feed, settings: Settings, now: datetime) -> layout.FetchRecord:
     """Fetch one feed, spool the response unmodified, and log the attempt."""
-    record = {
-        "fetched_at": iso(now),
-        "feed": feed.name,
-        "url": feed.url,
-        "status": None,
-        "bytes": None,
-        "elapsed_ms": None,
-        "sha256": None,
-        "header_ts": None,
-        "data_ts": None,
-        "entities": None,
-        "path": None,
-        "error": None,
-    }
+    record = layout.fetch_record(now, feed.name, feed.url)
     t0 = time.monotonic()
     try:
         params = {"AccessCode": feed.access_code} if feed.access_code else None
@@ -162,10 +146,10 @@ class Heartbeat:
         self.last_wsdot = 0.0
         self.next_ping = start
 
-    def record(self, rec: dict, now: float) -> None:
-        if rec["feed"] == "wsdot_traveltimes" and not rec["error"]:
+    def record(self, rec: layout.FetchRecord, now: float) -> None:
+        if rec["feed"] == layout.WSDOT_TRAVELTIMES and not rec["error"]:
             self.last_wsdot = now
-        if rec["feed"] != "tripupdates" or rec["error"]:
+        if rec["feed"] != layout.TRIPUPDATES or rec["error"]:
             return
         self.last_success = now
         if rec["entities"] == 0 or (rec["data_ts"] and now - rec["data_ts"] < FEED_STALE_AFTER_S):

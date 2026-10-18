@@ -16,7 +16,7 @@ Polling never goes faster than once every 30 seconds per feed. Requests carry a 
 
 ## Data layout
 
-Under `WBOT_DATA_DIR`, all times UTC:
+Under `WBOT_DATA_DIR`, all times UTC. `src/wbot_collector/layout.py` defines it (paths, feed names, the fetch log record and the sidecar), and the pipeline reads the data with the same module, so the layout is written in one place:
 
 ```
 spool/{feed}/YYYY-MM-DD/HH/{feed}-YYYYMMDDTHHMMSSZ.pb   current hour, raw responses

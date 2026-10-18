@@ -3,14 +3,14 @@
 import logging
 import subprocess
 
-from . import health
+from . import health, layout
 from .config import Settings
 
 log = logging.getLogger(__name__)
 
 # The spool is excluded on purpose: only verified archives go offsite. "derived" is
 # the stats pipeline's output (stop events, facts, aggregates), when it exists.
-BACKUP_DIRS = ("archive", "static", "log", "derived")
+BACKUP_DIRS = (layout.ARCHIVE, layout.STATIC, layout.LOG, "derived")
 
 
 def rclone_commands(settings: Settings) -> list[list[str]]:

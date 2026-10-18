@@ -1,9 +1,11 @@
 import json
+from datetime import UTC, datetime
 
 import duckdb
 import pytest
 from conftest import DAY, after
 from synth import TripPlan
+from wbot_collector import layout
 
 from wbot_pipeline import events, static, timeutil
 from wbot_pipeline.config import EVENTS_VERSION
@@ -142,7 +144,7 @@ def test_not_ready_until_every_hour_is_packed(settings, feed):
     o = timeutil.origin(DAY)
     assert run(settings, now=o + 20 * 3600) == "not_ready"
     assert events.read_manifest(settings, DAY) is None
-    spool = settings.spool_dir / "tripupdates" / "2026-10-07" / "08"
+    spool = layout.spool_hour_dir(settings.spool_dir, events.FEED, datetime(2026, 10, 7, 8, tzinfo=UTC))
     spool.mkdir(parents=True)
     (spool / "x.pb").write_bytes(b"")
     assert run(settings) == "not_ready"

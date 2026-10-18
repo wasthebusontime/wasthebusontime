@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from wbot_collector import layout
+
 # Bump when the way stop events are derived from the archive changes. Every
 # service date whose events were made by another version is reprocessed.
 EVENTS_VERSION = 1
@@ -41,7 +43,7 @@ def _bool(value: str) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
-    # Collector data (archive/, static/, log/, spool/). Only ever read.
+    # Collector data (archive/, static/, log/, spool/, see wbot_collector.layout). Only ever read.
     data_dir: Path
     # Everything the pipeline writes: static cache, stop events, facts, output.
     derived_dir: Path
@@ -71,19 +73,19 @@ class Settings:
 
     @property
     def archive_dir(self) -> Path:
-        return self.data_dir / "archive"
+        return self.data_dir / layout.ARCHIVE
 
     @property
     def static_dir(self) -> Path:
-        return self.data_dir / "static"
+        return self.data_dir / layout.STATIC
 
     @property
     def log_dir(self) -> Path:
-        return self.data_dir / "log"
+        return self.data_dir / layout.LOG
 
     @property
     def spool_dir(self) -> Path:
-        return self.data_dir / "spool"
+        return self.data_dir / layout.SPOOL
 
     @property
     def out_dir(self) -> Path:

@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from wbot_collector import layout
+
 from . import archive, gaps, rules, static, timeutil
 from .config import EVENTS_VERSION, Settings
 from .db import connect, quote
@@ -24,7 +26,7 @@ from .rt import Reduced
 
 log = logging.getLogger(__name__)
 
-FEED = "tripupdates"
+FEED = layout.TRIPUPDATES
 # Read packs from this long before the first scheduled departure (trips appear in the
 # feed ahead of time) to this long after the last scheduled arrival.
 READ_BEFORE_S = 2 * 3600

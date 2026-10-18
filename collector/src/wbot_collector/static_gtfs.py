@@ -4,16 +4,16 @@ import csv
 import io
 import json
 import logging
-import re
 import time
 import zipfile
 from datetime import datetime
 
 import httpx
 
-from . import health
+from . import health, layout
 from .config import STATIC_URL, USER_AGENT, Settings
-from .storage import append_log, iso, sha256_hex, utc_now, write_atomic
+from .layout import iso
+from .storage import append_log, sha256_hex, utc_now, write_atomic
 
 log = logging.getLogger(__name__)
 
@@ -33,8 +33,10 @@ def read_feed_info(content: bytes) -> dict[str, str]:
 
 def _known_hashes(settings: Settings) -> set[str]:
     hashes = set()
-    for sidecar in settings.static_dir.glob("*.json"):
-        hashes.add(json.loads(sidecar.read_text(encoding="utf-8"))["sha256"])
+    for zip_path in layout.static_zips(settings.static_dir):
+        sidecar = layout.sidecar_path(zip_path)
+        if sidecar.exists():
+            hashes.add(json.loads(sidecar.read_text(encoding="utf-8"))["sha256"])
     return hashes
 
 
@@ -52,9 +54,9 @@ def check(settings: Settings, client: httpx.Client, url: str = STATIC_URL, now: 
 
     t0 = time.monotonic()
     resp = client.get(url, headers=headers)
-    record = {
+    record: layout.StaticFetchRecord = {
         "fetched_at": iso(now),
-        "feed": "static",
+        "feed": layout.STATIC_FEED,
         "url": url,
         "final_url": str(resp.url),
         "status": resp.status_code,
@@ -81,10 +83,9 @@ def check(settings: Settings, client: httpx.Client, url: str = STATIC_URL, now: 
         result = "duplicate"
         if digest not in _known_hashes(settings):
             info = read_feed_info(content)
-            version = re.sub(r"[^A-Za-z0-9._-]", "_", info.get("feed_version", "")) or "noversion"
-            path = settings.static_dir / f"{version}_{digest[:8]}.zip"
+            path = layout.static_zip(settings.static_dir, layout.static_stem(info.get("feed_version", ""), digest))
             write_atomic(path, content)
-            sidecar = {
+            sidecar: layout.Sidecar = {
                 "fetched_at": iso(now),
                 "url": url,
                 "final_url": str(resp.url),
@@ -94,7 +95,7 @@ def check(settings: Settings, client: httpx.Client, url: str = STATIC_URL, now: 
                 "last_modified": resp.headers.get("Last-Modified"),
                 "feed_info": info,
             }
-            write_atomic(path.with_suffix(".json"), json.dumps(sidecar, indent=2).encode())
+            write_atomic(layout.sidecar_path(path), json.dumps(sidecar, indent=2).encode())
             record["path"] = path.relative_to(settings.data_dir).as_posix()
             log.info("saved new static GTFS version %s", path.name)
             result = "saved"

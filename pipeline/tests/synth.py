@@ -16,6 +16,7 @@ from pathlib import Path
 
 import zstandard
 from google.transit import gtfs_realtime_pb2 as R
+from wbot_collector import layout
 
 from wbot_pipeline import timeutil
 
@@ -137,12 +138,12 @@ def write_gtfs(static_dir: Path, stem: str, trips: list[Trip], *, feed_version: 
             rows.append([shape_id, la, lo, seq])
         files["shapes.txt"] = table(["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"], rows)
     static_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = static_dir / f"{stem}.zip"
+    zip_path = layout.static_zip(static_dir, stem)
     with zipfile.ZipFile(zip_path, "w") as z:
         for name, text in files.items():
             # A byte order mark on one file, as some feeds have.
             z.writestr(name, ("﻿" if name == "stops.txt" else "") + text)
-    (static_dir / f"{stem}.json").write_text(json.dumps({
+    layout.sidecar_path(zip_path).write_text(json.dumps({
         "fetched_at": fetched_at, "sha256": stem, "feed_info": {
             "feed_start_date": start, "feed_end_date": end, "feed_version": feed_version}}))
     return zip_path
@@ -257,35 +258,41 @@ class Feed:
             fetched = datetime.fromtimestamp(snap, UTC)
             if any(a <= snap < b for a, b in self.gaps):
                 continue
-            line = {"fetched_at": fetched.strftime("%Y-%m-%dT%H:%M:%S.000Z"), "feed": "tripupdates",
-                    "url": "https://example.invalid/tu", "elapsed_ms": 100, "path": None}
             if any(a <= snap < b for a, b in self.feed_errors):
-                log_lines.append({**line, "status": 503, "bytes": 0, "sha256": None, "header_ts": None,
-                                  "data_ts": None, "entities": None, "error": "HTTP 503"})
+                log_lines.append(fetch(fetched, status=503, bytes=0, error="HTTP 503"))
                 continue
             data = b"\x00not a protobuf\xff" if snap in self.corrupt else self.snapshot(snap)
-            name = f"tripupdates-{fetched:%Y%m%dT%H%M%S}Z.pb"
+            name = layout.spool_path(Path(), layout.TRIPUPDATES, fetched).name
             by_hour.setdefault(snap - snap % 3600, []).append((name, data))
             parsed = snap not in self.corrupt
             msg = R.FeedMessage()
             if parsed:
                 msg.ParseFromString(data)
             data_ts = max((e.trip_update.timestamp for e in msg.entity), default=None) if parsed else None
-            log_lines.append({**line, "status": 200, "bytes": len(data), "sha256": "x", "header_ts": snap,
-                              "data_ts": data_ts, "entities": len(msg.entity) if parsed else None, "error": None})
+            log_lines.append(fetch(fetched, status=200, bytes=len(data), sha256="x", header_ts=snap,
+                                   data_ts=data_ts, entities=len(msg.entity) if parsed else None))
         for hour, items in by_hour.items():
             h = datetime.fromtimestamp(hour, UTC)
-            folder = self.data_dir / "archive" / "tripupdates" / f"{h:%Y/%m/%d}"
-            folder.mkdir(parents=True, exist_ok=True)
             parts = [items] if hour not in late_hours else [items[::2], items[1::2]]
             for n, part in enumerate(parts):
-                suffix = f".{n}" if n else ""
-                write_pack(folder / f"tripupdates-{h:%Y-%m-%dT%H}{suffix}.tar.zst", part)
-        log_dir = self.data_dir / "log"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        for line in log_lines:
-            with open(log_dir / f"{line['fetched_at'][:10]}.jsonl", "a", encoding="utf-8") as f:
-                f.write(json.dumps(line) + "\n")
+                path = layout.pack_path(self.data_dir / layout.ARCHIVE, layout.TRIPUPDATES, h, n)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                write_pack(path, part)
+        write_log(self.data_dir / layout.LOG, log_lines)
+
+
+def fetch(fetched: datetime, **fields) -> layout.FetchRecord:
+    """A TripUpdates fetch log record."""
+    return layout.fetch_record(fetched, layout.TRIPUPDATES, "https://example.invalid/tu", elapsed_ms=100, **fields)
+
+
+def write_log(log_dir: Path, records: list[layout.FetchRecord]) -> None:
+    """Append records to the fetch log, each to its own day's file."""
+    log_dir.mkdir(parents=True, exist_ok=True)
+    for r in records:
+        day = datetime.fromisoformat(r["fetched_at"]).date()
+        with open(layout.log_path(log_dir, day), "a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(r) + "\n")
 
 
 def write_pack(path: Path, items: list[tuple[str, bytes]]) -> None:

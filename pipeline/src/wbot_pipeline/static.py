@@ -1,7 +1,7 @@
 """Static GTFS versions: which one applies to a service date, and a Parquet cache of each.
 
-The collector keeps every version as static/{feed_version}_{sha8}.zip with a JSON
-sidecar saying when it was fetched. Each zip is converted once into Parquet tables
+The collector keeps every version as a zip with a JSON sidecar saying when it was
+fetched (wbot_collector.layout). Each zip is converted once into Parquet tables
 under derived/static/{stem}/, which DuckDB queries cheaply.
 """
 
@@ -16,6 +16,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import duckdb
+from wbot_collector import layout
 
 from . import timeutil
 from .db import quote
@@ -71,8 +72,8 @@ def _date_range(z: zipfile.ZipFile, feed_info: dict) -> tuple[date, date]:
 
 def list_versions(static_dir: Path) -> list[Version]:
     versions = []
-    for zip_path in sorted(static_dir.glob("*.zip")):
-        sidecar = zip_path.with_suffix(".json")
+    for zip_path in layout.static_zips(static_dir):
+        sidecar = layout.sidecar_path(zip_path)
         meta = json.loads(sidecar.read_text(encoding="utf-8")) if sidecar.exists() else {}
         with zipfile.ZipFile(zip_path) as z:
             feed_info = meta.get("feed_info") or next(iter(_read_member(z, "feed_info.txt")), {})

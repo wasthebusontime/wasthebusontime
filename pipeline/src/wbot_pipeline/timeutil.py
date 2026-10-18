@@ -1,6 +1,5 @@
 """Service dates and GTFS times. Everything is timezone-aware (America/Los_Angeles)."""
 
-import re
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -56,13 +55,3 @@ def parse_iso_utc(s: str) -> int:
 def today_local(now: int) -> date:
     return datetime.fromtimestamp(now, TZ).date()
 
-
-_SNAPSHOT_NAME = re.compile(r"(\d{8}T\d{6})Z")
-
-
-def snapshot_time(name: str) -> int | None:
-    """Fetch time from a collector file name such as tripupdates-20261004T032400Z.pb."""
-    m = _SNAPSHOT_NAME.search(name)
-    if not m:
-        return None
-    return int(datetime.strptime(m.group(1), "%Y%m%dT%H%M%S").replace(tzinfo=UTC).timestamp())

@@ -1,22 +1,17 @@
-"""Reading the collector's hourly packs. Archives are opened read-only and never changed.
-
-Layout: archive/{feed}/YYYY/MM/DD/{feed}-YYYY-MM-DDTHH.tar.zst, plus
-...THH.1.tar.zst (and .2, ...) when files for an hour arrived after it was packed.
-The spool (the current, unpacked hour) is never read: it is still changing.
+"""Reading the collector's hourly packs (paths from wbot_collector.layout). Archives are
+opened read-only and never changed. An hour has a first pack and, when files for it arrived
+after it was packed, later numbered ones. The spool (the current, unpacked hour) is never
+read: it is still changing.
 """
 
 import hashlib
-import re
 import tarfile
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
 import zstandard
-
-from . import timeutil
-
-_PACK = re.compile(r"-(\d{4}-\d{2}-\d{2}T\d{2})(?:\.(\d+))?\.tar\.zst$")
+from wbot_collector import layout
 
 
 def hour_start(ts: int) -> int:
@@ -30,21 +25,13 @@ def hours(start: int, end: int) -> list[int]:
 
 def packs_for_hour(archive_dir: Path, feed: str, hour: int) -> list[Path]:
     """The pack and any later numbered packs for one UTC hour, in order."""
-    h = datetime.fromtimestamp(hour, UTC)
-    folder = archive_dir / feed / f"{h:%Y/%m/%d}"
-    found = []
-    for p in folder.glob(f"{feed}-{h:%Y-%m-%dT%H}*.tar.zst"):
-        m = _PACK.search(p.name)
-        if m and m.group(1) == f"{h:%Y-%m-%dT%H}":
-            found.append((int(m.group(2) or 0), p))
-    return [p for _, p in sorted(found)]
+    return layout.packs_for_hour(archive_dir, feed, datetime.fromtimestamp(hour, UTC))
 
 
 def spool_pending(spool_dir: Path, feed: str, hour_list: list[int]) -> bool:
     """True if any of these hours still has unpacked files in the spool."""
     for hour in hour_list:
-        h = datetime.fromtimestamp(hour, UTC)
-        d = spool_dir / feed / f"{h:%Y-%m-%d}" / f"{h:%H}"
+        d = layout.spool_hour_dir(spool_dir, feed, datetime.fromtimestamp(hour, UTC))
         if d.is_dir() and any(d.iterdir()):
             return True
     return False
@@ -74,7 +61,7 @@ def snapshots(packs: list[Path]) -> Iterator[tuple[int, str, bytes]]:
     gathered and sorted first (one hour is at most a few tens of MB).
     """
     def item(name: str, data: bytes):
-        return timeutil.snapshot_time(name) or 0, name, data
+        return layout.snapshot_time(name) or 0, name, data
 
     if len(packs) == 1:
         for name, data in _members(packs[0]):

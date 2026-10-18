@@ -1,4 +1,4 @@
-"""Gaps in collection, from the collector's fetch log (log/YYYY-MM-DD.jsonl).
+"""Gaps in collection, from the collector's fetch log (wbot_collector.layout.FetchRecord lines).
 
 A gap is a stretch between two good TripUpdates fetches that is longer than the
 polling allows, while at least one trip is scheduled to be running (gaps when no bus
@@ -20,6 +20,8 @@ import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from wbot_collector import layout
+
 from . import timeutil
 from .config import POLL_S, STALE_AFTER_S
 
@@ -27,13 +29,14 @@ MIN_GAP_S = 60
 OVERRIDES = Path(__file__).with_name("gap_causes.toml")
 
 
-def read_fetches(log_dir: Path, start: int, end: int, feed: str = "tripupdates") -> list[dict]:
-    """Fetch log lines for one feed between start and end (unix seconds), in time order."""
+def read_fetches(log_dir: Path, start: int, end: int, feed: str = layout.TRIPUPDATES) -> list[dict]:
+    """Fetch log records for one feed between start and end (unix seconds), in time order,
+    each with ts, its fetch time in unix seconds."""
     rows = []
     day = datetime.fromtimestamp(start, UTC).date() - timedelta(days=1)
     last = datetime.fromtimestamp(end, UTC).date()
     while day <= last:
-        path = log_dir / f"{day.isoformat()}.jsonl"
+        path = layout.log_path(log_dir, day)
         if path.exists():
             with open(path, encoding="utf-8") as f:
                 for line in f:
