@@ -1,5 +1,6 @@
 # Private planning notes (kept local only)
 docs/planning/
+.scratch/
 
 # Secrets and local config
 .env
