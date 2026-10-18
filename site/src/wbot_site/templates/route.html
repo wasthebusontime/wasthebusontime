@@ -6,7 +6,7 @@
 {% call(scope) scoped() %}
 {% set s = route.scopes[scope] %}
 {{ headline(s.summary, name, scope) }}
-{{ chart(charts.headline_chart(s.summary, name, min_sample), "Early, on time and late") }}
+{{ chart(charts.headline_chart(s.summary, name, min_sample, windows), "Early, on time and late") }}
 {% endcall %}
 {{ scope_toggle() }}
 {% call(scope) scoped(repeat=true) %}
@@ -35,7 +35,7 @@
 <tr>
 <th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a>{% if st.timepoint %} <span class="def">Timepoint</span>{% endif %}</th>
 {% if loop.last %}
-<td class="num" colspan="4"><span class="nodata">Last stop: arrivals only (see End-of-line arrivals below)</span></td>
+<td class="num" colspan="{{ 5 if windows.show_alt else 4 }}"><span class="nodata">Last stop: arrivals only (see End-of-line arrivals below)</span></td>
 {% else %}
 {{ perf_cells(st[scope]) }}
 {% endif %}

@@ -12,6 +12,8 @@ from pathlib import Path
 
 from markupsafe import Markup, escape
 
+from wbot_site.windows import Windows, from_meta
+
 log = logging.getLogger("wbot_site")
 
 SCHEMA = 1
@@ -20,12 +22,6 @@ SCOPE_LABELS = {"timepoints": "Timepoints", "all_stops": "All stops"}
 DAYTYPES = ("weekday", "saturday", "sunday")
 DAYTYPE_LABELS = {"weekday": "Weekday", "saturday": "Saturday", "sunday": "Sunday"}
 
-# The labels describe these exact windows, so the build refuses any others.
-WINDOWS = {"headline": [-60, 300], "alt": [0, 300]}
-WINDOW_LABELS = {
-    "headline": "On time (1 min early to 5 min late)",
-    "alt": "On time (Intercity Transit's own definition: 0 to 5 min late)",
-}
 # Stop map presets, written by the pipeline as site/map/{period}/{daytype}-{band}.json.
 MAP_DAYTYPES = ("all", *DAYTYPES)
 MAP_BANDS = ("all", "early", "am_peak", "midday", "pm_peak", "evening")
@@ -60,6 +56,10 @@ class Stats:
     quality: dict
     routes: dict[str, dict] = field(default_factory=dict)
     stops: dict[str, dict] = field(default_factory=dict)
+
+    @property
+    def windows(self) -> Windows:
+        return from_meta(self.meta.get("windows"))
 
     @property
     def synthetic(self) -> bool:
@@ -101,8 +101,10 @@ def check_map(stats: Stats) -> None:
 def load_stats(stats_dir: Path) -> Stats:
     site = stats_dir / "site"
     meta = load_json(site / "meta.json")
-    if meta.get("windows") != WINDOWS:
-        raise StatsError(f"meta.windows is {meta.get('windows')}, the page labels describe {WINDOWS}")
+    try:
+        from_meta(meta.get("windows"))
+    except ValueError as e:
+        raise StatsError(str(e)) from None
     system = load_json(site / "system.json")
     stats = Stats(
         root=stats_dir,

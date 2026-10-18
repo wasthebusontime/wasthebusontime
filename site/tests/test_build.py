@@ -326,3 +326,25 @@ def test_stop_map_days_times_and_routes_are_checkboxes(dev_site):
         assert f'class="multi-reset">Reset<span class="visually-hidden"> {label}</span></button>' in html
     assert '<span class="multi-label">Routes</span>' in html
     assert 'name="daytype"' not in html.split('<details class="multi"')[0]  # no Days dropdown left
+
+
+@pytest.mark.parametrize("show_alt", [False, True])
+def test_alt_window_shows_only_when_switched_on(tmp_path, monkeypatch, show_alt):
+    """SHOW_ALT adds the agency's window everywhere it appears, and every table row stays as wide as its header."""
+    from wbot_site import windows
+    monkeypatch.setattr(windows, "SHOW_ALT", show_alt)
+    out = tmp_path / "dist"
+    make_build(SAMPLE_DIR, out, "dev")
+    route = (out / "routes" / "901" / "index.html").read_text(encoding="utf-8")
+    assert ("0 to 5 min late, Intercity Transit's own definition" in route) == show_alt
+    assert ("data-alt-window=" in (out / "stops" / "index.html").read_text(encoding="utf-8")) == show_alt
+    for page in (out / "routes" / "901" / "index.html", out / "stops" / "E101" / "index.html"):
+        html = page.read_text(encoding="utf-8")
+        for table in re.findall(r"<table.*?</table>", html, re.S):
+            header = re.search(r"<thead>(.*?)</thead>", table, re.S)
+            if not header:
+                continue
+            width = header.group(1).count("<th")
+            for row in re.findall(r"<tr>(.*?)</tr>", re.search(r"<tbody>(.*?)</tbody>", table, re.S).group(1), re.S):
+                cells = [re.search(r'colspan="(\d+)"', tag) for tag in re.findall(r"<t[hd](?=[\s>])[^>]*>", row)]
+                assert sum(int(c.group(1)) if c else 1 for c in cells) == width, (page, row[:120])

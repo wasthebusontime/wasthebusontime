@@ -73,3 +73,34 @@ def test_register_adds_the_helper_macros():
     rules.register(con)
     assert con.execute("SELECT gtfs_s('25:10:05'), route_slug('  62A Express '), stop_slug('E 1/2')").fetchone() \
         == (90605, "62a-express", "E-1-2")
+
+
+def where_it_falls(delay: int) -> set[str]:
+    con = duckdb.connect()
+    names = list(rules.window_counts("d"))
+    row = con.execute(f"SELECT {', '.join(rules.window_counts('d').values())} FROM (VALUES ({delay})) v(d)").fetchone()
+    return {name for name, hit in zip(names, row) if hit}
+
+
+@pytest.mark.parametrize("delay, expected", [
+    (-61, {"early", "early_alt"}),
+    (-60, {"on_time", "early_alt"}),
+    (-1, {"on_time", "early_alt"}),
+    (0, {"on_time", "on_time_alt"}),
+    (300, {"on_time", "on_time_alt"}),
+    (301, {"late", "late_alt"}),
+])
+def test_window_counts_at_the_window_edges(delay, expected):
+    assert where_it_falls(delay) == expected
+
+
+def test_window_counts_follow_the_configured_windows(monkeypatch):
+    monkeypatch.setitem(rules.WINDOWS, "", (-120, 420))
+    assert where_it_falls(-120) >= {"on_time"} and where_it_falls(-121) >= {"early"}
+    assert where_it_falls(420) >= {"on_time"} and where_it_falls(421) >= {"late"}
+
+
+def test_before_schedule_is_any_early_time():
+    con = duckdb.connect()
+    assert [r[0] for r in con.execute(f"SELECT {rules.before_schedule('d')} FROM (VALUES (-1), (0), (1)) v(d)").fetchall()] \
+        == [True, False, False]

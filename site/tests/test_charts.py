@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from wbot_site import charts
+from wbot_site import charts, windows
 
 SNAPSHOTS = Path(__file__).parent / "snapshots"
 MIN = 30
+W = windows.from_meta({"headline": [-60, 300], "alt": [0, 300]})
 
 
 def perf(n, early, on_time, late, early_alt=None, on_time_alt=None, **extra):
@@ -40,9 +41,9 @@ DAILY = [
 ]
 
 CASES = {
-    "headline": lambda: charts.headline_chart(SUMMARY, "Route 901", MIN),
+    "headline": lambda: charts.headline_chart(SUMMARY, "Route 901", MIN, W),
     "daytype": lambda: charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN),
-    "histogram": lambda: charts.histogram_chart(SUMMARY, "Route 901", MIN),
+    "histogram": lambda: charts.histogram_chart(SUMMARY, "Route 901", MIN, W),
     "hour": lambda: charts.hour_chart(BY_HOUR, "Route 901", MIN),
     "daily": lambda: charts.daily_chart(DAILY, "Route 901", MIN),
 }
@@ -89,7 +90,7 @@ def test_charts_are_deterministic():
 
 
 def test_summaries_carry_the_numbers():
-    assert charts.headline_chart(SUMMARY, "Route 901", MIN).summary == (
+    assert charts.headline_chart(SUMMARY, "Route 901", MIN, W).summary == (
         "Route 901: 85% on time, 6% early, 9% late, 200 departures (1 min early to 5 min late)."
     )
     assert "sunday not enough data" in charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN).summary
@@ -107,8 +108,8 @@ def test_every_mark_has_a_title():
 
 def test_small_samples_draw_no_chart():
     tiny = perf(10, 1, 8, 1, p10=0, p50=10, p90=30, hist=SUMMARY["hist"])
-    assert charts.headline_chart(tiny, "Stop E999", MIN) is None
-    assert charts.histogram_chart(tiny, "Stop E999", MIN) is None
+    assert charts.headline_chart(tiny, "Stop E999", MIN, W) is None
+    assert charts.histogram_chart(tiny, "Stop E999", MIN, W) is None
     assert charts.hour_chart([{"hour": 6, **tiny}], "Stop E999", MIN) is None
     assert charts.daily_chart(DAILY[:1], "Stop E999", MIN) is None
     assert charts.daytype_chart({"weekday": tiny}, "Stop E999", MIN) is None
@@ -123,3 +124,26 @@ def test_hour_chart_marks_small_hours_in_table():
 def test_daily_chart_breaks_line_at_small_days():
     svg = charts.daily_chart(DAILY, "Route 901", MIN).svg
     assert svg.count("<polyline") == 2
+
+
+def test_histogram_follows_the_window():
+    """The bracket and colors come from the window, not from fixed bucket numbers."""
+    def bracket_and_kinds(w):
+        svg = charts.histogram_chart(SUMMARY, "Route 901", MIN, w).svg
+        path = re.search(r'<path d="M(\S+) \S+ V\S+ H(\S+) ', svg).groups()
+        kinds = re.findall(r'class="(early|on-time|late)"', svg)
+        return tuple(float(x) for x in path), kinds
+    (x0, x1), kinds = bracket_and_kinds(W)
+    (y0, y1), wide = bracket_and_kinds(windows.from_meta({"headline": [-120, 420], "alt": [0, 300]}))
+    step = (x1 - x0) / 6
+    assert abs((x0 - y0) - step) < 0.2 and abs((y1 - x1) - 2 * step) < 0.2
+    assert wide.count("on-time") > kinds.count("on-time")
+
+
+def test_headline_chart_shows_the_alt_window_only_when_asked():
+    from dataclasses import replace
+    hidden = charts.headline_chart(SUMMARY, "Route 901", MIN, W)
+    shown = charts.headline_chart(SUMMARY, "Route 901", MIN, replace(W, show_alt=True))
+    assert [r[0] for r in hidden.rows] == ["1 min early to 5 min late"]
+    assert [r[0] for r in shown.rows] == ["1 min early to 5 min late", "0 to 5 min late (Intercity Transit's own definition)"]
+    assert "Intercity Transit" not in hidden.svg and "0 to 5 min late (Intercity Transit)" in shown.svg

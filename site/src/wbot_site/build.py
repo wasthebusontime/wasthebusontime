@@ -23,7 +23,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import charts, data
+from wbot_site import charts, data, windows
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -112,7 +112,8 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         scope_labels=data.SCOPE_LABELS,
         daytypes=data.DAYTYPES,
         daytype_labels=data.DAYTYPE_LABELS,
-        window_labels=data.WINDOW_LABELS,
+        windows=stats.windows,
+        terminal_standard=windows.TERMINAL_STANDARD,
         enough=data.enough,
         split=data.split,
         percent=data.percent,
@@ -200,6 +201,8 @@ def copy_map_data(b: Build, tiles_url: str) -> dict | None:
         "periods": [(p, "Whole period" if p == "all" else data.month_text(p)) for p in periods],
         "daytypes": list(data.DAYTYPE_LABELS.items()),
         "bands": list(MAP_BAND_LABELS.items()),
+        "bins": " ".join(str(b) for b in windows.MAP_BINS),
+        "legend": windows.map_legend(),
     }
 
 

@@ -66,8 +66,7 @@ def write(stage, csv_dir: Path, agg_dir: Path) -> None:
 
     eol = []
     for (month, route), p in stage.eol.get(["month", "route"]).items():
-        # Early means any time before the schedule, which is the alt window's lower edge.
-        eol.append([month, route, p["n"], p["early_alt"], p["p10"], p["p50"], p["p90"]])
+        eol.append([month, route, p["n"], p["before_schedule"], p["p10"], p["p50"], p["p90"]])
     tables["end_of_line_monthly"] = (["month", "route", "n", "early", "p10", "p50", "p90"], sorted(eol, key=_sort_key))
 
     days = quality_days(stage)

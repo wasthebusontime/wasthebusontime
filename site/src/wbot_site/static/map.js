@@ -5,6 +5,10 @@
 import * as maplibregl from "/static/vendor/maplibre-gl/maplibre-gl.mjs";
 
 const root = document.getElementById("stop-map");
+// Color bins and window wording come from the page, which the build writes from the stats.
+const BINS = root ? root.dataset.bins.split(" ").map(Number) : [];
+const WINDOW = root ? root.dataset.window : "";
+const ALT_WINDOW = root ? root.dataset.altWindow : undefined;
 if (root) start(root);
 
 function percent(count, n) {
@@ -13,8 +17,9 @@ function percent(count, n) {
 
 function bin(counts, minSample) {
   if (!counts || counts[0] < minSample) return -1;
-  const share = counts[2] / counts[0];
-  return share >= 0.9 ? 0 : share >= 0.8 ? 1 : share >= 0.7 ? 2 : 3;
+  // The first bin whose lower edge (percent on time) the stop reaches, in integers.
+  const i = BINS.findIndex((edge) => counts[2] * 100 >= edge * counts[0]);
+  return i === -1 ? BINS.length : i;
 }
 
 function css(name) {
@@ -85,9 +90,10 @@ function popupContent(stop, counts, minSample, scopeLabel) {
     details.append(el("div", `Not enough data (${counts[0]} departure${counts[0] === 1 ? "" : "s"}).`));
   } else {
     const [n, early, onTime, late, onTimeAlt] = counts;
-    details.append(el("div", `${percent(onTime, n)} on time (1 min early to 5 min late), ${percent(early, n)} early, ${percent(late, n)} late`));
-    // Hidden for now: Intercity Transit's own window.
-    // details.append(el("div", `${percent(onTimeAlt, n)} on time (0 to 5 min late, Intercity Transit's own definition)`));
+    details.append(el("div", `${percent(onTime, n)} on time (${WINDOW}), ${percent(early, n)} early, ${percent(late, n)} late`));
+    if (ALT_WINDOW) {
+      details.append(el("div", `${percent(onTimeAlt, n)} on time (${ALT_WINDOW}, Intercity Transit's own definition)`));
+    }
     details.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
   }
   const link = el("a", "View stop page", { href: `/stops/${stop.code}/` });

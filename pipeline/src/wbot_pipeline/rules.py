@@ -7,7 +7,7 @@ macros that take their inputs as arguments are registered on a connection with r
 
 import duckdb
 
-from .config import BANDS
+from .config import ALT, BANDS, HEADLINE
 
 MACROS = [
     "CREATE OR REPLACE MACRO gtfs_s(x) AS CASE WHEN x IS NULL THEN NULL ELSE "
@@ -45,6 +45,26 @@ def band(hour: str) -> str:
     *bands, (last, _, _) = BANDS
     whens = " ".join(f"WHEN {hour} < {hi} THEN '{key}'" for key, _, hi in bands)
     return f"(CASE {whens} ELSE '{last}' END)"
+
+
+# On-time windows, by the suffix of their count names: "" is the headline window, "_alt" the agency's.
+WINDOWS = {"": HEADLINE, "_alt": ALT}
+
+
+def window_counts(delay: str) -> dict[str, str]:
+    """Where a delay falls in each on-time window, by count name: early, on_time, late,
+    then early_alt, on_time_alt, late_alt. Windows are inclusive at both ends."""
+    out = {}
+    for suffix, (lo, hi) in WINDOWS.items():
+        out["early" + suffix] = f"({delay} < {lo})"
+        out["on_time" + suffix] = f"({delay} BETWEEN {lo} AND {hi})"
+        out["late" + suffix] = f"({delay} > {hi})"
+    return out
+
+
+def before_schedule(delay: str) -> str:
+    """Any time before the schedule: how "early" is meant for end-of-line arrivals."""
+    return f"({delay} < 0)"
 
 
 # Trips.

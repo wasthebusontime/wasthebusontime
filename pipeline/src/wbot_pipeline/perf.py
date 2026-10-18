@@ -6,6 +6,7 @@ percentiles and a 1-minute histogram, computed in DuckDB for any grouping.
 
 import duckdb
 
+from . import rules
 from .config import ALT, HEADLINE, HIST_BUCKETS, HIST_START_MIN
 
 COUNTS = ("n", "early", "on_time", "late", "early_alt", "on_time_alt", "late_alt")
@@ -51,25 +52,23 @@ def reference(delays: list[int], hist: bool = True, percentiles: bool = True) ->
 
 
 class PerfQuery:
-    """Perf blocks from a table with a `delay` column (whole seconds)."""
+    """Perf blocks from a table with a `delay` column (whole seconds). `extra` adds named
+    counts to every block: {name: condition on delay}."""
 
-    def __init__(self, con: duckdb.DuckDBPyConnection, table: str = "d"):
+    def __init__(self, con: duckdb.DuckDBPyConnection, table: str = "d", extra: dict[str, str] | None = None):
         self.con, self.table = con, table
+        self.extra = extra or {}
 
     def get(self, keys: list[str], where: str = "TRUE", hist: bool = False,
             percentiles: bool = True) -> dict[tuple, dict]:
         k = ", ".join(keys)
         sel = k + ", " if keys else ""
         group = f"GROUP BY {k}" if keys else ""
-        (h_lo, h_hi), (a_lo, a_hi) = HEADLINE, ALT
+        conditions = {**rules.window_counts("delay"), **self.extra}
+        names = ["n", *conditions]
+        filters = "".join(f", count(*) FILTER (WHERE {c})" for c in conditions.values())
         rows = self.con.execute(f"""
-            SELECT {sel} count(*),
-                   count(*) FILTER (WHERE delay < {h_lo}),
-                   count(*) FILTER (WHERE delay BETWEEN {h_lo} AND {h_hi}),
-                   count(*) FILTER (WHERE delay > {h_hi}),
-                   count(*) FILTER (WHERE delay < {a_lo}),
-                   count(*) FILTER (WHERE delay BETWEEN {a_lo} AND {a_hi}),
-                   count(*) FILTER (WHERE delay > {a_hi})
+            SELECT {sel} count(*){filters}
             FROM {self.table} WHERE {where} {group}
         """).fetchall()
         n_keys = len(keys)
@@ -77,7 +76,7 @@ class PerfQuery:
         for r in rows:
             if r[n_keys] == 0:
                 continue
-            out[tuple(r[:n_keys])] = dict(zip(COUNTS, (int(x) for x in r[n_keys:])))
+            out[tuple(r[:n_keys])] = dict(zip(names, (int(x) for x in r[n_keys:])))
         if percentiles:
             part = f"PARTITION BY {k}" if keys else ""
             picks = ", ".join(f"max(delay) FILTER (WHERE rn = greatest(1, ({p} * cnt + 99) // 100))" for p in PERCENTILES)

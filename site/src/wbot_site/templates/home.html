@@ -8,7 +8,7 @@
 {% call(scope) scoped() %}
 {% set s = system.scopes[scope] %}
 {{ headline(s.summary, "the whole system", scope) }}
-{{ chart(charts.headline_chart(s.summary, "The whole system", min_sample), "Early, on time and late") }}
+{{ chart(charts.headline_chart(s.summary, "The whole system", min_sample, windows), "Early, on time and late") }}
 {% endcall %}
 {{ scope_toggle() }}
 {% call(scope) scoped(repeat=true) %}

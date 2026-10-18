@@ -25,7 +25,7 @@
 {{ notices_line(notices) }}
 <h2>Summary</h2>
 {{ headline(s.summary, "this stop", "stop") }}
-{{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample), "Early, on time and late") }}
+{{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample, windows), "Early, on time and late") }}
 <h2>Details</h2>
 <div class="table-wrap">
 <table class="data">

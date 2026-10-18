@@ -10,8 +10,9 @@
 {% if stop_map %}
 {# Hidden until map.js runs, so without JavaScript the page is the list below. #}
 <section class="stop-map" id="stop-map" hidden
-  data-tiles="{{ stop_map.tiles }}" data-base="/stops/data/" data-min-sample="{{ min_sample }}">
-  <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time (1 min early to 5 min late). Every stop is also in the <a href="#list">list of stops below the map</a>.</p>
+  data-tiles="{{ stop_map.tiles }}" data-base="/stops/data/" data-min-sample="{{ min_sample }}"
+  data-bins="{{ stop_map.bins }}" data-window="{{ windows.headline.span }}"{% if windows.show_alt %} data-alt-window="{{ windows.alt.span }}"{% endif %}>
+  <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time ({{ windows.headline.span }}). Every stop is also in the <a href="#list">list of stops below the map</a>.</p>
   <p class="map-keys" id="map-keys">With a keyboard: move to the map, use the arrow keys to move it and + or - to zoom, then press Enter to open the stop nearest the center (marked with a cross). Press Escape to close it, and Enter again for the next nearest stop.</p>
   <form class="map-controls" id="map-controls">
     <label>Which stops
@@ -49,10 +50,9 @@
   </form>
   <div class="map" id="map"></div>
   <ul class="map-legend" aria-label="Legend">
-    <li><span class="swatch bin-0"></span>90% or more on time</li>
-    <li><span class="swatch bin-1"></span>80 to 89%</li>
-    <li><span class="swatch bin-2"></span>70 to 79%</li>
-    <li><span class="swatch bin-3"></span>Under 70%</li>
+{% for text in stop_map.legend %}
+    <li><span class="swatch bin-{{ loop.index0 }}"></span>{{ text }}</li>
+{% endfor %}
     <li><span class="swatch bin-none"></span>Not enough data (fewer than {{ min_sample }} departures), or not a timepoint</li>
   </ul>
   <p class="map-status" id="map-status" role="status"></p>

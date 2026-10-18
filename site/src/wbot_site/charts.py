@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from html import escape
 
 from wbot_site.data import DAYTYPE_LABELS, DAYTYPES, date_text, delay_text, enough, hour_text, number, percent, split
+from wbot_site.windows import Windows
 
 PARTS = (("early", "early"), ("on_time", "on-time"), ("late", "late"))
 PART_LABELS = {"early": "early", "on_time": "on time", "late": "late"}
@@ -120,20 +121,20 @@ def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: in
     return body, y
 
 
-def headline_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
-    """Early / on time / late under both on-time windows."""
+def headline_chart(perf: dict, subject: str, min_sample: int, windows: Windows) -> Chart | None:
+    """Early / on time / late under the headline window, and the alt window if it is shown."""
     if not enough(perf, min_sample):
         return None
-    # Intercity Transit's own window is hidden for now; add ("0 to 5 min late (Intercity Transit)", perf, "alt") back to show it.
-    rows_in = [("1 min early to 5 min late", perf, "headline")]
+    span, alt = windows.headline.span, windows.alt.span
+    rows_in = [(span, perf, "headline")]
+    rows = [[span, *_count_cells(perf)]]
+    if windows.show_alt:
+        rows_in.append((f"{alt} (Intercity Transit)", perf, "alt"))
+        rows.append([f"{alt} (Intercity Transit's own definition)", *_count_cells(perf, "alt")])
     summary = (
         f"{subject}: {_pct(perf)} on time, {_pct(perf, 'early')} early, {_pct(perf, 'late')} late, "
-        f"{number(perf['n'])} departures (1 min early to 5 min late)."
+        f"{number(perf['n'])} departures ({span})."
     )
-    rows = [
-        ["1 min early to 5 min late", *_count_cells(perf)],
-        # ["0 to 5 min late (Intercity Transit's own definition)", *_count_cells(perf, "alt")],
-    ]
     wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample))
     return Chart(wide, summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
 
@@ -163,9 +164,10 @@ def _histogram(L: Layout, hist: dict, values: list[int], kinds: list[str], label
         h = plot_h * v / peak
         if v:
             body.append(_rect(L.left + i * step + 1, base - h, step - 2, h, kind, f"{label}: {number(v)} departure{'' if v == 1 else 's'}"))
-    # Bracket over the on-time window (1 min early to 5 min late, buckets -1 to 4).
-    x0 = L.left + -start * step
-    x1 = x0 + 6 * step
+    # Bracket over the on-time buckets.
+    on_time = [i for i, k in enumerate(kinds) if k == "on-time"]
+    x0 = L.left + on_time[0] * step
+    x1 = L.left + (on_time[-1] + 1) * step
     body.append(f'<path d="M{x0:.1f} {top + 6} V{top} H{x1:.1f} V{top + 6}" class="bracket"/>')
     body.append(_text((x0 + x1) / 2, top - 4, "On time", "middle"))
     for m in range(start, start + len(counts) + 1, 5):
@@ -180,7 +182,7 @@ def _bucket(m: int) -> str:
     return f"{-m - 1} to {-m} min early" if m < 0 else f"{m} to {m + 1} min late"
 
 
-def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
+def histogram_chart(perf: dict, subject: str, min_sample: int, windows: Windows) -> Chart | None:
     """1-minute delay buckets, with the bucket under and over the range at the ends."""
     hist = perf.get("hist")
     if not hist or not enough(perf, min_sample):
@@ -189,7 +191,7 @@ def histogram_chart(perf: dict, subject: str, min_sample: int) -> Chart | None:
     values = [hist["under"], *counts, hist["over"]]
     labels = [f"more than {-start} min early"] + [_bucket(m) for m in range(start, start + len(counts))]
     labels.append(f"{start + len(counts)} min or more late")
-    kinds = ["early"] + ["early" if m < -1 else "on-time" if m < 5 else "late" for m in range(start, start + len(counts))] + ["late"]
+    kinds = ["early"] + [windows.headline.kind(m) for m in range(start, start + len(counts))] + ["late"]
     summary = (
         f"{subject}: median departure {delay_text(perf['p50'])}; 80% of departures were between "
         f"{delay_text(perf['p10'])} and {delay_text(perf['p90'])}."

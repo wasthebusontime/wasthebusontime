@@ -99,7 +99,8 @@ def prepare(settings: Settings, period: Period, versions: list[static.Version], 
         SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay
         FROM ev WHERE {rules.END_OF_LINE}
     """)
-    stage = Stage(settings, con, period, versions, pq=PerfQuery(con, "d"), eol=PerfQuery(con, "eol"))
+    stage = Stage(settings, con, period, versions, pq=PerfQuery(con, "d"),
+                  eol=PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay")}))
     load_names(stage)
     return stage
 
@@ -188,8 +189,7 @@ def end_of_line(stage: Stage, entity: str | None) -> dict:
     for key, p in stage.eol.get([entity] if entity else []).items():
         out[key[0] if entity else None] = {
             "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-            # Early means any time before the schedule, which is the alt window's lower edge.
-            "early_share": round(p["early_alt"] / p["n"], 3),
+            "early_share": round(p["before_schedule"] / p["n"], 3),
         }
     return out
 
@@ -490,11 +490,10 @@ def write_map(stage: Stage, site: Path, index: list) -> None:
     if not index or not all("lat" in e for e, _ in index):
         return
     cells = {}
-    (h_lo, h_hi), (a_lo, a_hi) = HEADLINE, ALT
+    w = rules.window_counts("delay")
+    filters = ", ".join(f"count(*) FILTER (WHERE {w[name]})" for name in ("early", "on_time", "late", "on_time_alt"))
     for scope, month, dt, b, stop, n, early, on_time, late, on_time_alt in stage.con.execute(f"""
-        SELECT scope, month, day_type, band, stop, count(*),
-               count(*) FILTER (WHERE delay < {h_lo}), count(*) FILTER (WHERE delay BETWEEN {h_lo} AND {h_hi}),
-               count(*) FILTER (WHERE delay > {h_hi}), count(*) FILTER (WHERE delay BETWEEN {a_lo} AND {a_hi})
+        SELECT scope, month, day_type, band, stop, count(*), {filters}
         FROM d GROUP BY ALL
     """).fetchall():
         for period in ("all", month):

@@ -36,29 +36,31 @@
 {% if enough(perf, min_sample) %}{{ percent(perf[part ~ ("_alt" if window == "alt" else "")], perf.n, digits) }}{% else %}<span class="nodata">Not enough data</span>{% endif %}
 {% endmacro %}
 
-{# Table cells: departures, early, on time, late (headline window), on time (alt window). #}
+{# Table cells: departures, early, on time, late (headline window), on time (alt window, if shown). #}
 {% macro perf_header() %}
 <th scope="col" class="num">Departures</th>
 <th scope="col" class="num">Early</th>
-<th scope="col" class="num">On time <span class="def">(1 min early to 5 min late)</span></th>
+<th scope="col" class="num">On time <span class="def">({{ windows.headline.span }})</span></th>
 <th scope="col" class="num">Late</th>
-{# Hidden for now: Intercity Transit's own window.
-<th scope="col" class="num">On time <span class="def">(0 to 5 min late, Intercity Transit's own definition)</span></th>
-#}
+{% if windows.show_alt %}
+<th scope="col" class="num">On time <span class="def">({{ windows.alt.span }}, Intercity Transit's own definition)</span></th>
+{% endif %}
 {% endmacro %}
 
 {% macro perf_cells(perf) %}
 {% if perf is none %}
-<td class="num" colspan="4"><span class="nodata">Not a timepoint</span></td>
+<td class="num" colspan="{{ 5 if windows.show_alt else 4 }}"><span class="nodata">Not a timepoint</span></td>
 {% elif enough(perf, min_sample) %}
 <td class="num">{{ perf.n | number }}</td>
 <td class="num">{{ percent(perf.early, perf.n, 1) }}</td>
 <td class="num">{{ percent(perf.on_time, perf.n, 1) }}</td>
 <td class="num">{{ percent(perf.late, perf.n, 1) }}</td>
-{# <td class="num">{{ percent(perf.on_time_alt, perf.n, 1) }}</td> #}
+{% if windows.show_alt %}
+<td class="num">{{ percent(perf.on_time_alt, perf.n, 1) }}</td>
+{% endif %}
 {% else %}
 <td class="num">{{ perf.n | number }}</td>
-<td class="num" colspan="3"><span class="nodata">Not enough data</span></td>
+<td class="num" colspan="{{ 4 if windows.show_alt else 3 }}"><span class="nodata">Not enough data</span></td>
 {% endif %}
 {% endmacro %}
 
@@ -67,11 +69,11 @@
 {% set what = {"timepoints": "a timepoint", "stop": "this stop"}.get(scope, "a stop") %}
 <div class="headline">
 {% if enough(perf, min_sample) %}
-  <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ window_labels.headline }}</p>
+  <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ windows.headline_label }}</p>
   <p class="headline-parts">{{ share(perf, "early") }} early, {{ share(perf, "late") }} late, out of {{ perf.n | number }} departures (each time a bus left {{ what }}).</p>
-  {# Hidden for now: Intercity Transit's own window.
-  <p class="headline-alt"><span class="medium">{{ share(perf, window="alt") }}</span> {{ window_labels.alt }}</p>
-  #}
+  {% if windows.show_alt %}
+  <p class="headline-alt"><span class="medium">{{ share(perf, window="alt") }}</span> {{ windows.alt_label }}</p>
+  {% endif %}
 {% else %}
   <p class="headline-main"><span class="nodata">Not enough data</span> for {{ subject }} yet ({{ perf.n | number }} departures; at least {{ min_sample }} are needed).</p>
 {% endif %}
@@ -126,15 +128,19 @@
 </table>
 {% endmacro %}
 
-{# Terminal departures: the first stop of each trip, against the agency's 90% standard. #}
+{# Terminal departures: the first stop of each trip, against the agency's standard. Measured on
+   the agency's own window when it is shown, otherwise on the headline window, approximately. #}
 {% macro terminal(perf, subject) %}
+{% set w = "alt" if windows.show_alt else "headline" %}
 <h3>Terminal departures</h3>
-<p>The first stop of each trip. Intercity Transit's standard is that 90% of buses leave terminal departure points on time. The agency measures this as 0 to 5 min late, a little stricter than the 1 min early to 5 min late used here, so the comparison is approximate.</p>
+{% if windows.show_alt %}
+<p>The first stop of each trip. Intercity Transit's standard is that {{ terminal_standard }}% of buses leave terminal departure points on time, measured as {{ windows.alt.span }}.</p>
+{% else %}
+<p>The first stop of each trip. Intercity Transit's standard is that {{ terminal_standard }}% of buses leave terminal departure points on time. The agency measures this as {{ windows.alt.span }}, a little stricter than the {{ windows.headline.span }} used here, so the comparison is approximate.</p>
+{% endif %}
 {% if enough(perf, min_sample) %}
-{% set on_time = perf.on_time * 100 / perf.n %}
-{# Hidden for now: the same result on Intercity Transit's own window (0 to 5 min late), via window="alt".
-<p class="terminal-result"><strong>{{ share(perf, window="alt", digits=1) }}</strong> ... #}
-<p class="terminal-result"><strong>{{ share(perf, digits=1) }}</strong> of {{ perf.n | number }} terminal departures for {{ subject }} were on time, {{ "at or above" if on_time >= 90 else "below" }} the 90% standard. {{ share(perf, "early") }} left early and {{ share(perf, "late") }} left late.</p>
+{% set on_time = split(perf, w)[1] %}
+<p class="terminal-result"><strong>{{ share(perf, window=w, digits=1) }}</strong> of {{ perf.n | number }} terminal departures for {{ subject }} were on time, {{ "at or above" if on_time * 100 >= terminal_standard * perf.n else "below" }} the {{ terminal_standard }}% standard. {{ share(perf, "early", window=w) }} left early and {{ share(perf, "late", window=w) }} left late.</p>
 {% else %}
 <p><span class="nodata">Not enough data</span> ({{ perf.n | number }} terminal departures).</p>
 {% endif %}
@@ -195,5 +201,5 @@
 {% if s.daily is defined %}
 {{ chart(charts.daily_chart(s.daily, subject, min_sample), "Each day") }}
 {% endif %}
-{{ chart(charts.histogram_chart(s.summary, subject, min_sample), "How late buses left") }}
+{{ chart(charts.histogram_chart(s.summary, subject, min_sample, windows), "How late buses left") }}
 {% endmacro %}
