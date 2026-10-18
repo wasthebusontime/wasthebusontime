@@ -36,8 +36,10 @@ TIMED_STOP = "(is_timepoint AND NOT is_last)"
 DEPARTURE = """(observed AND scheduled AND stop_sr = 'SCHEDULED' AND trip_sr = 'SCHEDULED'
                AND NOT is_last AND delay_dep_s IS NOT NULL)"""
 
-# An end-of-line arrival that counts: the same, at the trip's last stop, on the arrival.
-END_OF_LINE = """(is_last AND scheduled AND observed_arr AND stop_sr = 'SCHEDULED'
+# An end-of-line arrival that counts: the same, at the trip's last stop, on the arrival. The
+# feed never lists a last stop, so an arrival found from the block or GPS has no stop status.
+END_OF_LINE = """(is_last AND scheduled AND observed_arr
+                 AND (stop_sr = 'SCHEDULED' OR (stop_sr IS NULL AND method IN ('block', 'gps')))
                  AND trip_sr = 'SCHEDULED' AND delay_arr_s IS NOT NULL)"""
 
 

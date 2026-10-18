@@ -29,6 +29,10 @@ RETENTION_S = 900
 # A departure's time can still be corrected for about 160 s after the bus leaves
 # (re-validation, 2026-10). One last seen sooner than this after it is not observed.
 MIN_SEEN_AFTER_DEP_S = 180
+# A trip's end-of-line arrival is the next trip's first-stop arrival (same block, same bus)
+# only when the scheduled layover between them is shorter than this. On longer layovers the
+# bus often waits elsewhere and pulls in just before its next trip (re-validation, 2026-10).
+MAX_BLOCK_LAYOVER_S = 600
 # The collector polls TripUpdates every 30 s.
 POLL_S = 30
 # A TripUpdates fetch counts as stale (a feed-side problem) when its newest

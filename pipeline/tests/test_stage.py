@@ -16,7 +16,7 @@ DAY2 = DAY + timedelta(days=1)
 EV = dict(service_date="DATE", trip_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER", stop_code="VARCHAR",
           stop_sequence="INTEGER", day_type="VARCHAR", service_hour="INTEGER", is_first="BOOLEAN", is_last="BOOLEAN",
           is_timepoint="BOOLEAN", delay_dep_s="INTEGER", delay_arr_s="INTEGER", observed="BOOLEAN",
-          observed_arr="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR")
+          observed_arr="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR", method="VARCHAR")
 TR = dict(service_date="DATE", trip_id="VARCHAR", route_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER",
           scheduled="BOOLEAN", trip_sr="VARCHAR",
           eligible_timepoints="INTEGER", observed_timepoints="INTEGER", skipped_stops="INTEGER",
@@ -24,7 +24,7 @@ TR = dict(service_date="DATE", trip_id="VARCHAR", route_id="VARCHAR", route_slug
 
 
 def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoints=None, trip_sr="SCHEDULED",
-         observed=True, stop_sr=None, scheduled=True):
+         observed=True, stop_sr=None, scheduled=True, eol_method="block"):
     """Stop event rows and the trip row for one trip. delays: departure delay at each stop,
     and the arrival delay at the last one. timepoints: stop indexes (default all). stop_sr: {index: status}."""
     timepoints = set(range(len(stops))) if timepoints is None else timepoints
@@ -38,7 +38,7 @@ def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoi
             service_hour=hour, is_first=i == 0, is_last=i == last, is_timepoint=i in timepoints,
             delay_dep_s=None if i == last else delay, delay_arr_s=delay if i == last else None,
             observed=observed, observed_arr=observed, scheduled=scheduled,
-            stop_sr=stop_sr.get(i, "SCHEDULED"), trip_sr=trip_sr))
+            stop_sr=stop_sr.get(i, "SCHEDULED"), trip_sr=trip_sr, method=eol_method if i == last else "tu"))
     timed = [e for e in events if e["is_timepoint"] and not e["is_last"]]
     start = int((day - date(2026, 1, 1)).total_seconds()) + hour * 3600
     row = dict(service_date=day, trip_id=trip_id, route_id="R" + route, route_slug=route, direction_id=direction,
@@ -110,7 +110,16 @@ def test_window_boundaries_by_direction(tmp_path):
 def test_end_of_line_early_is_any_time_before_the_schedule(tmp_path):
     stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, -1]), trip("t2", "901", A, [0, 0, 0, 0]),
                        trip("t3", "901", A, [0, 0, 0, -300]))
-    assert stage.end_of_line([])[()] == {"n": 3, "early": 2, "p10": -300, "p50": -1, "p90": 0}
+    assert stage.end_of_line([])[()] == {"n": 3, "early": 2, "p10": -300, "p50": -1, "p90": 0,
+                                         "n_block": 3, "n_gps": 0}
+
+
+def test_end_of_line_counts_its_sources(tmp_path):
+    stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, 30]), trip("t2", "901", A, [0, 0, 0, 0], eol_method="gps"),
+                       trip("t3", "902", A, [0, 0, 0, 0], eol_method="gps"))
+    eol = stage.end_of_line(["route"])
+    assert (eol[("901",)]["n_block"], eol[("901",)]["n_gps"]) == (1, 1)
+    assert (eol[("902",)]["n_block"], eol[("902",)]["n_gps"]) == (0, 1)
 
 
 def test_trip_facts(tmp_path):

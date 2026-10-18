@@ -121,11 +121,12 @@ def end_of_line(stage: Stage, entity: str | None) -> dict:
         out[key[0] if entity else None] = {
             "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
             "early_share": round(p["early"] / p["n"], 3),
+            "sources": {"block": p["n_block"], "gps": p["n_gps"]},
         }
     return out
 
 
-EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0}
+EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0, "sources": {"block": 0, "gps": 0}}
 
 
 def system_notices(stage: Stage, loss: list[dict], days: list[dict]) -> list[dict]:

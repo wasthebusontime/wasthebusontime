@@ -6,10 +6,10 @@ import pytest
 from wbot_pipeline import rules, timeutil
 
 GOOD = dict(observed=True, scheduled=True, stop_sr="SCHEDULED", trip_sr="SCHEDULED", is_last=False,
-            is_timepoint=True, delay_dep_s=30, observed_arr=True, delay_arr_s=10)
+            is_timepoint=True, delay_dep_s=30, observed_arr=True, delay_arr_s=10, method="tu")
 TYPES = dict(observed="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR", is_last="BOOLEAN",
              is_timepoint="BOOLEAN", delay_dep_s="INTEGER", observed_arr="BOOLEAN", delay_arr_s="INTEGER",
-             eligible_timepoints="INTEGER", observed_timepoints="INTEGER")
+             eligible_timepoints="INTEGER", observed_timepoints="INTEGER", method="VARCHAR")
 
 
 def holds(rule: str, **cols) -> bool:
@@ -35,6 +35,10 @@ def test_end_of_line_is_the_last_stop_arrival():
     for change in (dict(is_last=False), dict(observed_arr=False), dict(stop_sr="SKIPPED"),
                    dict(trip_sr="CANCELED"), dict(scheduled=False), dict(delay_arr_s=None)):
         assert not holds(rules.END_OF_LINE, **{"is_last": True, **change}), change
+    # The feed never lists a last stop, so arrivals found from the block or GPS have no status.
+    for method in ("block", "gps"):
+        assert holds(rules.END_OF_LINE, is_last=True, stop_sr=None, method=method)
+    assert not holds(rules.END_OF_LINE, is_last=True, stop_sr=None, method="tu")
 
 
 def test_timed_stop_is_a_timepoint_but_not_the_last_stop():

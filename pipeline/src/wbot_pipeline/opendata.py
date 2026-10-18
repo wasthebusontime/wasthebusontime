@@ -72,8 +72,9 @@ def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
 
     eol = []
     for (month, route), p in stage.end_of_line(["month", "route"]).items():
-        eol.append([month, route, p["n"], p["early"], p["p10"], p["p50"], p["p90"]])
-    tables["end_of_line_monthly"] = (["month", "route", "n", "early", "p10", "p50", "p90"], sorted(eol, key=_sort_key))
+        eol.append([month, route, p["n"], p["early"], p["p10"], p["p50"], p["p90"], p["n_block"], p["n_gps"]])
+    tables["end_of_line_monthly"] = (["month", "route", "n", "early", "p10", "p50", "p90", "n_block", "n_gps"],
+                                     sorted(eol, key=_sort_key))
 
     days = stage.quality_days()
     tables["quality_daily"] = (

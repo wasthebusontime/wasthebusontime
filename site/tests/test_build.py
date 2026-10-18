@@ -198,6 +198,14 @@ def test_methodology_compares_with_the_agency_window(dev_site):
     assert f"{percent(t['on_time_alt'], t['n'], 1)} of terminal departures" in html
 
 
+def test_methodology_gives_the_end_of_line_sources(dev_site):
+    eol = sample_system()["end_of_line"]
+    html = (dev_site / "methodology" / "index.html").read_text(encoding="utf-8")
+    assert "end-of-line-sources" not in html
+    assert (f"{percent(eol['sources']['block'], eol['n'], 1)} came from the next trip in the block and "
+            f"{percent(eol['sources']['gps'], eol['n'], 1)} from GPS") in html
+
+
 def test_detours_are_noted(dev_site):
     # The sample's detour: route 902, Oct 20, 2026, 9:00 am to 6:00 pm Pacific, 38 trips.
     route = (dev_site / "routes" / "902" / "index.html").read_text(encoding="utf-8")

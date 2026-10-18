@@ -52,6 +52,7 @@ class Trip:
     headsign: str = ""
     shape_id: str = ""
     min_between: int = MIN_BETWEEN
+    block_id: str = ""
 
     def schedule(self) -> list[tuple[int, str, int, int, bool]]:
         """(stop_sequence, stop_id, arrival s, departure s, timepoint) per stop."""
@@ -109,8 +110,8 @@ def write_gtfs(static_dir: Path, stem: str, trips: list[Trip], *, feed_version: 
                             [[*r, 3] for r in routes]),
         "stops.txt": table(["stop_id", "stop_code", "stop_name", "stop_lat", "stop_lon"],
                            [[s[0], s[1], f'"{s[2]}"', s[3], s[4]] for s in stops]),
-        "trips.txt": table(["route_id", "service_id", "trip_id", "trip_headsign", "direction_id", "shape_id"],
-                           [[t.route_id, t.service_id, t.trip_id, t.headsign, t.direction_id, t.shape_id]
+        "trips.txt": table(["route_id", "service_id", "trip_id", "trip_headsign", "direction_id", "shape_id", "block_id"],
+                           [[t.route_id, t.service_id, t.trip_id, t.headsign, t.direction_id, t.shape_id, t.block_id]
                             for t in trips]),
         "stop_times.txt": table(
             ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence", "timepoint"],
@@ -158,6 +159,8 @@ class TripPlan:
     skip: set[int] = field(default_factory=set)
     no_data: set[int] = field(default_factory=set)
     frozen_ts: bool = False            # trip_update.timestamp never advances past the start
+    vehicle_id: str = ""               # default: one bus per block ("V" + block_id), else per trip
+    gps: bool = True                   # the bus reports positions while on this trip
 
 
 @dataclass
@@ -201,6 +204,8 @@ class Feed:
         self.feed_errors: list[tuple[int, int]] = []   # HTTP 503 answers
         self.corrupt: set[int] = set()                 # snapshot times whose bytes don't parse
         self.alerts: list[SimAlert] = []               # written to the Alerts feed every 5 minutes
+        self.vp_gaps: list[tuple[int, int]] = []       # no vehicle positions reported (TripUpdates fine)
+        self.last_stop_in_feed = True                  # the real feed never lists a trip's last stop
 
     def active(self) -> list[Trip]:
         wd = self.d.weekday()
@@ -238,10 +243,12 @@ class Feed:
                 tu.timestamp = snap - 3
                 continue
             if plan.vehicle and on_road:
-                tu.vehicle.id = "V" + t.trip_id
+                tu.vehicle.id = self.vehicle_id(t)
             tu.timestamp = (start - 300 if plan.frozen_ts else min(snap, end) - 3) if plan.vehicle else snap - 3
             for seq, sid, arr, dep, i, _ in stops:
                 if snap > dep + 885:   # passed stops drop out after about 15 minutes
+                    continue
+                if i == len(stops) - 1 and not self.last_stop_in_feed:
                     continue
                 s = tu.stop_time_update.add()
                 s.stop_sequence = seq
@@ -270,6 +277,51 @@ class Feed:
                     s = tu.stop_time_update.add()
                     s.stop_sequence, s.stop_id = seq, sid
                     s.arrival.time, s.departure.time = dep - 20, dep
+        return msg.SerializeToString()
+
+    def vehicle_id(self, t: Trip) -> str:
+        plan = self.plans.get(t.trip_id, TripPlan())
+        return plan.vehicle_id or "V" + (t.block_id or t.trip_id)
+
+    def position(self, t: Trip, ts: int) -> tuple[float, float]:
+        """Where the bus on trip t is at ts: at a stop from arrival to departure, moving in a
+        straight line between stops, at the first stop before it leaves and the last after."""
+        coords = {s[0]: (s[3], s[4]) for s in STOPS}
+        stops = self.actual(t)
+        if ts <= stops[0][3]:
+            return coords[stops[0][1]]
+        for (_, s1, _, d1, _, _), (_, s2, a2, _, _, _) in zip(stops, stops[1:]):
+            if ts < a2:
+                f = max(0.0, (ts - d1) / (a2 - d1))
+                (la1, lo1), (la2, lo2) = coords[s1], coords[s2]
+                return la1 + (la2 - la1) * f, lo1 + (lo2 - lo1) * f
+        return coords[stops[-1][1]]
+
+    def vp_snapshot(self, snap: int) -> bytes:
+        """Each bus reports its current trip: the latest of its trips that is under way (from
+        10 minutes before the start), for up to 10 minutes after that trip ends."""
+        msg = R.FeedMessage()
+        msg.header.gtfs_realtime_version = "2.0"
+        msg.header.timestamp = snap
+        buses: dict[str, list[Trip]] = {}
+        for t in self.active():
+            if self.plans.get(t.trip_id, TripPlan()).vehicle:
+                buses.setdefault(self.vehicle_id(t), []).append(t)
+        for vid, trips in sorted(buses.items()):
+            started = [t for t in trips if self.actual(t)[0][3] - 600 <= snap]
+            if not started:
+                continue
+            t = max(started, key=lambda t: self.actual(t)[0][3])
+            if snap > self.actual(t)[-1][2] + 600 or not self.plans.get(t.trip_id, TripPlan()).gps:
+                continue
+            lat, lon = self.position(t, snap)
+            e = msg.entity.add()
+            e.id = vid
+            v = e.vehicle
+            v.vehicle.id = vid
+            v.trip.trip_id = t.trip_id
+            v.position.latitude, v.position.longitude = lat, lon
+            v.timestamp = snap
         return msg.SerializeToString()
 
     def times(self) -> list[int]:
@@ -310,6 +362,20 @@ class Feed:
                 write_pack(path, part)
         write_log(self.data_dir / layout.LOG, log_lines)
         self.write_alerts()
+        self.write_vehicle_positions()
+
+    def write_vehicle_positions(self) -> None:
+        by_hour: dict[int, list[tuple[str, bytes]]] = {}
+        for snap in self.times():
+            if any(a <= snap < b for a, b in self.gaps + self.vp_gaps):
+                continue
+            name = layout.spool_path(Path(), layout.VEHICLEPOSITIONS, datetime.fromtimestamp(snap, UTC)).name
+            by_hour.setdefault(snap - snap % 3600, []).append((name, self.vp_snapshot(snap)))
+        for hour, items in by_hour.items():
+            path = layout.pack_path(self.data_dir / layout.ARCHIVE, layout.VEHICLEPOSITIONS,
+                                    datetime.fromtimestamp(hour, UTC))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_pack(path, items)
 
     def write_alerts(self) -> None:
         """An Alerts snapshot every 5 minutes over the same hours, while not in a gap."""

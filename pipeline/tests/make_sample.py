@@ -17,6 +17,7 @@ import argparse
 import json
 import random
 import tempfile
+import zlib
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -161,6 +162,8 @@ def simulate_trip(rng: random.Random, d: date, t: Trip, bias: int) -> tuple[list
             "sched_arr_ts": o + arr, "sched_dep_ts": o + dep, "service_hour": dep // 3600, "day_type": daytype,
             "delay_dep_s": None, "delay_arr_s": None, "stop_sr": "SCHEDULED" if tracked else None,
             "trip_sr": "SCHEDULED" if tracked else None, "observed": observed, "observed_arr": observed,
+            # End-of-line arrivals mostly come from the next trip in the block, about 1 in 20 from GPS.
+            "method": ("gps" if zlib.crc32(t.trip_id.encode()) % 20 == 0 else "block") if i == n - 1 else "tu",
         }
         rows.append(row)
         if i == n - 1:
@@ -198,7 +201,7 @@ EVENT_TYPES = {
     "scheduled": pa.bool_(), "is_timepoint": pa.bool_(), "is_first": pa.bool_(), "is_last": pa.bool_(),
     "sched_arr_ts": pa.int64(), "sched_dep_ts": pa.int64(), "service_hour": pa.int32(), "day_type": pa.string(),
     "delay_dep_s": pa.int32(), "delay_arr_s": pa.int32(), "stop_sr": pa.string(), "trip_sr": pa.string(),
-    "observed": pa.bool_(), "observed_arr": pa.bool_(),
+    "observed": pa.bool_(), "observed_arr": pa.bool_(), "method": pa.string(),
 }
 TRIP_TYPES = {
     "service_date": pa.date32(), "trip_id": pa.string(), "route_id": pa.string(), "route_slug": pa.string(),

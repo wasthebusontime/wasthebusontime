@@ -63,11 +63,12 @@ class Stage:
         # End-of-line arrivals: each trip's last stop.
         con.execute(f"""
             CREATE TABLE eol AS
-            SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay
+            SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay, method
             FROM ev WHERE {rules.END_OF_LINE}
         """)
         self._pq = PerfQuery(con, "d")
-        self._eol = PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay")})
+        self._eol = PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay"),
+                                                 "from_block": "(method = 'block')", "from_gps": "(method = 'gps')"})
         self._flag_detours(alerts.load_extra_routes() if extra_routes is None else extra_routes)
 
     def close(self) -> None:
@@ -139,8 +140,10 @@ class Stage:
     # End-of-line arrivals.
 
     def end_of_line(self, keys: list[str]) -> dict[tuple, dict]:
-        """{key: {n, early, p10, p50, p90}} per group of `keys` (month, route); early is any time before the schedule."""
-        return {key: {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"]}
+        """{key: {n, early, p10, p50, p90, n_block, n_gps}} per group of `keys` (month, route); early is
+        any time before the schedule; n_block and n_gps count arrivals by where they came from."""
+        return {key: {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
+                      "n_block": p["from_block"], "n_gps": p["from_gps"]}
                 for key, p in self._eol.get(keys).items()}
 
     # Detours.

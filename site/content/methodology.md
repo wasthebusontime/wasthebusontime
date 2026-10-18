@@ -33,6 +33,16 @@ Intercity Transit also publishes on-time figures by route for 2025. Those descri
 
 On-time status is measured when the bus leaves a stop, as the agency does. The last stop of a trip has no departure, so it is not part of the on-time percentages. Arrivals at the last stop are shown separately as end-of-line arrivals; buses often arrive there early because schedules include recovery time at the end of a trip.
 
+The real-time data never lists a trip's last stop, so end-of-line arrivals are found another way:
+
+- Buses usually run several trips in a row. When the same bus starts its next trip from the stop where the last one ended, after a scheduled layover of less than 10 minutes, we use the time it was recorded arriving there.
+- Otherwise we use the bus's GPS positions: the time it first came within 40 meters of the stop.
+- If neither works, the arrival is not recorded. On longer layovers buses often wait somewhere else and pull in just before their next trip, which is why those use GPS.
+
+Arrivals are recorded as the bus enters the stop area, about 25 seconds before it stops.
+
+<!-- end-of-line-sources -->
+
 We count departures, not trips. A departure is one bus leaving one stop on one trip, so a single trip adds several departures: one for each timepoint it leaves in the timepoints view, or one for each stop in the all stops view. Trips are counted separately, as scheduled, recorded and not recorded, on each route page and on the [Data quality](/data-quality/) page.
 
 ## Which stops

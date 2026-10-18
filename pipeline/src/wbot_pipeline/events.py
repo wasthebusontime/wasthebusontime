@@ -21,8 +21,8 @@ from pathlib import Path
 import pyarrow.parquet as pq
 from wbot_collector import layout
 
-from . import alerts, archive, dateplan, gaps, rules, static, timeutil
-from .config import EVENTS_VERSION, MIN_SEEN_AFTER_DEP_S, Settings
+from . import alerts, archive, dateplan, gaps, gps, rules, static, timeutil
+from .config import EVENTS_VERSION, MAX_BLOCK_LAYOVER_S, MIN_SEEN_AFTER_DEP_S, Settings
 from .db import connect, quote
 from .rt import Reduced
 
@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 FEED = layout.TRIPUPDATES
 # Every feed a date reads. Their packs are listed in the day manifest, so a late pack in any
 # of them gets the date reprocessed.
-FEEDS = (layout.TRIPUPDATES, layout.ALERTS)
+FEEDS = (layout.TRIPUPDATES, layout.ALERTS, layout.VEHICLEPOSITIONS)
 # Read packs from this long before the first scheduled departure (trips appear in the
 # feed ahead of time) to this long after the last scheduled arrival.
 READ_BEFORE_S = 2 * 3600
@@ -123,6 +123,67 @@ def _write_manifest(target: Path, doc: dict) -> None:
     os.replace(tmp, target)
 
 
+def end_of_line(con, positions: gps.Positions) -> None:
+    """Fill in arrivals at each trip's last stop, which TripUpdates never lists: from the next
+    trip in the same block, when the same bus runs it, it starts at that stop, its arrival
+    there was recorded and the scheduled layover is short (method 'block'); otherwise from
+    the bus's GPS (method 'gps'); otherwise they stay not recorded."""
+    con.execute(f"""
+        UPDATE ev SET act_arr_ts = n.arr, delay_arr_s = CAST(n.arr - ev.sched_arr_ts AS INTEGER),
+                      observed_arr = true, method = 'block'
+        FROM (
+            WITH tb AS (
+                SELECT e.trip_id, t.block_id, t.service_id, min(e.sched_dep_ts) AS start_ts
+                FROM ev e JOIN trips t ON t.trip_id = e.trip_id
+                WHERE e.scheduled AND coalesce(t.block_id, '') <> ''
+                GROUP BY ALL
+            ),
+            p AS (SELECT trip_id AS a, lead(trip_id) OVER (PARTITION BY block_id, service_id
+                                                           ORDER BY start_ts, trip_id) AS b FROM tb)
+            SELECT p.a, fb.act_arr_ts AS arr
+            FROM p
+            JOIN ev la ON la.trip_id = p.a AND la.is_last
+            JOIN ev fb ON fb.trip_id = p.b AND fb.is_first
+            JOIN rt_trips ra ON ra.trip_id = p.a
+            JOIN rt_trips rb ON rb.trip_id = p.b
+            WHERE la.stop_id = fb.stop_id AND ra.last_vehicle_id = rb.first_vehicle_id
+              AND fb.observed_arr AND fb.act_arr_ts IS NOT NULL
+              AND fb.sched_dep_ts - la.sched_arr_ts < {MAX_BLOCK_LAYOVER_S}
+        ) n
+        WHERE ev.trip_id = n.a AND ev.is_last AND NOT ev.observed_arr
+    """)
+    need = con.execute("""
+        WITH prev AS (
+            SELECT trip_id, stop_sequence,
+                   lag(coalesce(act_dep_ts, sched_dep_ts)) OVER (PARTITION BY trip_id ORDER BY stop_sequence) AS left_ts
+            FROM ev WHERE scheduled
+        )
+        SELECT e.trip_id, e.sched_arr_ts, p.left_ts, r.last_vehicle_id,
+               TRY_CAST(st.stop_lat AS DOUBLE), TRY_CAST(st.stop_lon AS DOUBLE)
+        FROM ev e
+        JOIN prev p ON p.trip_id = e.trip_id AND p.stop_sequence = e.stop_sequence
+        JOIN rt_trips r ON r.trip_id = e.trip_id
+        JOIN stops st ON st.stop_id = e.stop_id
+        WHERE e.is_last AND e.scheduled AND NOT e.observed_arr AND r.last_vehicle_id IS NOT NULL
+    """).fetchall()
+    found = []
+    for trip_id, sched_arr, left_ts, vehicle, lat, lon in need:
+        if lat is None or lon is None or sched_arr is None:
+            continue
+        start = left_ts if left_ts is not None else sched_arr - 1800
+        arr = gps.arrival(positions.reports(vehicle, start, sched_arr + 1800), (lat, lon))
+        if arr is not None:
+            found.append((trip_id, arr))
+    if found:
+        con.execute("CREATE TEMP TABLE gps_arr (trip_id VARCHAR, arr BIGINT)")
+        con.executemany("INSERT INTO gps_arr VALUES (?, ?)", found)
+        con.execute("""
+            UPDATE ev SET act_arr_ts = g.arr, delay_arr_s = CAST(g.arr - ev.sched_arr_ts AS INTEGER),
+                          observed_arr = true, method = 'gps'
+            FROM gps_arr g WHERE ev.trip_id = g.trip_id AND ev.is_last
+        """)
+
+
 def process_date(settings: Settings, versions: list[static.Version], d: date, pipeline_version: str) -> str:
     """Process one service date (one the date plan says is ready). Returns 'ok', 'no_static'
     or 'no_service'."""
@@ -152,6 +213,7 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
 
     reduced = Reduced()
     seen_alerts = alerts.Alerts()
+    positions = gps.Positions()
     packs = []
     day = timeutil.yyyymmdd(d)
     for feed in FEEDS:
@@ -163,8 +225,10 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
             for snap, _, data in archive.snapshots(hour_packs):
                 if feed == FEED:
                     reduced.add(snap, data, day)
-                else:
+                elif feed == layout.ALERTS:
                     seen_alerts.add(snap, data)
+                else:
+                    positions.add(data)
 
     # When trips are scheduled to be running: gaps and uptime only count then.
     service = gaps.merge([(o + a, o + b) for a, b in con.execute(
@@ -182,7 +246,7 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
         p.parent.mkdir(parents=True, exist_ok=True)
     events_tmp = out.events.with_name(out.events.name + ".tmp")
     con.execute(f"""
-        COPY (
+        CREATE TEMP TABLE ev AS
         SELECT DATE '{d.isoformat()}' AS service_date,
                coalesce(s.trip_id, r.trip_id) AS trip_id,
                coalesce(s.route_id, rt.rt_route_id) AS route_id,
@@ -216,13 +280,13 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
         LEFT JOIN rt_trips rt ON rt.trip_id = coalesce(s.trip_id, r.trip_id)
         LEFT JOIN routes ro ON ro.route_id = coalesce(s.route_id, rt.rt_route_id)
         LEFT JOIN stops so ON so.stop_id = coalesce(s.stop_id, r.rt_stop_id)
-        ORDER BY 2, 6
-        ) TO '{quote(events_tmp)}' (FORMAT parquet, COMPRESSION zstd)
     """)
+    end_of_line(con, positions)
+    con.execute(f"COPY (SELECT * FROM ev ORDER BY 2, 6) TO '{quote(events_tmp)}' (FORMAT parquet, COMPRESSION zstd)")
     trips_tmp = out.trips.with_name(out.trips.name + ".tmp")
     con.execute(f"""
         COPY (
-        WITH e AS (SELECT * FROM read_parquet('{quote(events_tmp)}')),
+        WITH e AS (SELECT * FROM ev),
         a AS (
             SELECT trip_id, bool_or(scheduled) AS scheduled, min(route_id) AS route_id,
                    min(route_slug) AS route_slug, min(direction_id) AS direction_id,

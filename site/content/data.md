@@ -27,7 +27,7 @@ Columns:
 - `n` is the number of recorded departures. `early`, `on_time` and `late` use 1 min early to 5 min late. `early_alt`, `on_time_alt` and `late_alt` use Intercity Transit's own definition (0 to 5 min late).
 - `under`, `m_10` to `m_1`, `m0` to `m19` and `over` count departures by how many minutes late they left: `m0` is 0 to 1 minute late, `m_1` is up to 1 minute early, `under` is more than 10 minutes early and `over` is 20 or more minutes late.
 - In `routes_daily.csv`, `detour_trips` counts the trips that ran during a posted detour that day. Their departures are included in the other columns.
-- In `end_of_line_monthly.csv`, `early` counts buses that arrived early, and `p10`, `p50` and `p90` are how late (in seconds; negative is early) the 10%, 50% and 90% marks of those arrivals were.
+- In `end_of_line_monthly.csv`, `early` counts buses that arrived early, and `p10`, `p50` and `p90` are how late (in seconds; negative is early) the 10%, 50% and 90% marks of those arrivals were. `n_block` and `n_gps` count how many arrivals came from the next trip in the block and how many from GPS (see the [methodology](/methodology/)).
 
 ## License and credit
 

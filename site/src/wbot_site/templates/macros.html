@@ -150,6 +150,14 @@
 {% endif %}
 {% endmacro %}
 
+{# Where the system's end-of-line arrivals came from, for the methodology page. #}
+{% macro end_of_line_sources(system) %}
+{% set eol = system.end_of_line %}
+{% if eol.n and eol.sources is defined %}
+<p>So far, of {{ eol.n | number }} end-of-line arrivals, {{ percent(eol.sources.block, eol.n, 1) }} came from the next trip in the block and {{ percent(eol.sources.gps, eol.n, 1) }} from GPS.</p>
+{% endif %}
+{% endmacro %}
+
 {# The system's numbers on the agency's own window, for the methodology page. #}
 {% macro agency_comparison(system) %}
 {% set rows = [("timepoint departures", system.scopes.timepoints.summary), ("terminal departures", system.terminal)] %}

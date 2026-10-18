@@ -1384,7 +1384,11 @@
   "p10": -230,
   "p50": -31,
   "p90": 262,
-  "early_share": 0.551
+  "early_share": 0.551,
+  "sources": {
+   "block": 1234,
+   "gps": 150
+  }
  },
  "completeness": {
   "trips_scheduled": 1476,

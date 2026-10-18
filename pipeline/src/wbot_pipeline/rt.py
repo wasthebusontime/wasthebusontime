@@ -26,7 +26,8 @@ LAST, ARR, DEP, SR, TU_TS, AFTER_DEP, AFTER_ARR, STOP_ID, FIRST = range(9)
 @dataclass
 class Reduced:
     stops: dict = field(default_factory=dict)   # (trip_id, stop_sequence) -> state list
-    trips: dict = field(default_factory=dict)   # trip_id -> [trip_sr, route_id, first, last, vehicle_seen]
+    trips: dict = field(default_factory=dict)   # trip_id -> [trip_sr, route_id, first, last, vehicle_seen,
+                                                #             first vehicle id, last vehicle id]
     snapshots: int = 0
     unreadable: int = 0
     first_snapshot: int | None = None
@@ -51,15 +52,19 @@ class Reduced:
             if tu.trip.start_date != service_date:
                 continue
             trip_id = tu.trip.trip_id
-            veh = bool(tu.vehicle.id)
+            vid = tu.vehicle.id
+            veh = bool(vid)
             t = trips.get(trip_id)
             if t is None:
-                trips[trip_id] = [tu.trip.schedule_relationship, tu.trip.route_id, snap, snap, veh]
+                trips[trip_id] = [tu.trip.schedule_relationship, tu.trip.route_id, snap, snap, veh,
+                                  vid or None, vid or None]
             else:
                 t[0] = tu.trip.schedule_relationship
                 t[3] = snap
                 if veh:
                     t[4] = True
+                    t[5] = t[5] or vid
+                    t[6] = vid
             ts = tu.timestamp
             for s in tu.stop_time_update:
                 arr = s.arrival.time or None
@@ -109,4 +114,6 @@ class Reduced:
             "first_seen_ts": pa.array([v[2] for v in vals], pa.int64()),
             "last_seen_ts": pa.array([v[3] for v in vals], pa.int64()),
             "vehicle_seen": pa.array([v[4] for v in vals], pa.bool_()),
+            "first_vehicle_id": pa.array([v[5] for v in vals], pa.string()),
+            "last_vehicle_id": pa.array([v[6] for v in vals], pa.string()),
         })

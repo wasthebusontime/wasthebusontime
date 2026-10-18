@@ -46,8 +46,9 @@ PAGES = {
     "unavailable": "unavailable/",
 }
 NO_SITEMAP = {"unavailable/", "404.html"}
-# Where a content page gets the system's numbers on the agency's own window.
-AGENCY_COMPARISON = "<!-- agency-comparison -->"
+# Markers in content pages replaced by a macro (macros.html) over the system's numbers: the
+# numbers on the agency's own window, and where end-of-line arrivals came from.
+STATS_BLOCKS = {"<!-- agency-comparison -->": "agency_comparison", "<!-- end-of-line-sources -->": "end_of_line_sources"}
 
 
 @dataclass
@@ -222,10 +223,10 @@ def render_markdown_pages(b: Build) -> None:
     for name, path in PAGES.items():
         md = markdown.Markdown(extensions=["meta", "tables"])
         body = md.convert((CONTENT_DIR / f"{name}.md").read_text(encoding="utf-8"))
-        if AGENCY_COMPARISON in body:
-            body = body.replace(AGENCY_COMPARISON, b.jinja.from_string(
-                '{% from "macros.html" import agency_comparison %}{{ agency_comparison(system) }}'
-            ).render(system=b.stats.system))
+        for marker, macro in STATS_BLOCKS.items():
+            if marker in body:
+                body = body.replace(marker, b.jinja.from_string(
+                    f'{{% from "macros.html" import {macro} %}}{{{{ {macro}(system) }}}}').render(system=b.stats.system))
         title = md.Meta["title"][0]
         template = "unavailable.html" if name == "unavailable" else "page.html"
         extra = {"csv_files": csv_downloads(b)} if name == "data" else {}

@@ -992,7 +992,11 @@
   "p10": -253,
   "p50": -158,
   "p90": -120,
-  "early_share": 0.9
+  "early_share": 0.9,
+  "sources": {
+   "block": 10,
+   "gps": 0
+  }
  },
  "completeness": {
   "trips_scheduled": 12,
