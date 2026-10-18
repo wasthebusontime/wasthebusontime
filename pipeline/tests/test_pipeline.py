@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from conftest import DAY, after
+from wbot_collector import layout
 
-from wbot_pipeline import pipeline, static, timeutil
+from wbot_pipeline import events, pipeline, static, timeutil
 from wbot_pipeline.config import load_settings
 
 
@@ -11,13 +12,13 @@ def test_plan_trailing_window_and_rebuild(settings, feed):
     versions = static.list_versions(settings.static_dir)
     now = after(DAY + timedelta(days=4))         # local date is DAY + 5, so the last candidate is DAY + 4
     todo = pipeline.plan(settings, versions, now)
-    assert [d for d, _ in todo] == [DAY + timedelta(days=i) for i in range(5)]
+    assert [(e.date, e.process) for e in todo] == [(DAY + timedelta(days=i), True) for i in range(5)]
     pipeline.run(settings, now=now, do_publish=False, generated_at="2026-10-11T12:00:00Z")
     # Next night: only the trailing window (and anything that changed) is redone.
     todo = pipeline.plan(settings, versions, now + 86400)
-    assert todo == [(DAY + timedelta(days=3), "trailing window"), (DAY + timedelta(days=4), "trailing window"),
-                    (DAY + timedelta(days=5), "new")]
-    assert {r for _, r in pipeline.plan(settings, versions, now, rebuild=True)} == {"rebuild"}
+    assert [(e.date, e.reason) for e in todo] == [(DAY + timedelta(days=3), "recent"),
+                                                  (DAY + timedelta(days=4), "recent"), (DAY + timedelta(days=5), "new")]
+    assert {e.reason for e in pipeline.plan(settings, versions, now, rebuild=True)} == {"rebuild"}
 
 
 def test_methodology_version_change_reprocesses_everything(settings, feed):
@@ -27,7 +28,7 @@ def test_methodology_version_change_reprocesses_everything(settings, feed):
     versions = static.list_versions(settings.static_dir)
     changed = load_settings({}, data_dir=settings.data_dir, derived_dir=settings.derived_dir,
                             first_service_date=DAY, methodology_version="2")
-    assert pipeline.plan(changed, versions, now) == [(DAY, "methodology version")]
+    assert [(e.date, e.reason) for e in pipeline.plan(changed, versions, now)] == [(DAY, "old_version")]
 
 
 def test_settings_from_environment(tmp_path):
@@ -50,3 +51,15 @@ def test_pipeline_version_is_a_commit():
 def test_service_dates_start_at_first_service_date(settings):
     dates = pipeline.candidate_dates(settings, timeutil.origin(DAY) + 3600)
     assert dates == []    # DAY itself isn't over yet
+
+
+def test_date_waits_while_its_hours_are_still_spooled(settings, feed):
+    feed.write()
+    versions = static.list_versions(settings.static_dir)
+    hours = events.hours_read(settings, versions, DAY)
+    spool = layout.spool_hour_dir(settings.spool_dir, events.FEED, datetime.fromtimestamp(hours[-1], UTC))
+    spool.mkdir(parents=True)
+    (spool / "x.pb").write_bytes(b"")
+    result = pipeline.run(settings, now=after(DAY), do_publish=False, generated_at="2026-10-07T12:00:00Z")
+    assert result.processed == {DAY.isoformat(): "not_ready"}
+    assert events.read_manifest(settings, DAY) is None

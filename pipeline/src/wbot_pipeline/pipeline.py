@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from . import __version__, events, publish, sitefiles, static, timeutil
+from . import __version__, archive, dateplan, events, publish, sitefiles, static, timeutil
 from .config import Settings
 
 log = logging.getLogger(__name__)
@@ -52,18 +52,22 @@ def candidate_dates(settings: Settings, now: int) -> list[date]:
     return [settings.first_service_date + timedelta(days=i) for i in range(max(0, n))]
 
 
-def plan(settings: Settings, versions: list[static.Version], now: int, rebuild: bool = False) -> list[tuple[date, str]]:
-    """(date, reason) for every date to process: outdated or new ones, plus the trailing window."""
-    dates = candidate_dates(settings, now)
-    trailing = set(dates[-settings.trailing_days:]) if settings.trailing_days else set()
-    todo = []
-    for d in dates:
-        reason = "rebuild" if rebuild else events.stale_reason(settings, versions, d)
-        if reason is None and d in trailing:
-            reason = "trailing window"
-        if reason:
-            todo.append((d, reason))
-    return todo
+def plan(settings: Settings, versions: list[static.Version], now: int, rebuild: bool = False,
+         dates: list[date] | None = None) -> list[dateplan.Entry]:
+    """The date plan for this run: every date to process (or the dates requested), each to
+    process now or to wait for."""
+    if dates is not None:
+        todo = [(d, "requested") for d in dates]
+    else:
+        days = [events.day(settings, versions, d) for d in candidate_dates(settings, now)]
+        todo = dateplan.dates(days, trailing_days=settings.trailing_days,
+                              methodology_version=settings.methodology_version, rebuild=rebuild)
+    entries = []
+    for d, reason in todo:
+        hours = events.hours_read(settings, versions, d)
+        unpacked = archive.unpacked_hours(settings.spool_dir, events.FEED, hours or [])
+        entries.append(dateplan.entry(d, reason, hours, unpacked, now))
+    return entries
 
 
 def run(settings: Settings, *, now: int | None = None, rebuild: bool = False, dates: list[date] | None = None,
@@ -73,10 +77,13 @@ def run(settings: Settings, *, now: int | None = None, rebuild: bool = False, da
     version = pipeline_version()
     versions = static.list_versions(settings.static_dir)
     result = Result()
-    todo = [(d, "requested") for d in dates] if dates is not None else plan(settings, versions, now, rebuild)
-    for d, reason in todo:
-        log.info("%s: processing (%s)", d, reason)
-        result.processed[d.isoformat()] = events.process_date(settings, versions, d, now, version)
+    for e in plan(settings, versions, now, rebuild, dates):
+        if not e.process:
+            log.info("%s: waiting (%s)", e.date, e.reason)
+            result.processed[e.date.isoformat()] = "not_ready"
+            continue
+        log.info("%s: processing (%s)", e.date, e.reason)
+        result.processed[e.date.isoformat()] = events.process_date(settings, versions, e.date, version)
     stamp = generated_at or datetime.fromtimestamp(now, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     result.wrote_site = sitefiles.build(settings, settings.out_dir, pipeline_version=version, generated_at=stamp)
     if result.wrote_site and do_publish:

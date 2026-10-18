@@ -8,7 +8,7 @@ import time
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from . import events, health, pipeline, publish, sitefiles, static
+from . import dateplan, events, health, pipeline, publish, sitefiles, static
 from .config import load_settings
 
 
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         versions = static.list_versions(settings.static_dir)
         for d in pipeline.candidate_dates(settings, int(time.time())):
             m = events.read_manifest(settings, d) or {}
-            reason = events.stale_reason(settings, versions, d)
+            reason = dateplan.stale_reason(events.day(settings, versions, d), settings.methodology_version)
             counts = m.get("counts", {})
             print(f"{d}  {m.get('status', '-'):10s} events {counts.get('events', '-'):>7} "
                   f"observed {counts.get('observed', '-'):>7}  {'needs: ' + reason if reason else 'current'}")

@@ -19,7 +19,7 @@ from pathlib import Path
 
 from wbot_collector import layout
 
-from . import archive, gaps, rules, static, timeutil
+from . import archive, dateplan, gaps, rules, static, timeutil
 from .config import EVENTS_VERSION, Settings
 from .db import connect, quote
 from .rt import Reduced
@@ -31,9 +31,6 @@ FEED = layout.TRIPUPDATES
 # feed ahead of time) to this long after the last scheduled arrival.
 READ_BEFORE_S = 2 * 3600
 READ_AFTER_S = 3600
-# Wait this long after the last hour ends before calling a date complete
-# (the collector packs each hour two minutes after it ends).
-READY_AFTER_S = 600
 
 @dataclass
 class Paths:
@@ -64,50 +61,17 @@ def pack_list(settings: Settings, hour_list: list[int]) -> list[dict]:
     return out
 
 
-def stale_reason(settings: Settings, versions: list[static.Version], d: date) -> str | None:
-    """Why a date needs (re)processing, or None if its outputs are current."""
+def day(settings: Settings, versions: list[static.Version], d: date) -> dateplan.Day:
+    """What the files say about a date, for the date plan."""
     m = read_manifest(settings, d)
-    if m is None:
-        return "new"
-    if m.get("events_version") != EVENTS_VERSION:
-        return "events version"
-    if m.get("methodology_version") != settings.methodology_version:
-        return "methodology version"
     v = static.choose(versions, d)
-    if (v.stem if v else None) != m.get("static", {}).get("stem"):
-        return "static version"
-    if m["status"] != "ok":
-        return m["status"]
-    hour_list = archive.hours(m["hours"][0], m["hours"][1])
-    current = pack_list(settings, hour_list)
-    if current != [{"path": p["path"], "size": p["size"]} for p in m["packs"]]:
-        return "archive changed"
-    return None
+    packs = pack_list(settings, archive.hours(*m["hours"])) if m and "hours" in m else []
+    return dateplan.Day(d, m, v.stem if v else None, packs)
 
 
-def _write_manifest(target: Path, doc: dict) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_name(target.name + ".tmp")
-    tmp.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8", newline="\n")
-    os.replace(tmp, target)
-
-
-def process_date(settings: Settings, versions: list[static.Version], d: date, now: int,
-                 pipeline_version: str) -> str:
-    """Process one service date. Returns 'ok', 'not_ready', 'no_static' or 'no_service'."""
-    out = paths(settings, d)
-    base = {
-        "service_date": d.isoformat(),
-        "events_version": EVENTS_VERSION,
-        "methodology_version": settings.methodology_version,
-        "pipeline_version": pipeline_version,
-    }
-    v = static.choose(versions, d)
-    if v is None:
-        log.warning("%s: no static GTFS version covers this date", d)
-        _write_manifest(out.manifest, {**base, "status": "no_static", "static": {}})
-        return "no_static"
-
+def _schedule(settings: Settings, v: static.Version, d: date):
+    """A connection with the date's scheduled stops (table sched) and the static views, and
+    the scheduled service span (first departure, last arrival), None if nothing runs."""
     cache = static.ensure_cache(settings.derived_dir, v)
     con = connect(settings)
     rules.register(con)
@@ -125,19 +89,60 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, no
         WHERE list_contains(?, t.service_id)
     """, [services])
     first_dep, last_arr = con.execute("SELECT min(sched_dep_s), max(sched_arr_s) FROM sched").fetchone()
-    static_info = {"stem": v.stem, "feed_version": v.feed_version, "sha256": v.sha256}
     if first_dep is None:
+        return con, None
+    o = timeutil.origin(d)
+    return con, (o + first_dep, o + last_arr)
+
+
+def _hours(span: tuple[int, int]) -> list[int]:
+    return archive.hours(span[0] - READ_BEFORE_S, span[1] + READ_AFTER_S)
+
+
+def hours_read(settings: Settings, versions: list[static.Version], d: date) -> list[int] | None:
+    """The UTC hour starts processing a date reads, or None if it reads none (no static
+    version or no service)."""
+    v = static.choose(versions, d)
+    if v is None:
+        return None
+    con, span = _schedule(settings, v, d)
+    con.close()
+    return _hours(span) if span else None
+
+
+def _write_manifest(target: Path, doc: dict) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(target.name + ".tmp")
+    tmp.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, target)
+
+
+def process_date(settings: Settings, versions: list[static.Version], d: date, pipeline_version: str) -> str:
+    """Process one service date (one the date plan says is ready). Returns 'ok', 'no_static'
+    or 'no_service'."""
+    out = paths(settings, d)
+    base = {
+        "service_date": d.isoformat(),
+        "events_version": EVENTS_VERSION,
+        "methodology_version": settings.methodology_version,
+        "pipeline_version": pipeline_version,
+    }
+    v = static.choose(versions, d)
+    if v is None:
+        log.warning("%s: no static GTFS version covers this date", d)
+        _write_manifest(out.manifest, {**base, "status": "no_static", "static": {}})
+        return "no_static"
+
+    con, span = _schedule(settings, v, d)
+    static_info = {"stem": v.stem, "feed_version": v.feed_version, "sha256": v.sha256}
+    if span is None:
         log.info("%s: no scheduled service", d)
         _write_manifest(out.manifest, {**base, "status": "no_service", "static": static_info})
         con.close()
         return "no_service"
 
     o = timeutil.origin(d)
-    span = (o + first_dep, o + last_arr)
-    hour_list = archive.hours(span[0] - READ_BEFORE_S, span[1] + READ_AFTER_S)
-    if now < hour_list[-1] + 3600 + READY_AFTER_S or archive.spool_pending(settings.spool_dir, FEED, hour_list):
-        con.close()
-        return "not_ready"
+    hour_list = _hours(span)
 
     reduced = Reduced()
     packs = []

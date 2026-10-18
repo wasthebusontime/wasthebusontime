@@ -28,13 +28,14 @@ def packs_for_hour(archive_dir: Path, feed: str, hour: int) -> list[Path]:
     return layout.packs_for_hour(archive_dir, feed, datetime.fromtimestamp(hour, UTC))
 
 
-def spool_pending(spool_dir: Path, feed: str, hour_list: list[int]) -> bool:
-    """True if any of these hours still has unpacked files in the spool."""
+def unpacked_hours(spool_dir: Path, feed: str, hour_list: list[int]) -> set[int]:
+    """The hours of hour_list that still have unpacked files in the spool."""
+    out = set()
     for hour in hour_list:
         d = layout.spool_hour_dir(spool_dir, feed, datetime.fromtimestamp(hour, UTC))
         if d.is_dir() and any(d.iterdir()):
-            return True
-    return False
+            out.add(hour)
+    return out
 
 
 def sha256_file(path: Path) -> str:

@@ -44,10 +44,10 @@ def test_packed_snapshots_are_read_back_in_order(tmp_path):
     # The same second twice, as after a restart: both are kept.
     collector, settings = collect(tmp_path, [*times, times[-1]])
     hour = int(HOUR.timestamp())
-    assert archive.spool_pending(settings.spool_dir, events.FEED, [hour])
+    assert archive.unpacked_hours(settings.spool_dir, events.FEED, [hour - 3600, hour]) == {hour}
 
     assert pack.pack_completed(collector, now=HOUR + timedelta(hours=2)) == 5
-    assert not archive.spool_pending(settings.spool_dir, events.FEED, [hour])
+    assert archive.unpacked_hours(settings.spool_dir, events.FEED, [hour]) == set()
     packs = archive.packs_for_hour(settings.archive_dir, events.FEED, hour)
     assert len(packs) == 1
     got = list(archive.snapshots(packs))

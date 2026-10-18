@@ -1,19 +1,15 @@
-import json
-from datetime import UTC, datetime
-
 import duckdb
 import pytest
-from conftest import DAY, after
+from conftest import DAY
 from synth import TripPlan
-from wbot_collector import layout
 
-from wbot_pipeline import events, static, timeutil
+from wbot_pipeline import dateplan, events, static, timeutil
 from wbot_pipeline.config import EVENTS_VERSION
 
 
-def run(settings, now=None):
+def run(settings):
     versions = static.list_versions(settings.static_dir)
-    return events.process_date(settings, versions, DAY, now or after(DAY), "test")
+    return events.process_date(settings, versions, DAY, "test")
 
 
 def rows(settings, where="TRUE"):
@@ -139,41 +135,33 @@ def test_late_pack_and_unreadable_snapshot(settings, feed):
     assert [x["delay_dep_s"] for x in rows(settings, "trip_id = '901-0-0-v1'")] == [5, 6, 7, 8, 9]
 
 
-def test_not_ready_until_every_hour_is_packed(settings, feed):
-    feed.write()
-    o = timeutil.origin(DAY)
-    assert run(settings, now=o + 20 * 3600) == "not_ready"
-    assert events.read_manifest(settings, DAY) is None
-    spool = layout.spool_hour_dir(settings.spool_dir, events.FEED, datetime(2026, 10, 7, 8, tzinfo=UTC))
-    spool.mkdir(parents=True)
-    (spool / "x.pb").write_bytes(b"")
-    assert run(settings) == "not_ready"
-    (spool / "x.pb").unlink()
-    assert run(settings) == "ok"
-
-
-def test_stale_reason(settings, feed):
+def test_hours_read_cover_the_service_span(settings, network):
     versions = static.list_versions(settings.static_dir)
-    assert events.stale_reason(settings, versions, DAY) == "new"
+    hours = events.hours_read(settings, versions, DAY)
+    run(settings)
+    span = events.read_manifest(settings, DAY)["service_span"]
+    assert hours[0] <= span[0] - events.READ_BEFORE_S and hours[-1] + 3600 > span[1] + events.READ_AFTER_S
+    assert [h % 3600 for h in hours] == [0] * len(hours) and hours == list(range(hours[0], hours[-1] + 1, 3600))
+    assert events.hours_read(settings, versions, DAY.replace(day=11)) is None    # a Sunday: no service
+    assert events.hours_read(settings, [], DAY) is None
+
+
+def test_day_lists_the_packs_now_archived(settings, feed):
+    versions = static.list_versions(settings.static_dir)
+    assert events.day(settings, versions, DAY) == dateplan.Day(DAY, None, "test1_aaaaaaaa", [])
     feed.write()
     run(settings)
-    assert events.stale_reason(settings, versions, DAY) is None
+    day = events.day(settings, versions, DAY)
+    assert day.packs == [{"path": p["path"], "size": p["size"]} for p in day.manifest["packs"]]
     # A late pack turns up (for example restored from backup).
-    m = events.read_manifest(settings, DAY)
-    first = settings.data_dir / m["packs"][0]["path"]
-    first.with_name(first.name.replace(".tar.zst", ".1.tar.zst")).write_bytes(first.read_bytes())
-    assert events.stale_reason(settings, versions, DAY) == "archive changed"
-    run(settings)
-    assert events.stale_reason(settings, versions, DAY) is None
-    path = events.paths(settings, DAY).manifest
-    doc = json.loads(path.read_text())
-    doc["events_version"] = EVENTS_VERSION - 1
-    path.write_text(json.dumps(doc))
-    assert events.stale_reason(settings, versions, DAY) == "events version"
+    first = settings.data_dir / day.packs[0]["path"]
+    late = first.with_name(first.name.replace(".tar.zst", ".1.tar.zst"))
+    late.write_bytes(first.read_bytes())
+    assert {"path": late.relative_to(settings.data_dir).as_posix(), "size": late.stat().st_size} in         events.day(settings, versions, DAY).packs
 
 
 @pytest.mark.parametrize("weekday_ok", [True])
 def test_no_service_day(settings, network, weekday_ok):
     versions = static.list_versions(settings.static_dir)
     sunday = DAY.replace(day=11)
-    assert events.process_date(settings, versions, sunday, after(sunday), "test") == "no_service"
+    assert events.process_date(settings, versions, sunday, "test") == "no_service"
