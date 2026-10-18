@@ -121,6 +121,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         count_key=contract.count_key,
         percent=data.percent,
         fraction=data.fraction,
+        alert_details=data.alert_details,
     )
     jinja.filters.update(
         asset=asset_url,
@@ -130,6 +131,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         month=data.month_text,
         hour=data.hour_text,
         timestamp=data.timestamp_text,
+        headline=data.alert_headline,
         directions=data.directions_html,
     )
     return jinja

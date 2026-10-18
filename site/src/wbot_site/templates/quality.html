@@ -13,13 +13,32 @@
 <thead><tr><th scope="col">Start</th><th scope="col">End</th><th scope="col">Cause</th></tr></thead>
 <tbody>
 {% for w in quality.data_loss %}
-<tr><th scope="row">{{ w.start | timestamp }}</th><td>{{ w.end | timestamp }}</td><td>{{ cause_text(w.cause) | capitalize }}</td></tr>
+<tr><th scope="row">{{ w.start | timestamp }}</th><td>{{ w.end | timestamp }}</td><td>{% set cause = cause_text(w.cause) | string %}{{ cause[:1] | upper }}{{ cause[1:] }}</td></tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
 {% else %}
 <p>No data has been lost so far.</p>
+{% endif %}
+
+<h2>Detours</h2>
+{% set detours = quality.get("detours", []) %}
+{% if detours %}
+<p>Detours {{ agency.NAME }} posted in its real-time data. The numbers include the trips that ran during them; each route's page has the full alert.</p>
+<div class="table-wrap">
+<table class="data">
+<caption>Posted detours ({{ agency.TZ_NAME }})</caption>
+<thead><tr><th scope="col">Route</th><th scope="col">Start</th><th scope="col">End</th><th scope="col" class="num">Trips</th><th scope="col">Alert</th></tr></thead>
+<tbody>
+{% for d in detours %}
+<tr><th scope="row"><a href="/routes/{{ d.route }}/">Route {{ d.short_name }}</a></th><td>{{ d.start | timestamp }}</td><td>{{ d.end | timestamp }}</td><td class="num">{{ d.trips | number }}</td><td>{{ d.header | headline }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p>No detours were posted in this period.</p>
 {% endif %}
 
 <h2>Daily completeness</h2>

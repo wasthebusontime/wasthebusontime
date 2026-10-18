@@ -63,6 +63,11 @@ def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
         if name == "stops_monthly":
             header.insert(2, "stop_name")
             rows = [[r[0], r[1], names.stops.get(r[1], {}).get("name", r[1]), *r[2:]] for r in rows]
+        if name == "routes_daily":
+            # Trips on a posted detour that day; the numbers include them.
+            flagged = stage.detour_trips(["date", "route", "direction_id"])
+            header.append("detour_trips")
+            rows = [[*r, flagged.get((r[0], r[1], r[2]), 0)] for r in rows]
         tables[name] = (header, rows)
 
     eol = []
@@ -78,6 +83,9 @@ def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
           d["trips_scheduled"] - d["trips_observed"] - d["_cancelled"], d["_cancelled"], d["_added"], d["_skipped"],
           d["departures_scheduled"], d["departures_observed"], d["uptime_service_hours"]] for d in days])
     tables["data_loss"] = (["start", "end", "cause"], [[g["start"], g["end"], g["cause"]] for g in data_loss(stage)])
+    tables["detours"] = (["alert_id", "route", "start", "end", "trips", "header"],
+                         [[d["alert_id"], d["route"], d["start"], d["end"], d["trips"], d["header"]]
+                          for d in stage.detours()])
 
     for name, (header, rows) in tables.items():
         with open(csv_dir / f"{name}.csv", "w", newline="", encoding="utf-8") as f:

@@ -85,10 +85,12 @@
 {% if items %}
 {% set gaps = items | selectattr("code", "equalto", "data_loss") | list | length %}
 {% set low = items | selectattr("code", "equalto", "low_completeness") | list | length %}
+{% set detours = items | selectattr("code", "equalto", "detour") | list | length %}
 {% set parts = [] %}
 {% if items | selectattr("code", "equalto", "provisional") | list %}{% set _ = parts.append("provisional numbers") %}{% endif %}
 {% if gaps %}{% set _ = parts.append(gaps ~ " data gap" ~ ("s" if gaps > 1)) %}{% endif %}
 {% if low %}{% set _ = parts.append(low ~ " day" ~ ("s" if low > 1) ~ " with low recording") %}{% endif %}
+{% if detours %}{% set _ = parts.append(detours ~ " detour" ~ ("s" if detours > 1)) %}{% endif %}
 {% if items | selectattr("code", "equalto", "methodology_change") | list %}{% set _ = parts.append("a method change") %}{% endif %}
 <p class="notices-line"><a href="#notes">Notes about this data</a>: {{ parts | join(", ") }}.</p>
 {% endif %}
@@ -108,13 +110,21 @@
   <li>On {{ n.date | date }}, only {{ fraction(n.share) }} of scheduled departures were recorded.</li>
 {% elif n.code == "methodology_change" %}
   <li>The <a href="/methodology/">methodology</a> changed on {{ n.date | date }} (version {{ n.version }}).</li>
+{% elif n.code == "detour" and n.route is defined %}
+  <li>Route {{ n.short_name }} had a posted detour from {{ n.start | timestamp }} to {{ n.end | timestamp }} {{ agency.TZ_NAME }}. Departures from this stop during that time may be affected; see the <a href="/routes/{{ n.route }}/">Route {{ n.short_name }} page</a>.</li>
+{% elif n.code == "detour" %}
+  <li>{{ agency.NAME }} posted a detour for this route from {{ n.start | timestamp }} to {{ n.end | timestamp }} {{ agency.TZ_NAME }}, during {{ n.trips | number }} trips: &ldquo;{{ n.header | headline }}&rdquo; The numbers for this route include those trips.
+  {%- set more = alert_details(n.header, n.description) %}
+  {%- if more %}
+  <details><summary>Show the full alert</summary><p class="alert-text">{{ more }}</p></details>
+  {%- endif %}</li>
 {% endif %}
 {% endfor %}
 </ul>
 {% endif %}
 {% endmacro %}
 
-{% macro cause_text(cause) %}{{ {"collector": "a break in our recording", "feed": "a gap in {{ agency.NAME }}'s real-time data"}.get(cause, "cause unknown") }}{% endmacro %}
+{% macro cause_text(cause) %}{{ {"collector": "a break in our recording", "feed": "a gap in " ~ agency.NAME ~ "'s real-time data"}.get(cause, "cause unknown") }}{% endmacro %}
 
 {% macro monthly_table(rows) %}
 <table class="data">

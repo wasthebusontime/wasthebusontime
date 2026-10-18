@@ -1,9 +1,10 @@
 """The period's stop events and trips, and the questions the site files and open data ask of them.
 
-A Stage is built on a DuckDB connection on which the caller has already provided two relations:
+A Stage is built on a DuckDB connection on which the caller has already provided three relations:
 
   ev  stop events, one row per scheduled or seen stop of a trip (the columns events.py writes)
   tr  trip facts, one row per trip and service date
+  al  service alerts, one row per alert and service date (the columns alerts.py writes)
 
 In production they are views over the day Parquet files (sitefiles.prepare); tests make small
 in-memory tables. The tables derived from them stay inside this module: callers ask questions.
@@ -18,7 +19,7 @@ from datetime import date, timedelta
 import duckdb
 from wbot_site.contract import DAYTYPES, MAP_CELL, SCOPES
 
-from . import rules
+from . import alerts, rules, timeutil
 from .config import Settings
 from .perf import PerfQuery, empty
 from .quality import uptime_share
@@ -43,7 +44,9 @@ EMPTY_TRIP_FACTS = {
 
 
 class Stage:
-    def __init__(self, settings: Settings, period: Period, con: duckdb.DuckDBPyConnection):
+    def __init__(self, settings: Settings, period: Period, con: duckdb.DuckDBPyConnection,
+                 extra_routes: dict[str, list[str]] | None = None):
+        """extra_routes: {alert id: route ids} the alerts' tags miss (default: alert_routes.toml)."""
         self.settings, self.period, self._con = settings, period, con
         rules.register(con)
         # Departures, once per scope they count in.
@@ -65,6 +68,7 @@ class Stage:
         """)
         self._pq = PerfQuery(con, "d")
         self._eol = PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay")})
+        self._flag_detours(alerts.load_extra_routes() if extra_routes is None else extra_routes)
 
     def close(self) -> None:
         self._con.close()
@@ -138,6 +142,58 @@ class Stage:
         """{key: {n, early, p10, p50, p90}} per group of `keys` (month, route); early is any time before the schedule."""
         return {key: {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"]}
                 for key, p in self._eol.get(keys).items()}
+
+    # Detours.
+
+    def _flag_detours(self, extra_routes: dict[str, list[str]]) -> None:
+        """Table dw: each DETOUR alert's active windows per route; dtr: the scheduled trips
+        they flag (on the route, overlapping a window)."""
+        con = self._con
+        rows = con.execute("""
+            SELECT alert_id, arg_max(periods, last_seen), min(first_seen), max(last_seen),
+                   list_distinct(flatten(list(routes)))
+            FROM al WHERE effect = 'DETOUR' GROUP BY alert_id
+        """).fetchall()
+        windows = []
+        for alert_id, periods, first, last, routes in rows:
+            spans = alerts.windows([(p["start"], p["end"]) for p in periods or []], first, last)
+            for route in sorted(set(routes) | set(extra_routes.get(alert_id, ()))):
+                windows += [(alert_id, route, lo, hi) for lo, hi in spans]
+        con.execute("CREATE TABLE dw (alert_id VARCHAR, route_id VARCHAR, lo BIGINT, hi BIGINT)")
+        if windows:
+            con.executemany("INSERT INTO dw VALUES (?, ?, ?, ?)", windows)
+        con.execute("""
+            CREATE TABLE dtr AS
+            SELECT DISTINCT dw.alert_id, tr.service_date, tr.trip_id, tr.route_slug,
+                   coalesce(tr.direction_id, 0) AS direction_id
+            FROM dw JOIN tr ON tr.route_id = dw.route_id AND tr.scheduled
+                           AND tr.start_ts < dw.hi AND dw.lo < tr.end_ts
+        """)
+
+    def detours(self) -> list[dict]:
+        """Per DETOUR alert and route, if it flagged any trip in the period: its active time
+        (first to last window), the alert text and how many trips it flagged. By start."""
+        rows = self._con.execute("""
+            WITH t AS (SELECT alert_id, route_slug, count(DISTINCT (service_date, trip_id)) AS trips
+                       FROM dtr GROUP BY ALL),
+                 w AS (SELECT dw.alert_id, r.route_slug, min(dw.lo) AS lo, max(dw.hi) AS hi
+                       FROM dw JOIN (SELECT DISTINCT route_id, route_slug FROM tr) r USING (route_id) GROUP BY ALL),
+                 a AS (SELECT alert_id, arg_max(header, last_seen) AS header,
+                              arg_max(description, last_seen) AS description FROM al GROUP BY alert_id)
+            SELECT t.alert_id, t.route_slug, w.lo, w.hi, a.header, a.description, t.trips
+            FROM t JOIN w USING (alert_id, route_slug) JOIN a USING (alert_id)
+            ORDER BY w.lo, t.route_slug, t.alert_id
+        """).fetchall()
+        return [{"alert_id": aid, "route": slug, "start": timeutil.iso_utc(lo), "end": timeutil.iso_utc(hi),
+                 "header": header or "", "description": description or "", "trips": trips}
+                for aid, slug, lo, hi, header, description, trips in rows]
+
+    def detour_trips(self, keys: list[str]) -> dict[tuple, int]:
+        """Trips flagged by any detour, per group of keys (date, route, direction_id)."""
+        cols = {"date": "strftime(service_date, '%Y-%m-%d')", "route": "route_slug", "direction_id": "direction_id"}
+        sel = ", ".join(cols[k] for k in keys)
+        return {tuple(r[:-1]): r[-1] for r in self._con.execute(
+            f"SELECT {sel}, count(DISTINCT (service_date, trip_id)) FROM dtr GROUP BY ALL").fetchall()}
 
     # Trips.
 

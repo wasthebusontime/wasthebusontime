@@ -21,7 +21,7 @@ from pathlib import Path
 from wbot_site import contract
 from wbot_site.contract import MAP_BANDS, MAP_CELL, MAP_DAYTYPES, SCHEMA, SCOPES
 
-from . import events, opendata, rules, shapes, static, timeutil
+from . import alerts, events, opendata, rules, shapes, static, timeutil
 from .config import ALT, EVENTS_VERSION, HEADLINE, Settings
 from .db import connect, quote
 from .perf import empty
@@ -65,6 +65,14 @@ def prepare(settings: Settings, period: Period, db_path: Path) -> Stage:
     tr_list = ", ".join(f"'{quote(p.trips)}'" for p in files)
     con.execute(f"CREATE VIEW ev AS SELECT * FROM read_parquet([{ev_list}], union_by_name = true)")
     con.execute(f"CREATE VIEW tr AS SELECT * FROM read_parquet([{tr_list}], union_by_name = true)")
+    al_files = [p for p in (alerts.path(settings, date.fromisoformat(m["service_date"])) for m in period.days)
+                if p.exists()]
+    if al_files:
+        al_list = ", ".join(f"'{quote(p)}'" for p in al_files)
+        con.execute(f"CREATE VIEW al AS SELECT * FROM read_parquet([{al_list}], union_by_name = true)")
+    else:
+        con.register("al_empty", alerts.SCHEMA.empty_table())
+        con.execute("CREATE VIEW al AS SELECT * FROM al_empty")
     return Stage(settings, period, con)
 
 
@@ -198,6 +206,7 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
     write(site / "meta.json", meta)
 
     loss = data_loss(stage)
+    detours = stage.detours()
     days = stage.quality_days()
     facts_sys = stage.trip_facts(None).get(None) or EMPTY_TRIP_FACTS
     route_facts = stage.trip_facts("route")
@@ -227,15 +236,23 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
         "routes": route_rows,
         "notices": system_notices(stage, loss, days),
     })
-    write(site / "quality.json", {"schema": SCHEMA, "days": [public_day(d) for d in days], "data_loss": loss})
+    write(site / "quality.json", {
+        "schema": SCHEMA, "days": [public_day(d) for d in days], "data_loss": loss,
+        "detours": [{"route": d["route"], "short_name": route_name(names, d["route"]), "start": d["start"],
+                     "end": d["end"], "header": d["header"], "trips": d["trips"]} for d in detours],
+    })
 
-    write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss)
-    index = write_stops(stage, names, site)
+    write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss, detours)
+    index = write_stops(stage, names, site, detours)
     write_map(stage, site, index)
     write_geojson(stage, names, versions, site, slugs)
 
 
-def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss) -> None:
+def route_name(names: Names, slug: str) -> str:
+    return names.routes.get(slug, {}).get("short_name", slug)
+
+
+def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss, detours) -> None:
     by_direction = stage.perf(["scope", "route", "direction_id"])
     by_stop = stage.perf(["scope", "route", "direction_id", "stop"])
     order = stage.route_stop_order()
@@ -268,6 +285,8 @@ def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, 
             {"code": "data_loss", "start": g["start"], "end": g["end"], "cause": g["cause"]} for g in loss
             if any(timeutil.parse_iso_utc(g["start"]) < hi and lo < timeutil.parse_iso_utc(g["end"])
                    for lo, hi in windows)]
+        notices += [{"code": "detour", "start": d["start"], "end": d["end"], "header": d["header"],
+                     "description": d["description"], "trips": d["trips"]} for d in detours if d["route"] == slug]
         write(site / "routes" / f"{slug}.json", {
             "schema": SCHEMA,
             "route": {"slug": slug, "short_name": info["short_name"], "long_name": info["long_name"],
@@ -289,7 +308,7 @@ def headsign(names: Names, slug: str, direction: int, order) -> str:
     return names.stops.get(last, {}).get("name", last)
 
 
-def write_stops(stage: Stage, names: Names, site: Path) -> list[dict]:
+def write_stops(stage: Stage, names: Names, site: Path, detours: list[dict]) -> list[dict]:
     serving, timepoint_routes = stage.stop_routes()
     timepoint_somewhere = set(timepoint_routes)
     blocks = stage.perf_blocks("stop", daily=False)
@@ -315,7 +334,8 @@ def write_stops(stage: Stage, names: Names, site: Path) -> list[dict]:
                      "timepoint_somewhere": code in timepoint_somewhere,
                      "timepoint_routes": sorted(timepoint_routes.get(code, ()), key=route_order)},
             "scopes": scopes,
-            "notices": [],
+            "notices": [{"code": "detour", "route": d["route"], "short_name": route_name(names, d["route"]),
+                         "start": d["start"], "end": d["end"]} for d in detours if d["route"] in serving[code]],
         })
         entry = {"code": code, "name": info["name"], "routes": routes}
         if info["lat"] is not None and info["lon"] is not None:

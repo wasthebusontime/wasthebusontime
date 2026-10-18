@@ -160,6 +160,35 @@ class TripPlan:
     frozen_ts: bool = False            # trip_update.timestamp never advances past the start
 
 
+@dataclass
+class SimAlert:
+    """A service alert in the simulated Alerts feed, listed from shown[0] to shown[1]."""
+    id: str
+    routes: list[str]
+    shown: tuple[int, int]
+    periods: list[tuple[int, int]] = field(default_factory=list)   # active_period (start, end); 0 is open
+    effect: int = R.Alert.DETOUR
+    header: str = "Route on detour"
+    description: str = ""
+
+    def entity(self, msg: R.FeedMessage) -> None:
+        e = msg.entity.add()
+        e.id = self.id
+        a = e.alert
+        a.effect = self.effect
+        for route in self.routes:
+            a.informed_entity.add().route_id = route
+        for start, end in self.periods:
+            p = a.active_period.add()
+            if start:
+                p.start = start
+            if end:
+                p.end = end
+        a.header_text.translation.add(text=self.header, language="en")
+        if self.description:
+            a.description_text.translation.add(text=self.description, language="en")
+
+
 class Feed:
     """Simulates TripUpdates for one service date and writes packs and log lines."""
 
@@ -171,6 +200,7 @@ class Feed:
         self.gaps: list[tuple[int, int]] = []          # no fetch attempts at all (collector down)
         self.feed_errors: list[tuple[int, int]] = []   # HTTP 503 answers
         self.corrupt: set[int] = set()                 # snapshot times whose bytes don't parse
+        self.alerts: list[SimAlert] = []               # written to the Alerts feed every 5 minutes
 
     def active(self) -> list[Trip]:
         wd = self.d.weekday()
@@ -279,6 +309,26 @@ class Feed:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 write_pack(path, part)
         write_log(self.data_dir / layout.LOG, log_lines)
+        self.write_alerts()
+
+    def write_alerts(self) -> None:
+        """An Alerts snapshot every 5 minutes over the same hours, while not in a gap."""
+        by_hour: dict[int, list[tuple[str, bytes]]] = {}
+        for snap in self.times():
+            if snap % 300 or any(a <= snap < b for a, b in self.gaps):
+                continue
+            msg = R.FeedMessage()
+            msg.header.gtfs_realtime_version = "2.0"
+            msg.header.timestamp = snap
+            for alert in self.alerts:
+                if alert.shown[0] <= snap <= alert.shown[1]:
+                    alert.entity(msg)
+            name = layout.spool_path(Path(), layout.ALERTS, datetime.fromtimestamp(snap, UTC)).name
+            by_hour.setdefault(snap - snap % 3600, []).append((name, msg.SerializeToString()))
+        for hour, items in by_hour.items():
+            path = layout.pack_path(self.data_dir / layout.ARCHIVE, layout.ALERTS, datetime.fromtimestamp(hour, UTC))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_pack(path, items)
 
 
 def fetch(fetched: datetime, **fields) -> layout.FetchRecord:

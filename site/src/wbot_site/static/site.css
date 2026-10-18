@@ -115,6 +115,7 @@ main:focus { outline: none; }
 .prose { max-width: 68ch; }
 .notices { padding: .5rem 1rem .5rem 2rem; background: var(--panel); border-left: 4px solid var(--early); }
 /* One small line under the intro or title, marked with the caution color. */
+.alert-text { white-space: pre-line; }
 .notices-line { margin: .25rem 0 .75rem; padding-left: .6rem; border-left: 3px solid var(--early); font-size: .9rem; color: var(--muted); }
 
 /* Timepoints / all stops toggle */

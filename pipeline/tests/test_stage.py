@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import duckdb
 import pytest
 
+from wbot_pipeline import timeutil
 from wbot_pipeline.config import load_settings
 from wbot_pipeline.perf import reference
 from wbot_pipeline.stage import Period, Stage
@@ -16,7 +17,8 @@ EV = dict(service_date="DATE", trip_id="VARCHAR", route_slug="VARCHAR", directio
           stop_sequence="INTEGER", day_type="VARCHAR", service_hour="INTEGER", is_first="BOOLEAN", is_last="BOOLEAN",
           is_timepoint="BOOLEAN", delay_dep_s="INTEGER", delay_arr_s="INTEGER", observed="BOOLEAN",
           observed_arr="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR")
-TR = dict(service_date="DATE", trip_id="VARCHAR", route_slug="VARCHAR", scheduled="BOOLEAN", trip_sr="VARCHAR",
+TR = dict(service_date="DATE", trip_id="VARCHAR", route_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER",
+          scheduled="BOOLEAN", trip_sr="VARCHAR",
           eligible_timepoints="INTEGER", observed_timepoints="INTEGER", skipped_stops="INTEGER",
           start_ts="BIGINT", end_ts="BIGINT")
 
@@ -39,16 +41,27 @@ def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoi
             stop_sr=stop_sr.get(i, "SCHEDULED"), trip_sr=trip_sr))
     timed = [e for e in events if e["is_timepoint"] and not e["is_last"]]
     start = int((day - date(2026, 1, 1)).total_seconds()) + hour * 3600
-    row = dict(service_date=day, trip_id=trip_id, route_slug=route, scheduled=scheduled, trip_sr=trip_sr,
+    row = dict(service_date=day, trip_id=trip_id, route_id="R" + route, route_slug=route, direction_id=direction,
+               scheduled=scheduled, trip_sr=trip_sr,
                eligible_timepoints=len(timed),
                observed_timepoints=sum(1 for e in timed if e["observed"] and e["stop_sr"] == "SCHEDULED"),
                skipped_stops=sum(1 for e in events if e["stop_sr"] == "SKIPPED"), start_ts=start, end_ts=start + 1800)
     return events, row
 
 
-def make_stage(tmp_path, *trips, days=(DAY, DAY2), lost_s=0, **settings):
+AL = dict(alert_id="VARCHAR", effect="VARCHAR", routes="VARCHAR[]", periods="STRUCT(start BIGINT, \"end\" BIGINT)[]",
+          header="VARCHAR", description="VARCHAR", first_seen="BIGINT", last_seen="BIGINT")
+
+
+def alert(alert_id, routes, first_seen, last_seen, periods=(), effect="DETOUR", header="", description=""):
+    return dict(alert_id=alert_id, effect=effect, routes=routes, periods=[{"start": a, "end": b} for a, b in periods],
+                header=header, description=description, first_seen=first_seen, last_seen=last_seen)
+
+
+def make_stage(tmp_path, *trips, days=(DAY, DAY2), lost_s=0, alerts=(), extra_routes=None, **settings):
     con = duckdb.connect()
-    for name, cols, rows in (("ev", EV, [e for evs, _ in trips for e in evs]), ("tr", TR, [t for _, t in trips])):
+    for name, cols, rows in (("ev", EV, [e for evs, _ in trips for e in evs]), ("tr", TR, [t for _, t in trips]),
+                             ("al", AL, list(alerts))):
         con.execute(f"CREATE TABLE {name} ({', '.join(f'{k} {v}' for k, v in cols.items())})")
         if rows:
             con.executemany(f"INSERT INTO {name} VALUES ({', '.join('?' for _ in cols)})",
@@ -57,7 +70,7 @@ def make_stage(tmp_path, *trips, days=(DAY, DAY2), lost_s=0, **settings):
                       **settings)
     manifests = [{"service_date": d.isoformat(), "service_s": 36000, "lost_service_s": lost_s if i == 0 else 0}
                  for i, d in enumerate(days)]
-    return Stage(s, Period(days[0], days[-1], manifests), con)
+    return Stage(s, Period(days[0], days[-1], manifests), con, extra_routes=extra_routes or {})
 
 
 A = ["E1", "E2", "E3", "E4"]
@@ -144,3 +157,33 @@ def test_map_cells_add_up(tmp_path):
     assert cells[("2026-10", "weekday", "am_peak", "all_stops", "E2")] == [1, 0, 0, 1, 0]
     parts = [cells.get(("all", dt, "all", "all_stops", "E1"), [0] * 5) for dt in ("weekday", "saturday", "sunday")]
     assert [sum(p[k] for p in parts) for k in range(5)] == cells[("all", "all", "all", "all_stops", "E1")]
+
+
+def test_detours_flag_trips_on_their_routes_while_active(tmp_path):
+    t1 = trip("t1", "901", A, [0, 0, 0, 0], hour=8)
+    t2 = trip("t2", "901", A, [0, 0, 0, 0], hour=12)
+    t3 = trip("t3", "902", A, [0, 0, 0, 0], hour=8, direction=1)
+    t4 = trip("t4", "903", A, [0, 0, 0, 0], hour=8, day=DAY2)
+    start = t1[1]["start_ts"]
+    alerts = [
+        # Posted 07:50 to 10:00 but taken down after the 08:20 snapshot: flags t1 only.
+        alert("a1", ["R901"], start - 3600, start + 1200, periods=[(start - 600, start + 7200)],
+              header="Route 901 on detour", description="Stops E2 and E3 closed."),
+        # Tagged 902 only; the hand-kept file adds 903 (whose trip runs the next day).
+        alert("a2", ["R902"], start - 3600, t4[1]["end_ts"]),
+        # Not a detour.
+        alert("a3", ["R901"], start - 3600, t2[1]["end_ts"], effect="SIGNIFICANT_DELAYS"),
+    ]
+    stage = make_stage(tmp_path, t1, t2, t3, t4, alerts=alerts, extra_routes={"a2": ["R903"]})
+    found = {(d["alert_id"], d["route"]): d for d in stage.detours()}
+    assert set(found) == {("a1", "901"), ("a2", "902"), ("a2", "903")}
+    a1 = found[("a1", "901")]
+    assert a1["trips"] == 1 and a1["header"] == "Route 901 on detour" and a1["description"] == "Stops E2 and E3 closed."
+    assert (a1["start"], a1["end"]) == (timeutil.iso_utc(start - 600), timeutil.iso_utc(start + 1200 + 300))
+    assert stage.detour_trips(["date", "route", "direction_id"]) == {
+        (DAY.isoformat(), "901", 0): 1, (DAY.isoformat(), "902", 1): 1, (DAY2.isoformat(), "903", 0): 1}
+
+
+def test_no_alerts_no_detours(tmp_path):
+    stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, 0]))
+    assert stage.detours() == [] and stage.detour_trips(["date", "route", "direction_id"]) == {}

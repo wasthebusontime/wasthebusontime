@@ -60,6 +60,10 @@ def summary(doc):
     ("system.json", lambda d: d["notices"].append({"code": "data_loss", "start": "x", "end": "y"}),
      r"system.json: notices\[\d+\] \(data_loss\): missing cause"),
     ("system.json", lambda d: d["notices"].append({"date": "2026-10-04"}), r"notices\[\d+\]: missing code"),
+    ("system.json", lambda d: d["notices"].append({"code": "detour", "start": "x"}),
+     r"notices\[\d+\] \(detour\): missing end"),
+    ("quality.json", lambda d: d.update(detours=[{"route": "1", "short_name": "1", "start": "x", "end": "y", "trips": 1}]),
+     r"quality.json: detours\[0\]: missing header"),
     ("stops.json", lambda d: d["stops"][0].pop("routes"), r"stops.json: stops\[0\]: missing routes"),
     ("stops.json", lambda d: d["stops"].pop(), r"all-all.json: timepoints has \d+ stops, stops.json has"),
     ("map/all/weekday-midday.json", lambda d: d["all_stops"].pop(), "weekday-midday.json: all_stops has"),
@@ -98,6 +102,7 @@ def test_a_missing_map_preset_is_reported(stats):
 def test_what_the_format_allows(stats):
     # Codes the site doesn't know yet, a stop that is no timepoint, and a map without stop positions.
     change(stats, "system.json", lambda d: d["notices"].append({"code": "brand_new_code"}))
+    change(stats, "quality.json", lambda d: d.pop("detours", None))   # stats from before detours
     change(stats, "map/all/all-all.json", lambda d: d["timepoints"].__setitem__(0, None))
     slug = first_route(stats)
     change(stats, f"routes/{slug}.json", lambda d: d["stops"][0]["stops"][0].update(timepoints=None))

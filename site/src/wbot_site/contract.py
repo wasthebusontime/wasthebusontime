@@ -28,6 +28,8 @@ NOTICE_FIELDS = {
     "data_loss": ("start", "end", "cause"),
     "low_completeness": ("date", "share"),
     "methodology_change": ("date", "version"),
+    # Route files add header, description and trips; stop files add route and short_name.
+    "detour": ("start", "end"),
 }
 NOTICE_CODES = tuple(NOTICE_FIELDS)
 
@@ -87,6 +89,8 @@ def validate(stats_dir: Path) -> None:
 
     quality = _load(site, "quality.json")
     _keys(quality, ("days", "data_loss"), "quality.json")
+    for i, row in enumerate(quality.get("detours", [])):   # optional: stats from before 2026-10-18 have none
+        _keys(row, ("route", "short_name", "start", "end", "header", "trips"), f"quality.json: detours[{i}]")
 
     index = _load(site, "stops.json")
     _keys(index, ("stops",), "stops.json")

@@ -65,7 +65,7 @@ def plan(settings: Settings, versions: list[static.Version], now: int, rebuild: 
     entries = []
     for d, reason in todo:
         hours = events.hours_read(settings, versions, d)
-        unpacked = archive.unpacked_hours(settings.spool_dir, events.FEED, hours or [])
+        unpacked = set().union(*(archive.unpacked_hours(settings.spool_dir, f, hours or []) for f in events.FEEDS))
         entries.append(dateplan.entry(d, reason, hours, unpacked, now))
     return entries
 

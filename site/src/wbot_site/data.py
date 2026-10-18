@@ -181,6 +181,18 @@ def period_text(meta: dict) -> str:
     return f"{date_text(period['start'])} to {date_text(period['end'])}"
 
 
+def alert_headline(header: str) -> str:
+    """An alert's first non-empty line. Intercity Transit puts the whole message in the header."""
+    return next((line.strip() for line in header.splitlines() if line.strip()), "")
+
+
+def alert_details(header: str, description: str) -> str:
+    """Everything after the headline: the rest of the header, then the description."""
+    lines = header.strip().splitlines()
+    rest = "\n".join(lines[1:]).strip()
+    return "\n\n".join(part for part in (rest, description.strip()) if part)
+
+
 def known_notices(notices: list[dict], where: str) -> list[dict]:
     """Unknown codes are skipped with a warning, so the pipeline can add codes first."""
     known = []

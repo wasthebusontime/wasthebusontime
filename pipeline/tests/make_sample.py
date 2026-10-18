@@ -25,7 +25,7 @@ import pyarrow.parquet as pq
 from synth import Trip, fetch, write_gtfs
 from synth import write_log as append_log
 
-from wbot_pipeline import events, gaps, sitefiles, static, timeutil
+from wbot_pipeline import alerts, events, gaps, sitefiles, static, timeutil
 from wbot_pipeline.config import EVENTS_VERSION, POLL_S, load_settings
 
 SAMPLE_DIR = Path(__file__).resolve().parents[2] / "site" / "sample-stats"
@@ -43,6 +43,12 @@ DATA_LOSS = [
     {"start": "2026-10-17T20:10:00Z", "end": "2026-10-17T20:45:00Z", "cause": "collector", "note": "sample outage"},
     {"start": "2026-10-28T15:30:00Z", "end": "2026-10-28T16:05:00Z", "cause": "feed", "note": "sample feed gap"},
 ]
+
+# A posted detour, as the agency posts it: an alert on one route, listed in the feed from
+# start to end (written to the alert files of the dates it overlaps).
+DETOUR = {"alert_id": "sample-1", "route_id": "R902", "start": "2026-10-20T16:00:00Z", "end": "2026-10-21T01:00:00Z",
+          "header": "Route 902 detour: Sample Ave closed at 4th Ave",
+          "description": "Buses use Placeholder Rd between 3rd and 5th Ave. Stops on Sample Ave at 4th Ave are closed."}
 
 TC = "Sample Transit Center"
 EW = ["Example St", "Sample Ave", "Placeholder Rd", "Fictional Blvd"]
@@ -235,6 +241,14 @@ def write_day(settings, version: static.Version, d: date, rows: list[dict], trip
     span = (service[0][0], service[-1][1])
     notes = [{"start": a, "end": b, "cause": w["cause"], "note": w["note"]} for w, (a, b) in zip(DATA_LOSS, LOSS_WINDOWS)]
     found = gaps.apply_overrides(gaps.find_gaps(gaps.read_fetches(settings.log_dir, *span), service), notes)
+    lo, hi = timeutil.parse_iso_utc(DETOUR["start"]), timeutil.parse_iso_utc(DETOUR["end"])
+    if lo < span[1] and span[0] < hi:
+        path = alerts.path(settings, d)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pq.write_table(pa.Table.from_pylist([{
+            "alert_id": DETOUR["alert_id"], "effect": "DETOUR", "cause": "CONSTRUCTION", "routes": [DETOUR["route_id"]],
+            "stops": [], "trips": [], "periods": [], "header": DETOUR["header"], "description": DETOUR["description"],
+            "first_seen": lo, "last_seen": hi - alerts.POLL_S}], schema=alerts.SCHEMA), path)
     out.manifest.parent.mkdir(parents=True, exist_ok=True)
     out.manifest.write_text(json.dumps({
         "service_date": d.isoformat(), "events_version": EVENTS_VERSION,

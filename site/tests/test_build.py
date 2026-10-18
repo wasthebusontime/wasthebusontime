@@ -198,6 +198,29 @@ def test_methodology_compares_with_the_agency_window(dev_site):
     assert f"{percent(t['on_time_alt'], t['n'], 1)} of terminal departures" in html
 
 
+def test_detours_are_noted(dev_site):
+    # The sample's detour: route 902, Oct 20, 2026, 9:00 am to 6:00 pm Pacific, 38 trips.
+    route = (dev_site / "routes" / "902" / "index.html").read_text(encoding="utf-8")
+    notes = route.split('<h2 id="notes">')[1]
+    assert "posted a detour for this route from Oct 20, 2026, 9:00 am to Oct 20, 2026, 6:00 pm Pacific time" in notes
+    assert "38 trips" in notes and "Route 902 detour: Sample Ave closed at 4th Ave" in notes
+    assert "<details" in notes and "Buses use Placeholder Rd" in notes
+    assert "detour" in route.split('<h2 id="notes">')[0].split('class="notices-line"')[1].split("</p>")[0]
+    stop = (dev_site / "stops" / "E101" / "index.html").read_text(encoding="utf-8")
+    assert 'Route 902 had a posted detour' in stop and 'href="/routes/902/"' in stop
+    quality = (dev_site / "data-quality" / "index.html").read_text(encoding="utf-8")
+    table = quality.split("<h2>Detours</h2>")[1].split("</table>")[0]
+    assert "Route 902" in table and "38" in table and "Sample Ave closed" in table
+
+
+def test_gap_causes_name_the_agency(dev_site):
+    # The sample's 2026-10-28 gap is on the feed's side.
+    route = (dev_site / "routes" / "902" / "index.html").read_text(encoding="utf-8")
+    assert "a gap in Intercity Transit&#39;s real-time data" in route
+    quality = (dev_site / "data-quality" / "index.html").read_text(encoding="utf-8")
+    assert "A gap in Intercity Transit&#39;s real-time data" in quality
+
+
 def test_data_loss_times_are_pacific(dev_site):
     # The sample's first data-loss window starts 2026-10-09T01:00:00Z.
     html = (dev_site / "data-quality" / "index.html").read_text(encoding="utf-8")

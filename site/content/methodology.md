@@ -67,5 +67,6 @@ Percentages are computed from counts and rounded to whole percent in headlines a
 - **Measurement point.** Departure times come from the tracking system's detection of a bus leaving a stop area, not from door sensors. A bus that leaves exactly on schedule may be recorded a few seconds either side.
 - **Terminal departures.** At the first stop of a trip, the recorded departure tends to come about 20 seconds before the bus is clear of the stop. About 5% of terminal departures are recorded 0 to 30 seconds early, so under Intercity Transit's stricter definition some of them may really have been on time.
 - **Large stations.** At a few large stations, departures tend to be recorded early: about 45 seconds early at Hawks Prairie Park & Ride, and about 20 seconds early at transit center bays.
+- **Detours.** Intercity Transit's real-time data often doesn't mark the stops a detoured bus skips, so the times at those stops may be estimates. When Intercity Transit posts a detour, the route's page says so, and the numbers include the trips that ran during it.
 - **Gaps.** Recording runs on home hardware; outages longer than about 13 minutes lose data, and the site says so.
 - **Unofficial.** This site is not affiliated with or endorsed by Intercity Transit.

@@ -8,7 +8,7 @@ from datetime import date, timedelta
 
 import pytest
 from conftest import DAY, after
-from synth import Feed, TripPlan, default_trips, write_gtfs
+from synth import Feed, SimAlert, TripPlan, default_trips, write_gtfs
 
 from wbot_pipeline import pipeline, sitefiles, timeutil
 from wbot_pipeline.config import load_settings
@@ -38,6 +38,9 @@ def world(tmp_path_factory):
     f2 = Feed(settings.data_dir, DAY2, trips)
     f2.plans["901-0-2-v1"] = TripPlan(vehicle=False)
     f2.plans["901-0-3-v1"] = TripPlan(delays=[700, 800, 900, 1000, 1100])
+    o2 = timeutil.origin(DAY2)
+    f2.alerts = [SimAlert("d1", ["R901"], (o2 + 7 * 3600, o2 + 8 * 3600), header="Route 901 on detour",
+                          description="Example St is closed between 1st and 3rd Ave.")]
     f2.write()
     result = pipeline.run(settings, now=after(DAY2), do_publish=False, generated_at=GENERATED)
     return settings, result
@@ -95,7 +98,28 @@ def test_notices_and_quality(world):
     assert loss["cause"] == "collector" and loss["start"].endswith("Z")
     assert quality["days"][0]["uptime_service_hours"] < 1.0 == quality["days"][1]["uptime_service_hours"]
     route_codes = [n["code"] for n in load(world, "routes", "901.json")["notices"]]
-    assert route_codes == ["provisional", "data_loss"]
+    assert route_codes == ["provisional", "data_loss", "detour"]
+
+
+def test_detours(world):
+    settings, _ = world
+    (notice,) = [n for n in load(world, "routes", "901.json")["notices"] if n["code"] == "detour"]
+    assert notice["header"] == "Route 901 on detour" and notice["description"].startswith("Example St")
+    assert notice["trips"] > 0 and notice["start"].startswith(DAY2.isoformat())
+    assert not [n for n in load(world, "routes", "902.json")["notices"] if n["code"] == "detour"]
+    stops_901 = {s["code"] for s in load(world, "stops.json")["stops"] if "901" in s["routes"]}
+    for s in load(world, "stops.json")["stops"]:
+        codes = [(n["code"], n.get("route")) for n in load(world, "stops", f"{s['code']}.json")["notices"]]
+        assert codes == ([("detour", "901")] if s["code"] in stops_901 else [])
+    (row,) = load(world, "quality.json")["detours"]
+    assert (row["route"], row["trips"]) == ("901", notice["trips"])
+    with open(settings.out_dir / "csv" / "detours.csv", encoding="utf-8") as f:
+        (csv_row,) = list(csv.DictReader(f))
+    assert (csv_row["alert_id"], csv_row["route"], int(csv_row["trips"])) == ("d1", "901", notice["trips"])
+    with open(settings.out_dir / "csv" / "routes_daily.csv", encoding="utf-8") as f:
+        daily = [r for r in csv.DictReader(f) if r["scope"] == "timepoints"]
+    assert sum(int(r["detour_trips"]) for r in daily if r["date"] == DAY2.isoformat()) == notice["trips"]
+    assert all(r["detour_trips"] == "0" for r in daily if r["date"] == DAY.isoformat() or r["route"] != "901")
 
 
 def test_route_and_stop_pages(world):
@@ -134,7 +158,7 @@ def test_csv_columns(world):
     names = sorted(p.name for p in csv_dir.glob("*.csv"))
     assert names == sorted(f"{n}.csv" for n in (
         "system_daily", "routes_daily", "routes_monthly", "routes_hourly_monthly", "stops_monthly",
-        "terminal_monthly", "end_of_line_monthly", "quality_daily", "data_loss"))
+        "terminal_monthly", "end_of_line_monthly", "quality_daily", "data_loss", "detours"))
     with open(csv_dir / "system_daily.csv", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert list(rows[0])[:9] == ["date", "scope", "n", "early", "on_time", "late", "early_alt", "on_time_alt",

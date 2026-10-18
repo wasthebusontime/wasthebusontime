@@ -6,6 +6,7 @@ Writes, under derived/:
   trips/YYYY/YYYY-MM-DD.parquet   one row per trip
   days/YYYY-MM-DD.json            what was read (packs and their sha256, static version),
                                   versions, gaps in collection, and a few counts
+  alerts/YYYY/YYYY-MM-DD.parquet  every service alert seen in the same hours (alerts.py)
 
 Unobserved stops are kept with observed = false; nothing is ever guessed.
 """
@@ -17,9 +18,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import pyarrow.parquet as pq
 from wbot_collector import layout
 
-from . import archive, dateplan, gaps, rules, static, timeutil
+from . import alerts, archive, dateplan, gaps, rules, static, timeutil
 from .config import EVENTS_VERSION, MIN_SEEN_AFTER_DEP_S, Settings
 from .db import connect, quote
 from .rt import Reduced
@@ -27,6 +29,9 @@ from .rt import Reduced
 log = logging.getLogger(__name__)
 
 FEED = layout.TRIPUPDATES
+# Every feed a date reads. Their packs are listed in the day manifest, so a late pack in any
+# of them gets the date reprocessed.
+FEEDS = (layout.TRIPUPDATES, layout.ALERTS)
 # Read packs from this long before the first scheduled departure (trips appear in the
 # feed ahead of time) to this long after the last scheduled arrival.
 READ_BEFORE_S = 2 * 3600
@@ -55,9 +60,10 @@ def read_manifest(settings: Settings, d: date) -> dict | None:
 
 def pack_list(settings: Settings, hour_list: list[int]) -> list[dict]:
     out = []
-    for hour in hour_list:
-        for p in archive.packs_for_hour(settings.archive_dir, FEED, hour):
-            out.append({"path": p.relative_to(settings.data_dir).as_posix(), "size": p.stat().st_size})
+    for feed in FEEDS:
+        for hour in hour_list:
+            for p in archive.packs_for_hour(settings.archive_dir, feed, hour):
+                out.append({"path": p.relative_to(settings.data_dir).as_posix(), "size": p.stat().st_size})
     return out
 
 
@@ -145,16 +151,20 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
     hour_list = _hours(span)
 
     reduced = Reduced()
+    seen_alerts = alerts.Alerts()
     packs = []
     day = timeutil.yyyymmdd(d)
-    for hour in hour_list:
-        hour_packs = archive.packs_for_hour(settings.archive_dir, FEED, hour)
-        for p in hour_packs:
-            packs.append({"path": p.relative_to(settings.data_dir).as_posix(), "size": p.stat().st_size,
-                          "sha256": archive.sha256_file(p)})
-        if hour_packs:
+    for feed in FEEDS:
+        for hour in hour_list:
+            hour_packs = archive.packs_for_hour(settings.archive_dir, feed, hour)
+            for p in hour_packs:
+                packs.append({"path": p.relative_to(settings.data_dir).as_posix(), "size": p.stat().st_size,
+                              "sha256": archive.sha256_file(p)})
             for snap, _, data in archive.snapshots(hour_packs):
-                reduced.add(snap, data, day)
+                if feed == FEED:
+                    reduced.add(snap, data, day)
+                else:
+                    seen_alerts.add(snap, data)
 
     # When trips are scheduled to be running: gaps and uptime only count then.
     service = gaps.merge([(o + a, o + b) for a, b in con.execute(
@@ -252,6 +262,10 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
     con.close()
     os.replace(events_tmp, out.events)
     os.replace(trips_tmp, out.trips)
+    alerts_path = alerts.path(settings, d)
+    alerts_path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(seen_alerts.table(), alerts_path.with_name(alerts_path.name + ".tmp"))
+    os.replace(alerts_path.with_name(alerts_path.name + ".tmp"), alerts_path)
 
     fetches = gaps.read_fetches(settings.log_dir, span[0], span[1])
     found = gaps.apply_overrides(gaps.find_gaps(fetches, service), gaps.load_overrides())

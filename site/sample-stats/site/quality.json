@@ -261,5 +261,15 @@
    "cause": "feed",
    "note": "sample feed gap"
   }
+ ],
+ "detours": [
+  {
+   "route": "902",
+   "short_name": "902",
+   "start": "2026-10-20T16:00:00Z",
+   "end": "2026-10-21T01:00:00Z",
+   "header": "Route 902 detour: Sample Ave closed at 4th Ave",
+   "trips": 38
+  }
  ]
 }

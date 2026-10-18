@@ -1,0 +1,13 @@
+# Routes an alert's text names but its tags miss (Intercity Transit tags one route per
+# alert). Claude proposes entries when reviewing new alerts; the owner approves. Only adds
+# routes; an alert's times come from the feed. Keyed by the alert's id in the real-time data.
+
+[[alert]]
+id = "719"
+routes = ["24", "32"]
+note = "Routes 24, 32 and 76 will not serve Crosby Loop at SPSCC, 2026-10-09 (tagged 76 only)"
+
+[[alert]]
+id = "720"
+routes = ["13", "16"]
+note = "Israel Rd fire: routes 13, 16 and 70 on detour, 2026-10-15 to 10-16 (tagged 70 only)"

@@ -1824,6 +1824,14 @@
    "start": "2026-10-28T15:30:00Z",
    "end": "2026-10-28T16:05:00Z",
    "cause": "feed"
+  },
+  {
+   "code": "detour",
+   "start": "2026-10-20T16:00:00Z",
+   "end": "2026-10-21T01:00:00Z",
+   "header": "Route 902 detour: Sample Ave closed at 4th Ave",
+   "description": "Buses use Placeholder Rd between 3rd and 5th Ave. Stops on Sample Ave at 4th Ave are closed.",
+   "trips": 38
   }
  ]
 }

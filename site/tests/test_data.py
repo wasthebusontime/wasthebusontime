@@ -61,3 +61,12 @@ def test_unknown_notice_codes_are_skipped_with_a_warning(caplog):
         assert data.known_notices(notices, "system.json") == [{"code": "provisional"}]
     assert "brand_new_code" in caplog.text
 
+
+def test_alert_text_splits_into_headline_and_the_rest():
+    # Intercity Transit puts the whole message in the alert's header.
+    header = "Route 24 is on detour.\n\nThe following stops are closed:\nStop #894\n"
+    assert data.alert_headline(header) == "Route 24 is on detour."
+    assert data.alert_details(header, "") == "The following stops are closed:\nStop #894"
+    assert data.alert_details("One line only", "Buses use 4th Ave.") == "Buses use 4th Ave."
+    assert data.alert_details("Headline\nMore", "Description") == "More\n\nDescription"
+    assert data.alert_details("One line only", "") == ""
