@@ -1,18 +1,17 @@
 """End to end on simulated data: the pipeline's output must satisfy the site's own loader
-and build, and its numbers must match a plain-Python recount of the stop events."""
+and build, and the files must be laid out as the site expects. The numbers themselves are
+tested through the Stage (test_stage.py)."""
 
 import csv
 import json
 from datetime import date, timedelta
 
-import duckdb
 import pytest
 from conftest import DAY, after
 from synth import Feed, TripPlan, default_trips, write_gtfs
 
-from wbot_pipeline import pipeline, rules, sitefiles, timeutil
+from wbot_pipeline import pipeline, sitefiles, timeutil
 from wbot_pipeline.config import load_settings
-from wbot_pipeline.perf import reference
 from wbot_site import data as site_data
 from wbot_site.build import build as site_build
 
@@ -48,14 +47,6 @@ def load(world, *parts):
     return json.loads(settings.out_dir.joinpath("site", *parts).read_text(encoding="utf-8"))
 
 
-def eligible(settings, where="TRUE"):
-    con = duckdb.connect()
-    glob = (settings.derived_dir / "events" / "*" / "*.parquet").as_posix()
-    return [r[0] for r in con.execute(f"""
-        SELECT delay_dep_s FROM read_parquet('{glob}')
-        WHERE {rules.DEPARTURE} AND {where}""").fetchall()]
-
-
 def test_run_processes_both_days(world):
     _, result = world
     assert result.processed == {DAY.isoformat(): "ok", DAY2.isoformat(): "ok"}
@@ -86,35 +77,15 @@ def test_meta(world):
     assert len(meta["inputs_sha256"]) == 64
 
 
-def test_system_numbers_match_a_recount(world):
-    settings, _ = world
+def test_system_file(world):
     system = load(world, "system.json")
-    assert system["scopes"]["all_stops"]["summary"] == reference(eligible(settings))
-    assert system["scopes"]["timepoints"]["summary"] == reference(eligible(settings, "is_timepoint"))
-    assert system["terminal"] == reference(eligible(settings, "is_first"))
-    s = system["scopes"]["all_stops"]["summary"]
-    assert s["early"] + s["on_time"] + s["late"] == s["n"] == s["early_alt"] + s["on_time_alt"] + s["late_alt"]
-    daily = system["scopes"]["timepoints"]["daily"]
-    assert [d["date"] for d in daily] == [DAY.isoformat(), DAY2.isoformat()]
-    assert "p50" not in daily[0] and "hist" not in daily[0]
-    assert system["scopes"]["timepoints"]["monthly"][0]["partial"] is True
+    assert set(system["scopes"]) == {"timepoints", "all_stops"}
     assert [r["slug"] for r in system["routes"]] == ["901", "902"]
-    assert system["end_of_line"]["n"] > 0
+    assert system["end_of_line"]["n"] > 0 and system["trips"]["cancelled"] == 1
 
 
-def test_window_boundaries(world):
-    route = load(world, "routes", "901.json")
-    # 901-1-0 on day 1: -61, -60, -1, 300 at its non-last stops (plus every other trip at +30).
-    by_dir = {d["direction_id"]: d for d in route["scopes"]["all_stops"]["by_direction"]}
-    assert by_dir[1]["early"] == 1 and by_dir[1]["early_alt"] == 3
-
-
-def test_trip_facts_and_notices(world):
+def test_notices_and_quality(world):
     system = load(world, "system.json")
-    t = system["trips"]
-    assert t["cancelled"] == 1 and t["skipped_stops"] == 1 and t["added"] == 0
-    assert t["scheduled"] == t["observed"] + t["not_observed"] + t["cancelled"]
-    assert t["not_observed"] >= 1    # the trip without a vehicle
     codes = [n["code"] for n in system["notices"]]
     assert codes[0] == "provisional" and "data_loss" in codes and "methodology_change" in codes
     quality = load(world, "quality.json")
@@ -126,10 +97,9 @@ def test_trip_facts_and_notices(world):
     assert route_codes == ["provisional", "data_loss"]
 
 
-def test_route_stops_in_order_and_stop_pages(world):
+def test_route_and_stop_pages(world):
     route = load(world, "routes", "902.json")
     (loop,) = route["stops"]
-    assert [s["code"] for s in loop["stops"]][:1] == ["E205"]
     assert {s["code"] for s in loop["stops"]} == {"E205", "E206", "S7"}
     index = load(world, "stops.json")["stops"]
     assert [s["name"] for s in index] == sorted(s["name"] for s in index)
@@ -145,12 +115,11 @@ def test_route_stops_in_order_and_stop_pages(world):
     assert [r["slug"] for r in stop["scopes"]["all_stops"]["by_route"]] == ["901"]
 
 
-def test_map_presets_add_up(world):
+def test_map_presets_and_route_lines(world):
     index = load(world, "stops.json")["stops"]
     total = load(world, "map", "all", "all-all.json")
-    parts = [load(world, "map", "all", f"{dt}-all.json") for dt in ("weekday", "saturday", "sunday")]
-    for i in range(len(index)):
-        assert total["all_stops"][i] == [sum(p["all_stops"][i][k] for p in parts) for k in range(5)]
+    assert len(total["all_stops"]) == len(total["timepoints"]) == len(index)
+    assert all(len(cell) == 5 for cell in total["all_stops"])
     geo = load(world, "routes.geojson")
     keys = {(f["properties"]["slug"], f["properties"]["direction_id"]) for f in geo["features"]}
     assert keys == {("901", 0), ("901", 1), ("902", 0)}

@@ -1,10 +1,10 @@
-"""Data quality per service date: completeness, uptime and data-loss windows.
+"""Data quality from the day manifests: uptime and data-loss windows.
 
 Used for quality.json, the notices and quality_daily.csv / data_loss.csv, so each
-rule has one definition.
+rule has one definition. Completeness per day comes from the trips (Stage.quality_days).
 """
 
-from . import rules, timeutil
+from . import timeutil
 
 
 def uptime_share(days: list[dict]) -> float:
@@ -25,30 +25,6 @@ def data_loss(stage) -> list[dict]:
                     item["note"] = g["note"]
                 out.append((g["start"], item))
     return [item for _, item in sorted(out, key=lambda x: x[0])]
-
-
-def quality_days(stage) -> list[dict]:
-    s = stage.settings
-    per_day = {r[0]: r[1:] for r in stage.con.execute(f"""
-        SELECT strftime(service_date, '%Y-%m-%d'),
-               count(*) FILTER (WHERE scheduled),
-               count(*) FILTER (WHERE {rules.trip_observed(s.trip_coverage_min)}),
-               coalesce(sum(eligible_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
-               coalesce(sum(observed_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
-               count(*) FILTER (WHERE scheduled AND trip_sr = 'CANCELED'),
-               count(*) FILTER (WHERE trip_sr = 'ADDED'),
-               coalesce(sum(skipped_stops), 0)
-        FROM tr GROUP BY 1
-    """).fetchall()}
-    days = []
-    for m in stage.period.days:
-        d = m["service_date"]
-        sched, obs, deps, deps_obs, cancelled, added, skipped = per_day.get(d, (0, 0, 0, 0, 0, 0, 0))
-        days.append({"date": d, "trips_scheduled": sched, "trips_observed": obs,
-                     "departures_scheduled": int(deps), "departures_observed": int(deps_obs),
-                     "uptime_service_hours": uptime_share([m]),
-                     "_cancelled": cancelled, "_added": added, "_skipped": int(skipped)})
-    return days
 
 
 def public_day(day: dict) -> dict:

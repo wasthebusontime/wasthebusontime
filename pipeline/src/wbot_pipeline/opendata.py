@@ -18,22 +18,22 @@ import pyarrow.parquet as pq
 
 from .config import HIST_BUCKETS, HIST_START_MIN
 from .perf import COUNTS
-from .quality import data_loss, quality_days
+from .quality import data_loss
 
 HIST_COLUMNS = ["under", *(f"m{m}".replace("-", "_") for m in range(HIST_START_MIN, HIST_START_MIN + HIST_BUCKETS)),
                 "over"]
 
-# file name: (key columns as written, key columns in table d, where, histogram)
+# file name: (key columns as written, departure dimensions, terminal departures only, histogram)
 TABLES = {
-    "system_daily": (["date", "scope"], ["date", "scope"], "TRUE", True),
+    "system_daily": (["date", "scope"], ["date", "scope"], False, True),
     "routes_daily": (["date", "route", "direction_id", "scope"], ["date", "route", "direction_id", "scope"],
-                     "TRUE", False),
+                     False, False),
     "routes_monthly": (["month", "route", "direction_id", "scope", "day_type"],
-                       ["month", "route", "direction_id", "scope", "day_type"], "TRUE", True),
+                       ["month", "route", "direction_id", "scope", "day_type"], False, True),
     "routes_hourly_monthly": (["month", "route", "scope", "day_type", "hour"],
-                              ["month", "route", "scope", "day_type", "hour"], "TRUE", False),
-    "stops_monthly": (["month", "stop_code", "route", "scope"], ["month", "stop", "route", "scope"], "TRUE", False),
-    "terminal_monthly": (["month", "route"], ["month", "route"], "scope = 'all_stops' AND is_first", False),
+                              ["month", "route", "scope", "day_type", "hour"], False, False),
+    "stops_monthly": (["month", "stop_code", "route", "scope"], ["month", "stop", "route", "scope"], False, False),
+    "terminal_monthly": (["month", "route"], ["month", "route"], True, False),
 }
 
 
@@ -41,9 +41,9 @@ def _sort_key(row: list) -> list:
     return [(0, v, "") if isinstance(v, int) else (1, 0, str(v)) for v in row]
 
 
-def rows_for(stage, keys_d: list[str], where: str, hist: bool) -> list[list]:
+def rows_for(stage, keys: list[str], terminal: bool, hist: bool) -> list[list]:
     out = []
-    for key, p in stage.pq.get(keys_d, where=where, hist=hist, percentiles=False).items():
+    for key, p in stage.perf(keys, terminal=terminal, hist=hist, percentiles=False).items():
         row = [*key, *(p[c] for c in COUNTS)]
         if hist:
             h = p["hist"]
@@ -52,24 +52,24 @@ def rows_for(stage, keys_d: list[str], where: str, hist: bool) -> list[list]:
     return sorted(out, key=_sort_key)
 
 
-def write(stage, csv_dir: Path, agg_dir: Path) -> None:
+def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
     csv_dir.mkdir(parents=True, exist_ok=True)
     agg_dir.mkdir(parents=True, exist_ok=True)
     tables = {}
-    for name, (header, keys_d, where, hist) in TABLES.items():
-        rows = rows_for(stage, keys_d, where, hist)
+    for name, (header, keys, terminal, hist) in TABLES.items():
+        rows = rows_for(stage, keys, terminal, hist)
         header = header + list(COUNTS) + (HIST_COLUMNS if hist else [])
         if name == "stops_monthly":
             header.insert(2, "stop_name")
-            rows = [[r[0], r[1], stage.stops.get(r[1], {}).get("name", r[1]), *r[2:]] for r in rows]
+            rows = [[r[0], r[1], names.stops.get(r[1], {}).get("name", r[1]), *r[2:]] for r in rows]
         tables[name] = (header, rows)
 
     eol = []
-    for (month, route), p in stage.eol.get(["month", "route"]).items():
-        eol.append([month, route, p["n"], p["before_schedule"], p["p10"], p["p50"], p["p90"]])
+    for (month, route), p in stage.end_of_line(["month", "route"]).items():
+        eol.append([month, route, p["n"], p["early"], p["p10"], p["p50"], p["p90"]])
     tables["end_of_line_monthly"] = (["month", "route", "n", "early", "p10", "p50", "p90"], sorted(eol, key=_sort_key))
 
-    days = quality_days(stage)
+    days = stage.quality_days()
     tables["quality_daily"] = (
         ["date", "trips_scheduled", "trips_observed", "trips_not_observed", "cancelled", "added", "skipped_stops",
          "departures_scheduled", "departures_observed", "uptime_service_hours"],

@@ -1,7 +1,8 @@
 """Stop events -> the site files (JSON contract schema 1, see the website notes).
 
 Everything is recomputed from all stop events in the period on every run, which takes
-seconds: counts can't drift, and a threshold change applies everywhere at once.
+seconds: counts can't drift, and a threshold change applies everywhere at once. The numbers
+come from a Stage (stage.py); this module lays them out as files.
 
 Output layout (written to a fresh directory, then swapped in):
   site/meta.json, system.json, stops.json, quality.json, routes/{slug}.json,
@@ -14,16 +15,15 @@ import json
 import logging
 import shutil
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
-import duckdb
-
 from . import events, opendata, rules, shapes, static, timeutil
-from .quality import data_loss, public_day, quality_days, uptime_share
 from .config import ALT, BANDS, DAYTYPES, EVENTS_VERSION, HEADLINE, SCHEMA, SCOPES, Settings
 from .db import connect, quote
-from .perf import PerfQuery, empty
+from .perf import empty
+from .quality import data_loss, public_day
+from .stage import EMPTY_TRIP_FACTS, Period, Stage
 
 log = logging.getLogger(__name__)
 
@@ -38,28 +38,11 @@ def route_order(slug: str):
 
 
 @dataclass
-class Period:
-    start: date
-    end: date
-    days: list[dict]          # manifests of processed ("ok") dates in the period
-
-    @property
-    def dates(self) -> list[date]:
-        return [self.start + timedelta(days=i) for i in range((self.end - self.start).days + 1)]
-
-
-@dataclass
-class Stage:
-    """A DuckDB connection with the period's data prepared, plus static names."""
-    settings: Settings
-    con: duckdb.DuckDBPyConnection
-    period: Period
-    versions: list[static.Version]
+class Names:
+    """Route and stop names and coordinates from the static versions used in the period."""
     routes: dict = field(default_factory=dict)      # slug -> {short_name, long_name, route_id}
     stops: dict = field(default_factory=dict)       # code -> {stop_id, name, lat, lon}
     headsigns: dict = field(default_factory=dict)   # (slug, direction) -> headsign
-    pq: PerfQuery = None
-    eol: PerfQuery = None
 
 
 def find_period(settings: Settings) -> Period | None:
@@ -74,58 +57,41 @@ def find_period(settings: Settings) -> Period | None:
     return Period(settings.first_service_date, date.fromisoformat(days[-1]["service_date"]), days)
 
 
-def prepare(settings: Settings, period: Period, versions: list[static.Version], db_path: Path) -> Stage:
+def prepare(settings: Settings, period: Period, db_path: Path) -> Stage:
+    """A Stage over the period's stop event and trip Parquet files."""
     con = connect(settings, db_path)
-    rules.register(con)
     files = [events.paths(settings, date.fromisoformat(m["service_date"])) for m in period.days]
     ev_list = ", ".join(f"'{quote(p.events)}'" for p in files)
     tr_list = ", ".join(f"'{quote(p.trips)}'" for p in files)
     con.execute(f"CREATE VIEW ev AS SELECT * FROM read_parquet([{ev_list}], union_by_name = true)")
     con.execute(f"CREATE VIEW tr AS SELECT * FROM read_parquet([{tr_list}], union_by_name = true)")
-    # Departures, once per scope they count in.
-    cols = f"""strftime(service_date, '%Y-%m-%d') AS date, strftime(service_date, '%Y-%m') AS month, day_type,
-              service_hour AS hour, {rules.band('service_hour')} AS band,
-              route_slug AS route, coalesce(direction_id, 0) AS direction_id, stop_code AS stop, is_first,
-              delay_dep_s AS delay"""
-    con.execute(f"""
-        CREATE TABLE d AS
-        SELECT 'all_stops' AS scope, {cols} FROM ev WHERE {rules.DEPARTURE}
-        UNION ALL
-        SELECT 'timepoints' AS scope, {cols} FROM ev WHERE {rules.DEPARTURE} AND is_timepoint
-    """)
-    # End-of-line arrivals: each trip's last stop.
-    con.execute(f"""
-        CREATE TABLE eol AS
-        SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay
-        FROM ev WHERE {rules.END_OF_LINE}
-    """)
-    stage = Stage(settings, con, period, versions, pq=PerfQuery(con, "d"),
-                  eol=PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay")}))
-    load_names(stage)
-    return stage
+    return Stage(settings, period, con)
 
 
-def load_names(stage: Stage) -> None:
-    """Route and stop names and coordinates. Versions used in the period are read oldest
-    first, so the most current one wins."""
-    used = {static.choose(stage.versions, d) for d in stage.period.dates} - {None}
-    con = stage.con
+def load_names(settings: Settings, period: Period, versions: list[static.Version]) -> Names:
+    """Versions used in the period are read oldest first, so the most current one wins."""
+    names = Names()
+    used = {static.choose(versions, d) for d in period.dates} - {None}
+    con = connect(settings)
+    rules.register(con)
     for v in sorted(used, key=lambda v: (v.fetched_at or 0, v.stem)):
-        cache = static.ensure_cache(stage.settings.derived_dir, v)
+        cache = static.ensure_cache(settings.derived_dir, v)
         static.register(con, cache, prefix="s_")
         for slug, short, long, route_id in con.execute(
                 "SELECT route_slug(coalesce(route_short_name, route_id)), coalesce(route_short_name, route_id), "
                 "coalesce(route_long_name, ''), route_id FROM s_routes").fetchall():
-            stage.routes[slug] = {"short_name": short, "long_name": long, "route_id": route_id}
+            names.routes[slug] = {"short_name": short, "long_name": long, "route_id": route_id}
         for code, stop_id, name, lat, lon in con.execute(
                 "SELECT stop_slug(coalesce(stop_code, stop_id)), stop_id, coalesce(stop_name, stop_id), "
                 "TRY_CAST(stop_lat AS DOUBLE), TRY_CAST(stop_lon AS DOUBLE) FROM s_stops").fetchall():
-            stage.stops[code] = {"stop_id": stop_id, "name": name, "lat": lat, "lon": lon}
+            names.stops[code] = {"stop_id": stop_id, "name": name, "lat": lat, "lon": lon}
         for slug, direction, headsign in con.execute("""
                 SELECT route_slug(coalesce(r.route_short_name, r.route_id)), coalesce(TRY_CAST(t.direction_id AS INTEGER), 0),
                        mode(t.trip_headsign) FROM s_trips t JOIN s_routes r USING (route_id)
                 WHERE t.trip_headsign IS NOT NULL GROUP BY ALL""").fetchall():
-            stage.headsigns[(slug, direction)] = headsign
+            names.headsigns[(slug, direction)] = headsign
+    con.close()
+    return names
 
 
 # Building blocks.
@@ -141,96 +107,17 @@ def strip(p: dict, hist: bool = False, percentiles: bool = True) -> dict:
     return p
 
 
-def scope_blocks(stage: Stage, entity: str | None, daily: bool) -> dict[tuple, dict]:
-    """{(scope, entity value or None): block} with summary, by_hour, by_daytype,
-    daily (optional) and monthly, for every entity at once."""
-    pq, ek = stage.pq, ([entity] if entity else [])
-    summary = pq.get(["scope", *ek], hist=True)
-    by_hour = pq.get(["scope", *ek, "hour"])
-    by_daytype = pq.get(["scope", *ek, "day_type"])
-    monthly = pq.get(["scope", *ek, "month"])
-    by_date = pq.get(["scope", *ek, "date"], percentiles=False) if daily else {}
-    dates = stage.period.dates[-stage.settings.daily_days:]
-    hours, months = by_base(by_hour), by_base(monthly)
-    blocks = {}
-    entities = {k[1] if entity else None for k in summary}
-    for scope in SCOPES:
-        for e in entities:
-            base = (scope, e) if entity else (scope,)
-            block = {"summary": summary.get(base, empty(hist=True))}
-            block["by_hour"] = [{"hour": h, **v} for h, v in hours.get(base, [])]
-            block["by_daytype"] = {dt: by_daytype.get((*base, dt), empty()) for dt in DAYTYPES}
-            if daily:
-                block["daily"] = [{"date": d.isoformat(), **by_date.get((*base, d.isoformat()), empty(percentiles=False))}
-                                  for d in dates]
-            block["monthly"] = [{"month": m, "partial": month_partial(m, stage.period), **v}
-                                for m, v in months.get(base, [])]
-            blocks[(scope, e)] = block
-    return blocks
-
-
-def by_base(table: dict[tuple, dict]) -> dict[tuple, list[tuple]]:
-    """{(a, b, last): v} -> {(a, b): [(last, v), ...] sorted by last}."""
-    out = {}
-    for key in sorted(table, key=lambda k: k[-1]):
-        out.setdefault(key[:-1], []).append((key[-1], table[key]))
-    return out
-
-
-def month_partial(month: str, period: Period) -> bool:
-    year, m = map(int, month.split("-"))
-    first = date(year, m, 1)
-    last = date(year + (m == 12), m % 12 + 1, 1) - timedelta(days=1)
-    return first < period.start or last > period.end
-
-
 def end_of_line(stage: Stage, entity: str | None) -> dict:
     out = {}
-    for key, p in stage.eol.get([entity] if entity else []).items():
+    for key, p in stage.end_of_line([entity] if entity else []).items():
         out[key[0] if entity else None] = {
             "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-            "early_share": round(p["before_schedule"] / p["n"], 3),
+            "early_share": round(p["early"] / p["n"], 3),
         }
     return out
 
 
 EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0}
-
-
-def trip_facts(stage: Stage, entity: str | None) -> dict:
-    """completeness and trips blocks per entity (None for the system)."""
-    s = stage.settings
-    ek = "route_slug" if entity else "NULL"
-    rows = stage.con.execute(f"""
-        SELECT {ek} AS e,
-               count(*) FILTER (WHERE scheduled) AS scheduled,
-               count(*) FILTER (WHERE {rules.trip_observed(s.trip_coverage_min)}) AS observed,
-               count(*) FILTER (WHERE scheduled AND trip_sr = 'CANCELED') AS cancelled,
-               count(*) FILTER (WHERE trip_sr = 'ADDED') AS added,
-               coalesce(sum(skipped_stops), 0) AS skipped,
-               coalesce(sum(eligible_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
-               coalesce(sum(observed_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0)
-        FROM tr GROUP BY e
-    """).fetchall()
-    uptime = uptime_share(stage.period.days)
-    out = {}
-    for e, scheduled, observed, cancelled, added, skipped, deps, deps_obs in rows:
-        out[e] = {
-            "completeness": {"trips_scheduled": scheduled, "trips_observed": observed,
-                             "departures_scheduled": int(deps), "departures_observed": int(deps_obs),
-                             "uptime_service_hours": uptime},
-            "trips": {"scheduled": scheduled, "observed": observed, "not_observed": scheduled - observed - cancelled,
-                      "cancelled": cancelled, "added": added, "skipped_stops": int(skipped)},
-        }
-    return out
-
-
-
-
-
-
-
-
 
 
 def system_notices(stage: Stage, loss: list[dict], days: list[dict]) -> list[dict]:
@@ -246,15 +133,6 @@ def system_notices(stage: Stage, loss: list[dict], days: list[dict]) -> list[dic
     return notices
 
 
-def route_spans(stage: Stage) -> dict[str, list[tuple[int, int]]]:
-    out = {}
-    for slug, lo, hi in stage.con.execute(
-            "SELECT route_slug, min(start_ts), max(end_ts) FROM tr WHERE scheduled GROUP BY route_slug, service_date"
-    ).fetchall():
-        out.setdefault(slug, []).append((lo, hi))
-    return out
-
-
 # The files.
 
 
@@ -265,18 +143,19 @@ def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at:
         log.warning("no processed service dates yet; nothing to write")
         return False
     versions = static.list_versions(settings.static_dir)
+    names = load_names(settings, period, versions)
     tmp_root = settings.derived_dir / "tmp"
     tmp_root.mkdir(parents=True, exist_ok=True)
     db_path = tmp_root / "site.duckdb"
     db_path.unlink(missing_ok=True)
-    stage = prepare(settings, period, versions, db_path)
+    stage = prepare(settings, period, db_path)
     try:
         staging = out.with_name(out.name + ".new")
         shutil.rmtree(staging, ignore_errors=True)
-        write_all(stage, staging, pipeline_version, generated_at)
-        opendata.write(stage, staging / "csv", settings.derived_dir / "agg")
+        write_all(stage, names, versions, staging, pipeline_version, generated_at)
+        opendata.write(stage, names, staging / "csv", settings.derived_dir / "agg")
     finally:
-        stage.con.close()
+        stage.close()
         db_path.unlink(missing_ok=True)
     old = out.with_name(out.name + ".old")
     shutil.rmtree(old, ignore_errors=True)
@@ -287,7 +166,8 @@ def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at:
     return True
 
 
-def write_all(stage: Stage, out: Path, pipeline_version: str, generated_at: str) -> None:
+def write_all(stage: Stage, names: Names, versions: list[static.Version], out: Path,
+              pipeline_version: str, generated_at: str) -> None:
     site = out / "site"
     s, period = stage.settings, stage.period
     used = sorted({m["static"]["feed_version"] for m in period.days})
@@ -314,21 +194,20 @@ def write_all(stage: Stage, out: Path, pipeline_version: str, generated_at: str)
     write(site / "meta.json", meta)
 
     loss = data_loss(stage)
-    days = quality_days(stage)
-    facts_sys = trip_facts(stage, None).get(None) or trip_facts_empty()
-    route_facts = trip_facts(stage, "route")
-    sys_blocks = scope_blocks(stage, None, daily=True)
-    route_blocks = scope_blocks(stage, "route", daily=True)
-    terminal = stage.pq.get(["route"], where="scope = 'all_stops' AND is_first", hist=True)
-    terminal_sys = stage.pq.get([], where="scope = 'all_stops' AND is_first", hist=True)
+    days = stage.quality_days()
+    facts_sys = stage.trip_facts(None).get(None) or EMPTY_TRIP_FACTS
+    route_facts = stage.trip_facts("route")
+    sys_blocks = stage.perf_blocks(None, daily=True)
+    route_blocks = stage.perf_blocks("route", daily=True)
+    terminal = stage.perf(["route"], terminal=True, hist=True)
+    terminal_sys = stage.perf([], terminal=True, hist=True)
     eol_sys, eol_routes = end_of_line(stage, None), end_of_line(stage, "route")
 
     # Routes: every route with scheduled trips in the period.
-    served = [r[0] for r in stage.con.execute("SELECT DISTINCT route_slug FROM tr WHERE scheduled").fetchall()]
-    slugs = sorted(served, key=route_order)
+    slugs = sorted(stage.served_routes(), key=route_order)
     route_rows = []
     for slug in slugs:
-        info = stage.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
+        info = names.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
         route_rows.append({
             "slug": slug, "short_name": info["short_name"], "long_name": info["long_name"],
             "timepoints": strip(route_blocks.get(("timepoints", slug), {"summary": empty()})["summary"]),
@@ -336,7 +215,7 @@ def write_all(stage: Stage, out: Path, pipeline_version: str, generated_at: str)
         })
     write(site / "system.json", {
         "schema": SCHEMA,
-        "scopes": {scope: sys_blocks.get((scope, None)) or empty_block(stage, daily=True) for scope in SCOPES},
+        "scopes": {scope: sys_blocks.get((scope, None)) or stage.empty_block(daily=True) for scope in SCOPES},
         "terminal": terminal_sys.get((), empty(hist=True)),
         "end_of_line": eol_sys.get(None, EMPTY_EOL),
         "completeness": facts_sys["completeness"],
@@ -346,60 +225,26 @@ def write_all(stage: Stage, out: Path, pipeline_version: str, generated_at: str)
     })
     write(site / "quality.json", {"schema": SCHEMA, "days": [public_day(d) for d in days], "data_loss": loss})
 
-    write_routes(stage, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss)
-    index = write_stops(stage, site)
+    write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss)
+    index = write_stops(stage, names, site)
     write_map(stage, site, index)
-    write_geojson(stage, site, slugs)
+    write_geojson(stage, names, versions, site, slugs)
 
 
-def trip_facts_empty() -> dict:
-    return {"completeness": {"trips_scheduled": 0, "trips_observed": 0, "departures_scheduled": 0,
-                             "departures_observed": 0, "uptime_service_hours": 1.0},
-            "trips": {"scheduled": 0, "observed": 0, "not_observed": 0, "cancelled": 0, "added": 0, "skipped_stops": 0}}
-
-
-def empty_block(stage: Stage, daily: bool) -> dict:
-    block = {"summary": empty(hist=True), "by_hour": [], "by_daytype": {dt: empty() for dt in DAYTYPES}}
-    if daily:
-        block["daily"] = [{"date": d.isoformat(), **empty(percentiles=False)}
-                          for d in stage.period.dates[-stage.settings.daily_days:]]
-    block["monthly"] = []
-    return block
-
-
-def route_stop_order(stage: Stage) -> dict[tuple[str, int], list[tuple[str, bool]]]:
-    """Stops of each route and direction in route order: by their average relative
-    position along the trips that serve them. Value: [(code, timepoint here)]."""
-    out = {}
-    for slug, direction, code, _, timepoint in stage.con.execute(f"""
-        WITH t AS (
-            SELECT route_slug, coalesce(direction_id, 0) AS direction_id, stop_code, is_timepoint, is_last,
-                   (row_number() OVER w - 1) / greatest(count(*) OVER (PARTITION BY service_date, trip_id) - 1, 1) AS rel
-            FROM ev WHERE scheduled
-            WINDOW w AS (PARTITION BY service_date, trip_id ORDER BY stop_sequence)
-        )
-        SELECT route_slug, direction_id, stop_code, avg(rel) AS pos, bool_or({rules.TIMED_STOP})
-        FROM t GROUP BY ALL ORDER BY route_slug, direction_id, pos, stop_code
-    """).fetchall():
-        out.setdefault((slug, direction), []).append((code, timepoint))
-    return out
-
-
-def write_routes(stage, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss) -> None:
-    pq = stage.pq
-    by_direction = pq.get(["scope", "route", "direction_id"])
-    by_stop = pq.get(["scope", "route", "direction_id", "stop"])
-    order = route_stop_order(stage)
-    spans = route_spans(stage)
+def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss) -> None:
+    by_direction = stage.perf(["scope", "route", "direction_id"])
+    by_stop = stage.perf(["scope", "route", "direction_id", "stop"])
+    order = stage.route_stop_order()
+    spans = stage.route_spans()
     notices_base = [{"code": "provisional"}] if stage.settings.provisional else []
     for slug in slugs:
-        info = stage.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
+        info = names.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
         directions = sorted(d for (r, d) in order if r == slug)
         scopes = {}
         for scope in SCOPES:
-            block = dict(route_blocks.get((scope, slug)) or empty_block(stage, daily=True))
+            block = dict(route_blocks.get((scope, slug)) or stage.empty_block(daily=True))
             block["by_direction"] = [{
-                "direction_id": d, "headsign": headsign(stage, slug, d, order),
+                "direction_id": d, "headsign": headsign(names, slug, d, order),
                 **by_direction.get((scope, slug, d), empty()),
             } for d in directions]
             scopes[scope] = block
@@ -408,12 +253,12 @@ def write_routes(stage, site, slugs, route_blocks, terminal, eol_routes, route_f
             rows = []
             for code, timepoint in order[(slug, d)]:
                 rows.append({
-                    "code": code, "name": stage.stops.get(code, {}).get("name", code), "timepoint": timepoint,
+                    "code": code, "name": names.stops.get(code, {}).get("name", code), "timepoint": timepoint,
                     "timepoints": by_stop.get(("timepoints", slug, d, code), empty()) if timepoint else None,
                     "all_stops": by_stop.get(("all_stops", slug, d, code), empty()),
                 })
             stop_lists.append({"direction_id": d, "stops": rows})
-        facts = route_facts.get(slug) or trip_facts_empty()
+        facts = route_facts.get(slug) or EMPTY_TRIP_FACTS
         windows = spans.get(slug, [])
         notices = notices_base + [
             {"code": "data_loss", "start": g["start"], "end": g["end"], "cause": g["cause"]} for g in loss
@@ -433,38 +278,30 @@ def write_routes(stage, site, slugs, route_blocks, terminal, eol_routes, route_f
         })
 
 
-def headsign(stage: Stage, slug: str, direction: int, order) -> str:
-    if (slug, direction) in stage.headsigns:
-        return stage.headsigns[(slug, direction)]
+def headsign(names: Names, slug: str, direction: int, order) -> str:
+    if (slug, direction) in names.headsigns:
+        return names.headsigns[(slug, direction)]
     last = order[(slug, direction)][-1][0]
-    return stage.stops.get(last, {}).get("name", last)
+    return names.stops.get(last, {}).get("name", last)
 
 
-def write_stops(stage: Stage, site: Path) -> list[dict]:
-    con, pq = stage.con, stage.pq
-    serving = {}
-    for code, slug in con.execute("SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled").fetchall():
-        serving.setdefault(code, set()).add(slug)
-    # Routes for which each stop is a timepoint (a departure from it is timed).
-    timepoint_routes = {}
-    for code, slug in con.execute(
-            f"SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled AND {rules.TIMED_STOP}").fetchall():
-        timepoint_routes.setdefault(code, set()).add(slug)
+def write_stops(stage: Stage, names: Names, site: Path) -> list[dict]:
+    serving, timepoint_routes = stage.stop_routes()
     timepoint_somewhere = set(timepoint_routes)
-    blocks = scope_blocks(stage, "stop", daily=False)
-    by_route = pq.get(["scope", "stop", "route"])
+    blocks = stage.perf_blocks("stop", daily=False)
+    by_route = stage.perf(["scope", "stop", "route"])
     index = []
-    for code in sorted(serving, key=lambda c: (stage.stops.get(c, {}).get("name", c), c)):
-        info = stage.stops.get(code, {"stop_id": code, "name": code, "lat": None, "lon": None})
+    for code in sorted(serving, key=lambda c: (names.stops.get(c, {}).get("name", c), c)):
+        info = names.stops.get(code, {"stop_id": code, "name": code, "lat": None, "lon": None})
         routes = sorted(serving[code], key=route_order)
         scopes = {}
         for scope in SCOPES:
             if scope == "timepoints" and code not in timepoint_somewhere:
                 scopes[scope] = None
                 continue
-            block = dict(blocks.get((scope, code)) or empty_block(stage, daily=False))
+            block = dict(blocks.get((scope, code)) or stage.empty_block(daily=False))
             block["by_route"] = [{
-                "slug": slug, "short_name": stage.routes.get(slug, {}).get("short_name", slug),
+                "slug": slug, "short_name": names.routes.get(slug, {}).get("short_name", slug),
                 **by_route.get((scope, code, slug), empty()),
             } for slug in routes]
             scopes[scope] = block
@@ -485,24 +322,10 @@ def write_stops(stage: Stage, site: Path) -> list[dict]:
 
 
 def write_map(stage: Stage, site: Path, index: list) -> None:
-    """Per-stop counts for every preset of the stop map. Counts add up, so the finest
-    grain is queried once and the "all" presets are sums."""
+    """Per-stop counts for every preset of the stop map."""
     if not index or not all("lat" in e for e, _ in index):
         return
-    cells = {}
-    w = rules.window_counts("delay")
-    filters = ", ".join(f"count(*) FILTER (WHERE {w[name]})" for name in ("early", "on_time", "late", "on_time_alt"))
-    for scope, month, dt, b, stop, n, early, on_time, late, on_time_alt in stage.con.execute(f"""
-        SELECT scope, month, day_type, band, stop, count(*), {filters}
-        FROM d GROUP BY ALL
-    """).fetchall():
-        for period in ("all", month):
-            for dkey in ("all", dt):
-                for bkey in ("all", b):
-                    key = (period, dkey, bkey, scope, stop)
-                    c = cells.setdefault(key, [0, 0, 0, 0, 0])
-                    for i, v in enumerate((n, early, on_time, late, on_time_alt)):
-                        c[i] += v
+    cells = stage.map_cells()
     months = sorted({k[0] for k in cells if k[0] != "all"})
     for period in ["all", *months]:
         for dt in MAP_DAYTYPES:
@@ -516,14 +339,16 @@ def write_map(stage: Stage, site: Path, index: list) -> None:
                 write(site / "map" / period / f"{dt}-{b}.json", doc, compact=True)
 
 
-def write_geojson(stage: Stage, site: Path, slugs: list[str]) -> None:
+def write_geojson(stage: Stage, names: Names, versions: list[static.Version], site: Path, slugs: list[str]) -> None:
     """One simplified line per route and direction, from the most current static version."""
-    v = static.most_current(stage.versions, stage.period.start, stage.period.end)
+    v = static.most_current(versions, stage.period.start, stage.period.end)
     if v is None:
         return
-    con = stage.con
+    con = connect(stage.settings)
+    rules.register(con)
     static.register(con, static.ensure_cache(stage.settings.derived_dir, v), prefix="g_")
     if not con.execute("SELECT count(*) FROM g_shapes").fetchone()[0]:
+        con.close()
         return
     rows = con.execute("""
         WITH pick AS (
@@ -535,6 +360,7 @@ def write_geojson(stage: Stage, site: Path, slugs: list[str]) -> None:
         FROM pick p JOIN g_shapes s ON s.shape_id = p.shape_id
         ORDER BY p.slug, p.direction_id, CAST(s.shape_pt_sequence AS INTEGER)
     """).fetchall()
+    con.close()
     lines = {}
     for slug, direction, lat, lon in rows:
         lines.setdefault((slug, direction), []).append((lat, lon))
@@ -545,7 +371,7 @@ def write_geojson(stage: Stage, site: Path, slugs: list[str]) -> None:
             continue
         features.append({
             "type": "Feature",
-            "properties": {"slug": slug, "short_name": stage.routes.get(slug, {}).get("short_name", slug),
+            "properties": {"slug": slug, "short_name": names.routes.get(slug, {}).get("short_name", slug),
                            "direction_id": direction},
             "geometry": {"type": "LineString", "coordinates": [[lon, lat] for lat, lon in shapes.simplify(points)]},
         })
