@@ -289,10 +289,12 @@ def fetch(fetched: datetime, **fields) -> layout.FetchRecord:
 def write_log(log_dir: Path, records: list[layout.FetchRecord]) -> None:
     """Append records to the fetch log, each to its own day's file."""
     log_dir.mkdir(parents=True, exist_ok=True)
+    days: dict[date, list[str]] = {}
     for r in records:
-        day = datetime.fromisoformat(r["fetched_at"]).date()
+        days.setdefault(datetime.fromisoformat(r["fetched_at"]).date(), []).append(json.dumps(r) + "\n")
+    for day, lines in days.items():
         with open(layout.log_path(log_dir, day), "a", encoding="utf-8", newline="\n") as f:
-            f.write(json.dumps(r) + "\n")
+            f.writelines(lines)
 
 
 def write_pack(path: Path, items: list[tuple[str, bytes]]) -> None:
