@@ -39,7 +39,7 @@
    "trips_observed": 294,
    "departures_scheduled": 802,
    "departures_observed": 760,
-   "uptime_service_hours": 0.9833
+   "uptime_service_hours": 0.9816
   },
   {
    "date": "2026-10-09",
@@ -111,7 +111,7 @@
    "trips_observed": 115,
    "departures_scheduled": 318,
    "departures_observed": 293,
-   "uptime_service_hours": 0.9708
+   "uptime_service_hours": 0.9469
   },
   {
    "date": "2026-10-18",
@@ -199,7 +199,7 @@
    "trips_observed": 293,
    "departures_scheduled": 802,
    "departures_observed": 754,
-   "uptime_service_hours": 0.9708
+   "uptime_service_hours": 0.9678
   },
   {
    "date": "2026-10-29",

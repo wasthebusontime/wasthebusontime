@@ -1,6 +1,6 @@
-"""Loads the published statistics (JSON contract, schema 1) and formats numbers for display.
+"""Loads the published statistics and formats numbers for display.
 
-The stats directory has the same layout as the stats repo: `site/*.json` plus `csv/*.csv`.
+The format of the stats directory (schema 1) is defined and checked in contract.py.
 """
 
 import json
@@ -12,20 +12,13 @@ from pathlib import Path
 
 from markupsafe import Markup, escape
 
+from wbot_site import contract
 from wbot_site.windows import Windows, from_meta
 
 log = logging.getLogger("wbot_site")
 
-SCHEMA = 1
-SCOPES = ("timepoints", "all_stops")
 SCOPE_LABELS = {"timepoints": "Timepoints", "all_stops": "All stops"}
-DAYTYPES = ("weekday", "saturday", "sunday")
 DAYTYPE_LABELS = {"weekday": "Weekday", "saturday": "Saturday", "sunday": "Sunday"}
-
-# Stop map presets, written by the pipeline as site/map/{period}/{daytype}-{band}.json.
-MAP_DAYTYPES = ("all", *DAYTYPES)
-MAP_BANDS = ("all", "early", "am_peak", "midday", "pm_peak", "evening")
-NOTICE_CODES = {"data_loss", "low_completeness", "provisional", "methodology_change"}
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
@@ -34,13 +27,7 @@ class StatsError(Exception):
 
 
 def load_json(path: Path) -> dict:
-    try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise StatsError(f"missing {path}") from None
-    if doc.get("schema") != SCHEMA:
-        raise StatsError(f"{path}: schema {doc.get('schema')!r}, this generator knows schema {SCHEMA}")
-    return doc
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def has_stats(stats_dir: Path) -> bool:
@@ -79,31 +66,17 @@ class Stats:
 
     def map_periods(self) -> list[str]:
         """Periods with stop map presets ("all" first, then months), or [] if the stats have no map."""
-        stops = self.index["stops"]
-        if not stops or not all("lat" in s and "lon" in s for s in stops) or not self.routes_geojson.is_file():
-            return []
-        periods = sorted(p.name for p in self.map_dir.iterdir() if p.is_dir()) if self.map_dir.is_dir() else []
-        return ["all", *[p for p in periods if p != "all"]] if "all" in periods else []
-
-
-def check_map(stats: Stats) -> None:
-    """Every preset file must exist and list every stop, in stops.json order."""
-    n = len(stats.index["stops"])
-    for period in stats.map_periods():
-        for daytype in MAP_DAYTYPES:
-            for band in MAP_BANDS:
-                path = stats.map_dir / period / f"{daytype}-{band}.json"
-                doc = load_json(path)
-                if len(doc["timepoints"]) != n or len(doc["all_stops"]) != n:
-                    raise StatsError(f"{path}: {len(doc['all_stops'])} stops, stops.json has {n}")
+        return contract.map_periods(self.root)
 
 
 def load_stats(stats_dir: Path) -> Stats:
+    """The stats, once they pass the contract's check and their windows can be shown."""
     site = stats_dir / "site"
-    meta = load_json(site / "meta.json")
     try:
-        from_meta(meta.get("windows"))
-    except ValueError as e:
+        contract.validate(stats_dir)
+        meta = load_json(site / "meta.json")
+        from_meta(meta["windows"])
+    except ValueError as e:   # ContractError is one
         raise StatsError(str(e)) from None
     system = load_json(site / "system.json")
     stats = Stats(
@@ -117,7 +90,6 @@ def load_stats(stats_dir: Path) -> Stats:
         stats.routes[route["slug"]] = load_json(site / "routes" / f"{route['slug']}.json")
     for stop in stats.index["stops"]:
         stats.stops[stop["code"]] = load_json(site / "stops" / f"{stop['code']}.json")
-    check_map(stats)
     return stats
 
 
@@ -143,8 +115,7 @@ def enough(perf: dict | None, min_sample: int) -> bool:
 
 
 def split(perf: dict, window: str = "headline") -> tuple[int, int, int]:
-    suffix = "_alt" if window == "alt" else ""
-    return perf["early" + suffix], perf["on_time" + suffix], perf["late" + suffix]
+    return tuple(perf[contract.count_key(part, window)] for part in contract.PARTS)
 
 
 def number(n: int) -> str:
@@ -212,7 +183,7 @@ def known_notices(notices: list[dict], where: str) -> list[dict]:
     """Unknown codes are skipped with a warning, so the pipeline can add codes first."""
     known = []
     for notice in notices:
-        if notice.get("code") in NOTICE_CODES:
+        if notice.get("code") in contract.NOTICE_CODES:
             known.append(notice)
         else:
             log.warning("%s: ignoring unknown notice code %r", where, notice.get("code"))

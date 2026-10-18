@@ -16,9 +16,10 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import duckdb
+from wbot_site.contract import DAYTYPES, MAP_CELL, SCOPES
 
 from . import rules
-from .config import DAYTYPES, SCOPES, Settings
+from .config import Settings
 from .perf import PerfQuery, empty
 from .quality import uptime_share
 
@@ -113,20 +114,20 @@ class Stage:
         return block
 
     def map_cells(self) -> dict[tuple, list[int]]:
-        """Stop map counts [n, early, on_time, late, on_time_alt] per (period, day type, band, scope, stop),
+        """Stop map cells (the contract's MAP_CELL counts) per (period, day type, band, scope, stop),
         where period, day type and band can each also be "all". Counts add up, so the finest grain
         is queried once and the "all" cells are sums."""
         cells = {}
         w = rules.window_counts("delay")
-        filters = ", ".join(f"count(*) FILTER (WHERE {w[name]})" for name in ("early", "on_time", "late", "on_time_alt"))
+        counts_sql = ", ".join("count(*)" if name == "n" else f"count(*) FILTER (WHERE {w[name]})" for name in MAP_CELL)
         for scope, month, dt, b, stop, *counts in self._con.execute(f"""
-            SELECT scope, month, day_type, band, stop, count(*), {filters}
+            SELECT scope, month, day_type, band, stop, {counts_sql}
             FROM d GROUP BY ALL
         """).fetchall():
             for period in ("all", month):
                 for dkey in ("all", dt):
                     for bkey in ("all", b):
-                        c = cells.setdefault((period, dkey, bkey, scope, stop), [0, 0, 0, 0, 0])
+                        c = cells.setdefault((period, dkey, bkey, scope, stop), [0] * len(MAP_CELL))
                         for i, v in enumerate(counts):
                             c[i] += v
         return cells

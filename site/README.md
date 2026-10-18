@@ -9,13 +9,13 @@ Two runtime dependencies: Jinja2 (templates) and Python-Markdown (text pages). C
 ```
 build.sh                  the build entry point, for the dev VM and Cloudflare Pages
 src/wbot_site/build.py    reads the stats, renders every page, writes sitemap.xml and robots.txt
-src/wbot_site/data.py     loads and checks schema 1, rounding, "Not enough data", text formats
+src/wbot_site/contract.py the site files format (schema 1): shared names and the check of a stats directory
+src/wbot_site/data.py     loads the stats, rounding, "Not enough data", text formats
 src/wbot_site/charts.py   the SVG charts, each with a summary sentence and a table
 src/wbot_site/templates/  Jinja templates; footer.html is on every page
 src/wbot_site/static/     site.css (all colors in variables at the top), site.js, map.js (the stop map)
 src/wbot_site/static/vendor/  MapLibre, pmtiles, Protomaps style, fonts and icons (see VENDOR.md)
 content/                  Markdown pages: about (including AI use), terms, privacy, methodology, data, unavailable
-tools/make_sample.py      writes the synthetic sample stats
 tools/make_tiles.sh       cuts the basemap tile file for the stop map (not committed)
 tools/make_icons.py       draws the site icon (favicon.svg, favicon.ico, apple-touch-icon.png); run with uv run --with pillow
 sample-stats/             the committed sample (invented network, "synthetic": true)
@@ -65,13 +65,13 @@ Links are absolute (`/routes/901/`), so open the site through a server rather th
 - If the stats directory has no `site/meta.json` yet, a **dev** build uses `sample-stats/` instead and every page shows a "SAMPLE DATA" banner.
 - A **prod** build fails if the stats are missing, synthetic (`"synthetic": true`), or use an unknown schema, so sample data can't go live by accident.
 
-The sample is an invented network: Routes 901 to 906, stops like "Example St & 1st Ave" with codes E101 and up. It contains no real route names, stop names, codes or schedules. To change it, edit `tools/make_sample.py` and regenerate:
+The sample is an invented network: Routes 901 to 906, stops like "Example St & 1st Ave" with codes E101 and up. It contains no real route names, stop names, codes or schedules. It is written by the pipeline's own site files step from simulated departures, so it has exactly the pipeline's shapes. To change it, edit `pipeline/tests/make_sample.py` and regenerate:
 
 ```
-uv run python tools/make_sample.py
+cd ../pipeline && uv run python tests/make_sample.py
 ```
 
-A test fails if `sample-stats/` doesn't match a fresh run.
+A pipeline test fails if `sample-stats/` doesn't match a fresh run. Site tests and dev builds read the committed copy and don't need the pipeline.
 
 ## Stop map
 

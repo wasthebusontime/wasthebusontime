@@ -307,13 +307,13 @@ dependencies = [
     { name = "gtfs-realtime-bindings" },
     { name = "pyarrow" },
     { name = "tzdata" },
+    { name = "wbot-site" },
     { name = "zstandard" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
-    { name = "wbot-site" },
 ]
 
 [package.metadata]
@@ -322,14 +322,12 @@ requires-dist = [
     { name = "gtfs-realtime-bindings", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=17" },
     { name = "tzdata", specifier = ">=2024.1" },
+    { name = "wbot-site", editable = "../site" },
     { name = "zstandard", specifier = ">=0.23" },
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8" },
-    { name = "wbot-site", editable = "../site" },
-]
+dev = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "wbot-site"

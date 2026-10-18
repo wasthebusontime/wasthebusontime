@@ -6,8 +6,9 @@ macros that take their inputs as arguments are registered on a connection with r
 """
 
 import duckdb
+from wbot_site.contract import BANDS, SUFFIX
 
-from .config import ALT, BANDS, HEADLINE
+from .config import ALT, HEADLINE
 
 MACROS = [
     "CREATE OR REPLACE MACRO gtfs_s(x) AS CASE WHEN x IS NULL THEN NULL ELSE "
@@ -41,14 +42,14 @@ END_OF_LINE = """(is_last AND scheduled AND observed_arr AND stop_sr = 'SCHEDULE
 
 
 def band(hour: str) -> str:
-    """The band of a service hour column, from config.BANDS; the last band takes every later hour."""
+    """The band of a service hour column, from the contract's BANDS; the last band takes every later hour."""
     *bands, (last, _, _) = BANDS
     whens = " ".join(f"WHEN {hour} < {hi} THEN '{key}'" for key, _, hi in bands)
     return f"(CASE {whens} ELSE '{last}' END)"
 
 
 # On-time windows, by the suffix of their count names: "" is the headline window, "_alt" the agency's.
-WINDOWS = {"": HEADLINE, "_alt": ALT}
+WINDOWS = {SUFFIX["headline"]: HEADLINE, SUFFIX["alt"]: ALT}
 
 
 def window_counts(delay: str) -> dict[str, str]:

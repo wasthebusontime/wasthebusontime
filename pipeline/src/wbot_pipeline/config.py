@@ -1,8 +1,9 @@
-"""Settings read from the environment, and the constants the site depends on.
+"""Settings read from the environment, and the methodology's constants.
 
 Every threshold the methodology calls provisional is a setting, so the
 re-validation can change it without a code change. The on-time windows and the
-histogram range are constants: the site's labels describe exactly these.
+histogram range are constants. The names in the site files (scopes, day types,
+bands) are the site's, in wbot_site.contract.
 """
 
 import os
@@ -14,17 +15,12 @@ from pathlib import Path
 # service date whose events were made by another version is reprocessed.
 EVENTS_VERSION = 1
 
-SCHEMA = 1
 # On-time windows in seconds late, inclusive. The headline is the common industry
 # window (1 min early to 5 min late); the alt is Intercity Transit's own (0 to 5).
 HEADLINE = (-60, 300)
 ALT = (0, 300)
 HIST_START_MIN = -10
 HIST_BUCKETS = 30
-SCOPES = ("timepoints", "all_stops")
-DAYTYPES = ("weekday", "saturday", "sunday")
-# Stop map time-of-day bands by service hour: (key, first hour, last hour + 1).
-BANDS = (("early", 0, 6), ("am_peak", 6, 9), ("midday", 9, 15), ("pm_peak", 15, 18), ("evening", 18, 48))
 
 # Passed stops stay in TripUpdates about 15 minutes; a stop is read when it is final.
 RETENTION_S = 900

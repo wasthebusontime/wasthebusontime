@@ -5,8 +5,10 @@
 import * as maplibregl from "/static/vendor/maplibre-gl/maplibre-gl.mjs";
 
 const root = document.getElementById("stop-map");
-// Color bins and window wording come from the page, which the build writes from the stats.
+// Color bins, the order of the counts in a map cell and the window wording come from the
+// page, which the build writes from the contract and the stats.
 const BINS = root ? root.dataset.bins.split(" ").map(Number) : [];
+const CELL = root ? root.dataset.cell.split(" ") : [];
 const WINDOW = root ? root.dataset.window : "";
 const ALT_WINDOW = root ? root.dataset.altWindow : undefined;
 if (root) start(root);
@@ -15,10 +17,15 @@ function percent(count, n) {
   return Math.round((count * 100) / n) + "%";
 }
 
+// One count of a map cell, by name ("n", "on_time", ...).
+function count(counts, name) {
+  return counts[CELL.indexOf(name)];
+}
+
 function bin(counts, minSample) {
-  if (!counts || counts[0] < minSample) return -1;
+  if (!counts || count(counts, "n") < minSample) return -1;
   // The first bin whose lower edge (percent on time) the stop reaches, in integers.
-  const i = BINS.findIndex((edge) => counts[2] * 100 >= edge * counts[0]);
+  const i = BINS.findIndex((edge) => count(counts, "on_time") * 100 >= edge * count(counts, "n"));
   return i === -1 ? BINS.length : i;
 }
 
@@ -86,10 +93,11 @@ function popupContent(stop, counts, minSample, scopeLabel) {
   details.append(el("div", `Stop ${stop.code}, Route${stop.routes.length > 1 ? "s" : ""} ${stop.routes.join(", ")}`));
   if (!counts) {
     details.append(el("div", "Not a timepoint. Choose \"All stops\" to see its numbers."));
-  } else if (counts[0] < minSample) {
-    details.append(el("div", `Not enough data (${counts[0]} departure${counts[0] === 1 ? "" : "s"}).`));
+  } else if (count(counts, "n") < minSample) {
+    const n = count(counts, "n");
+    details.append(el("div", `Not enough data (${n} departure${n === 1 ? "" : "s"}).`));
   } else {
-    const [n, early, onTime, late, onTimeAlt] = counts;
+    const [n, early, onTime, late, onTimeAlt] = ["n", "early", "on_time", "late", "on_time_alt"].map((k) => count(counts, k));
     details.append(el("div", `${percent(onTime, n)} on time (${WINDOW}), ${percent(early, n)} early, ${percent(late, n)} late`));
     if (ALT_WINDOW) {
       details.append(el("div", `${percent(onTimeAlt, n)} on time (${ALT_WINDOW}, Intercity Transit's own definition)`));

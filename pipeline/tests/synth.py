@@ -3,7 +3,7 @@
 Nothing here comes from Intercity Transit's feeds: routes are "901" and "902", stops
 are "Example St & 1st Ave" and so on, codes start at E201. The simulator writes the
 collector's layout (static/, archive/ packs, log/) so the pipeline reads it exactly as
-it reads the real archive.
+it reads the real archive. write_gtfs also takes another network (make_sample.py's).
 """
 
 import io
@@ -30,6 +30,12 @@ STOPS = [
     ("S7", "", "Sample Ave & 5th Ave", 47.0500, -122.8800),  # no public code: falls back to stop_id
 ]
 MIN_BETWEEN = 4  # minutes between consecutive stops
+ROUTES = [("R901", "901", "Example St Crosstown"), ("R902", "902", "Sample Loop")]
+# The calendar's services: the days of the week each one runs, Monday first.
+WEEKDAYS = {"WK": (1, 1, 1, 1, 1, 0, 0), "SAT": (0, 0, 0, 0, 0, 1, 0), "SUN": (0, 0, 0, 0, 0, 0, 1)}
+# Each shape runs straight from stop to stop.
+SHAPES = {"SH901-0": ["S1", "S2", "S3", "S4", "S5"], "SH901-1": ["S5", "S4", "S3", "S2", "S1"],
+          "SH902": ["S5", "S6", "S7", "S6", "S5"]}
 
 
 @dataclass
@@ -44,6 +50,7 @@ class Trip:
     hold_at: dict[int, int] = field(default_factory=dict)  # index -> extra minutes held
     headsign: str = ""
     shape_id: str = ""
+    min_between: int = MIN_BETWEEN
 
     def schedule(self) -> list[tuple[int, str, int, int, bool]]:
         """(stop_sequence, stop_id, arrival s, departure s, timepoint) per stop."""
@@ -52,7 +59,7 @@ class Trip:
             arr = t
             dep = arr + self.hold_at.get(i, 0) * 60
             out.append((i * 10, stop_id, arr, dep, i in self.timepoints))
-            t = dep + MIN_BETWEEN * 60
+            t = dep + self.min_between * 60
         return out
 
 
@@ -83,7 +90,10 @@ def hms(seconds: int) -> str:
 
 def write_gtfs(static_dir: Path, stem: str, trips: list[Trip], *, feed_version: str = "test1",
                start: str = "20261001", end: str = "20261231", fetched_at: str = "2026-10-01T10:30:00Z",
-               calendar_dates: list[tuple[str, str, str]] = (), with_shapes: bool = True) -> Path:
+               calendar_dates: list[tuple[str, str, str]] = (), with_shapes: bool = True,
+               routes: list[tuple[str, str, str]] = ROUTES, stops: list[tuple] = STOPS,
+               shapes: dict[str, list[str]] = SHAPES) -> Path:
+    """routes: (route_id, short name, long name). stops: as STOPS. shapes: shape_id -> stop_ids."""
     def table(header, rows):
         buf = io.StringIO()
         buf.write(",".join(header) + "\n")
@@ -95,9 +105,9 @@ def write_gtfs(static_dir: Path, stem: str, trips: list[Trip], *, feed_version: 
         "agency.txt": table(["agency_id", "agency_name", "agency_url", "agency_timezone"],
                             [["A", "Sample Transit", "https://example.invalid", "America/Los_Angeles"]]),
         "routes.txt": table(["route_id", "route_short_name", "route_long_name", "route_type"],
-                            [["R901", "901", "Example St Crosstown", 3], ["R902", "902", "Sample Loop", 3]]),
+                            [[*r, 3] for r in routes]),
         "stops.txt": table(["stop_id", "stop_code", "stop_name", "stop_lat", "stop_lon"],
-                           [[s[0], s[1], f'"{s[2]}"', s[3], s[4]] for s in STOPS]),
+                           [[s[0], s[1], f'"{s[2]}"', s[3], s[4]] for s in stops]),
         "trips.txt": table(["route_id", "service_id", "trip_id", "trip_headsign", "direction_id", "shape_id"],
                            [[t.route_id, t.service_id, t.trip_id, t.headsign, t.direction_id, t.shape_id]
                             for t in trips]),
@@ -107,24 +117,23 @@ def write_gtfs(static_dir: Path, stem: str, trips: list[Trip], *, feed_version: 
         "calendar.txt": table(
             ["service_id", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
              "start_date", "end_date"],
-            [["WK", 1, 1, 1, 1, 1, 0, 0, start, end], ["SAT", 0, 0, 0, 0, 0, 1, 0, start, end]]),
+            [[sid, *days, start, end] for sid, days in WEEKDAYS.items() if any(t.service_id == sid for t in trips)]),
         "calendar_dates.txt": table(["service_id", "date", "exception_type"], list(calendar_dates)),
         "feed_info.txt": table(["feed_publisher_name", "feed_publisher_url", "feed_lang", "feed_start_date",
                                 "feed_end_date", "feed_version"],
                                [["Sample Transit", "https://example.invalid", "en", start, end, feed_version]]),
     }
     if with_shapes:
-        coords = {s[0]: (s[3], s[4]) for s in STOPS}
+        coords = {s[0]: (s[3], s[4]) for s in stops}
         rows = []
-        for shape_id, stops in (("SH901-0", ["S1", "S2", "S3", "S4", "S5"]), ("SH901-1", ["S5", "S4", "S3", "S2", "S1"]),
-                                ("SH902", ["S5", "S6", "S7", "S6", "S5"])):
+        for shape_id, points in shapes.items():
             seq = 0
-            for a, b in zip(stops, stops[1:]):
+            for a, b in zip(points, points[1:]):
                 (la1, lo1), (la2, lo2) = coords[a], coords[b]
                 for f in (0, 0.25, 0.5, 0.75):  # straight segments: the middle points simplify away
                     rows.append([shape_id, round(la1 + (la2 - la1) * f, 6), round(lo1 + (lo2 - lo1) * f, 6), seq])
                     seq += 1
-            la, lo = coords[stops[-1]]
+            la, lo = coords[points[-1]]
             rows.append([shape_id, la, lo, seq])
         files["shapes.txt"] = table(["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"], rows)
     static_dir.mkdir(parents=True, exist_ok=True)

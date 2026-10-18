@@ -23,7 +23,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import charts, data, windows
+from wbot_site import charts, contract, data, windows
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -108,14 +108,15 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         inline_icon=inline_icon,
         min_sample=stats.meta["min_sample"],
         period=data.period_text(stats.meta),
-        scopes=data.SCOPES,
+        scopes=contract.SCOPES,
         scope_labels=data.SCOPE_LABELS,
-        daytypes=data.DAYTYPES,
+        daytypes=contract.DAYTYPES,
         daytype_labels=data.DAYTYPE_LABELS,
         windows=stats.windows,
         terminal_standard=windows.TERMINAL_STANDARD,
         enough=data.enough,
         split=data.split,
+        count_key=contract.count_key,
         percent=data.percent,
         fraction=data.fraction,
     )
@@ -175,13 +176,19 @@ def clean_output(out: Path) -> None:
 
 
 # Checkbox labels; the "all" presets are what the map loads when every box is ticked.
-MAP_BAND_LABELS = {
-    "early": "Early (before 6 am)",
-    "am_peak": "AM peak (6 to 9 am)",
-    "midday": "Midday (9 am to 3 pm)",
-    "pm_peak": "PM peak (3 to 6 pm)",
-    "evening": "Evening (6 pm on)",
-}
+BAND_NAMES = {"early": "Early", "am_peak": "AM peak", "midday": "Midday", "pm_peak": "PM peak", "evening": "Evening"}
+
+
+def band_label(key: str, first: int, end: int) -> str:
+    """"AM peak (6 to 9 am)", with the hours from the contract's band."""
+    if first == 0:
+        hours = f"before {data.hour_text(end)}"
+    elif end >= 24:
+        hours = f"{data.hour_text(first)} on"
+    else:
+        a, b = data.hour_text(first), data.hour_text(end)
+        hours = f"{a.split()[0]} to {b}" if a.split()[1] == b.split()[1] else f"{a} to {b}"
+    return f"{BAND_NAMES[key]} ({hours})"
 
 
 def copy_map_data(b: Build, tiles_url: str) -> dict | None:
@@ -200,8 +207,9 @@ def copy_map_data(b: Build, tiles_url: str) -> dict | None:
         "routes": [(r["slug"], f"Route {r['short_name']} {r['long_name']}") for r in b.stats.system["routes"]],
         "periods": [(p, "Whole period" if p == "all" else data.month_text(p)) for p in periods],
         "daytypes": list(data.DAYTYPE_LABELS.items()),
-        "bands": list(MAP_BAND_LABELS.items()),
+        "bands": [(key, band_label(key, first, end)) for key, first, end in contract.BANDS],
         "bins": " ".join(str(b) for b in windows.MAP_BINS),
+        "cell": " ".join(contract.MAP_CELL),
         "legend": windows.map_legend(),
     }
 

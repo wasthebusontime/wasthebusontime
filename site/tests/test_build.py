@@ -224,7 +224,8 @@ def test_prod_build_has_no_banner_and_no_noindex(real_looking_stats, tmp_path):
     assert "Sitemap: https://wasthebusontime.com/sitemap.xml" in (out / "robots.txt").read_text()
 
 
-def test_unknown_schema_is_refused(real_looking_stats, tmp_path):
+def test_stats_that_break_the_contract_are_refused(real_looking_stats, tmp_path):
+    """The contract's check runs on load (what it checks is tested in test_contract.py)."""
     path = real_looking_stats / "site" / "system.json"
     doc = json.loads(path.read_text(encoding="utf-8"))
     doc["schema"] = 2
@@ -304,21 +305,14 @@ def test_stats_without_map_data_build_without_the_map(real_looking_stats, tmp_pa
     assert not (out / "stops" / "data").exists()
 
 
-def test_map_preset_that_misses_stops_is_refused(real_looking_stats, tmp_path):
-    path = real_looking_stats / "site" / "map" / "all" / "weekday-midday.json"
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    doc["all_stops"].pop()
-    path.write_text(json.dumps(doc), encoding="utf-8")
-    with pytest.raises(StatsError, match="weekday-midday.json: 32 stops"):
-        make_build(real_looking_stats, tmp_path / "out", "prod")
-
-
 def test_stop_map_days_times_and_routes_are_checkboxes(dev_site):
     html = (dev_site / "stops" / "index.html").read_text(encoding="utf-8")
     for day in ("weekday", "saturday", "sunday"):
         assert f'<input type="checkbox" name="daytype" value="{day}" checked>' in html
     for band in ("early", "am_peak", "midday", "pm_peak", "evening"):
         assert f'<input type="checkbox" name="band" value="{band}" checked>' in html
+    for label in ("Early (before 6 am)", "AM peak (6 to 9 am)", "Midday (9 am to 3 pm)", "Evening (6 pm on)"):
+        assert f" checked> {label}</label>" in html
     for route in ("901", "902", "903", "904", "905", "906"):
         assert f'<input type="checkbox" name="route" value="{route}" checked>' in html
     for label in ("days", "time of day", "routes"):

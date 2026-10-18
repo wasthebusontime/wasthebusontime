@@ -1,4 +1,4 @@
-"""Stop events -> the site files (JSON contract schema 1, see the website notes).
+"""Stop events -> the site files (schema 1, defined and checked in wbot_site.contract).
 
 Everything is recomputed from all stop events in the period on every run, which takes
 seconds: counts can't drift, and a threshold change applies everywhere at once. The numbers
@@ -18,17 +18,17 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from wbot_site import contract
+from wbot_site.contract import MAP_BANDS, MAP_CELL, MAP_DAYTYPES, SCHEMA, SCOPES
+
 from . import events, opendata, rules, shapes, static, timeutil
-from .config import ALT, BANDS, DAYTYPES, EVENTS_VERSION, HEADLINE, SCHEMA, SCOPES, Settings
+from .config import ALT, EVENTS_VERSION, HEADLINE, Settings
 from .db import connect, quote
 from .perf import empty
 from .quality import data_loss, public_day
 from .stage import EMPTY_TRIP_FACTS, Period, Stage
 
 log = logging.getLogger(__name__)
-
-MAP_DAYTYPES = ("all", *DAYTYPES)
-MAP_BANDS = ("all", *(b[0] for b in BANDS))
 
 
 def route_order(slug: str):
@@ -136,8 +136,11 @@ def system_notices(stage: Stage, loss: list[dict], days: list[dict]) -> list[dic
 # The files.
 
 
-def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at: str) -> bool:
-    """Write the site files and CSVs into `out` (replaced). False if there is nothing to publish."""
+def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at: str,
+          synthetic: bool = False) -> bool:
+    """Write the site files and CSVs into `out` (replaced). False if there is nothing to publish.
+    The files are checked against the contract before they replace `out`, so a failed check
+    (ContractError) leaves the last good output in place. synthetic marks invented data."""
     period = find_period(settings)
     if period is None:
         log.warning("no processed service dates yet; nothing to write")
@@ -152,11 +155,12 @@ def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at:
     try:
         staging = out.with_name(out.name + ".new")
         shutil.rmtree(staging, ignore_errors=True)
-        write_all(stage, names, versions, staging, pipeline_version, generated_at)
+        write_all(stage, names, versions, staging, pipeline_version, generated_at, synthetic)
         opendata.write(stage, names, staging / "csv", settings.derived_dir / "agg")
     finally:
         stage.close()
         db_path.unlink(missing_ok=True)
+    contract.validate(staging)
     old = out.with_name(out.name + ".old")
     shutil.rmtree(old, ignore_errors=True)
     if out.exists():
@@ -167,7 +171,7 @@ def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at:
 
 
 def write_all(stage: Stage, names: Names, versions: list[static.Version], out: Path,
-              pipeline_version: str, generated_at: str) -> None:
+              pipeline_version: str, generated_at: str, synthetic: bool = False) -> None:
     site = out / "site"
     s, period = stage.settings, stage.period
     used = sorted({m["static"]["feed_version"] for m in period.days})
@@ -178,7 +182,7 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
             digest.update(f"{p['path']} {p['sha256']}\n".encode())
     meta = {
         "schema": SCHEMA,
-        "synthetic": False,
+        "synthetic": synthetic,
         "generated_at": generated_at,
         "data_through": period.end.isoformat(),
         "collection_start": period.start.isoformat(),
@@ -333,8 +337,8 @@ def write_map(stage: Stage, site: Path, index: list) -> None:
                 doc = {"schema": SCHEMA, "timepoints": [], "all_stops": []}
                 for entry, is_tp in index:
                     code = entry["code"]
-                    doc["all_stops"].append(cells.get((period, dt, b, "all_stops", code), [0, 0, 0, 0, 0]))
-                    doc["timepoints"].append(cells.get((period, dt, b, "timepoints", code), [0, 0, 0, 0, 0])
+                    doc["all_stops"].append(cells.get((period, dt, b, "all_stops", code), [0] * len(MAP_CELL)))
+                    doc["timepoints"].append(cells.get((period, dt, b, "timepoints", code), [0] * len(MAP_CELL))
                                              if is_tp else None)
                 write(site / "map" / period / f"{dt}-{b}.json", doc, compact=True)
 

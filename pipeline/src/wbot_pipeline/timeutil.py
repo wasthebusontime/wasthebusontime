@@ -4,7 +4,7 @@ import re
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from .config import BANDS
+from wbot_site.contract import BANDS
 
 TZ = ZoneInfo("America/Los_Angeles")
 

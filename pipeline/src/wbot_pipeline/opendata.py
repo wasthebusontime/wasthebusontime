@@ -16,8 +16,9 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from wbot_site.contract import COUNTS
+
 from .config import HIST_BUCKETS, HIST_START_MIN
-from .perf import COUNTS
 from .quality import data_loss
 
 HIST_COLUMNS = ["under", *(f"m{m}".replace("-", "_") for m in range(HIST_START_MIN, HIST_START_MIN + HIST_BUCKETS)),

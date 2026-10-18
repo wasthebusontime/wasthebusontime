@@ -1390,7 +1390,7 @@
   "trips_observed": 6949,
   "departures_scheduled": 19149,
   "departures_observed": 17931,
-  "uptime_service_hours": 0.9975
+  "uptime_service_hours": 0.9969
  },
  "trips": {
   "scheduled": 7263,
@@ -1601,7 +1601,7 @@
   {
    "code": "low_completeness",
    "date": "2026-10-22",
-   "share": 0.62
+   "share": 0.38
   },
   {
    "code": "methodology_change",

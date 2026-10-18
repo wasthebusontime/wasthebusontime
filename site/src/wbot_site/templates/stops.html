@@ -11,7 +11,7 @@
 {# Hidden until map.js runs, so without JavaScript the page is the list below. #}
 <section class="stop-map" id="stop-map" hidden
   data-tiles="{{ stop_map.tiles }}" data-base="/stops/data/" data-min-sample="{{ min_sample }}"
-  data-bins="{{ stop_map.bins }}" data-window="{{ windows.headline.span }}"{% if windows.show_alt %} data-alt-window="{{ windows.alt.span }}"{% endif %}>
+  data-bins="{{ stop_map.bins }}" data-cell="{{ stop_map.cell }}" data-window="{{ windows.headline.span }}"{% if windows.show_alt %} data-alt-window="{{ windows.alt.span }}"{% endif %}>
   <p>Find your stop on the map and select it to see how often buses left it on time. Colors show the share of departures that were on time ({{ windows.headline.span }}). Every stop is also in the <a href="#list">list of stops below the map</a>.</p>
   <p class="map-keys" id="map-keys">With a keyboard: move to the map, use the arrow keys to move it and + or - to zoom, then press Enter to open the stop nearest the center (marked with a cross). Press Escape to close it, and Enter again for the next nearest stop.</p>
   <form class="map-controls" id="map-controls">

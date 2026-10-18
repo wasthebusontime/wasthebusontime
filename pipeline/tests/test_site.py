@@ -14,6 +14,7 @@ from wbot_pipeline import pipeline, sitefiles, timeutil
 from wbot_pipeline.config import load_settings
 from wbot_site import data as site_data
 from wbot_site.build import build as site_build
+from wbot_site.contract import ContractError
 
 DAY2 = DAY + timedelta(days=1)
 GENERATED = "2026-10-08T12:00:00Z"
@@ -147,13 +148,29 @@ def test_csv_columns(world):
     assert (settings.derived_dir / "agg" / "routes_daily.parquet").exists()
 
 
+def tree(root):
+    return {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
 def test_output_is_deterministic(world, tmp_path):
     settings, _ = world
-    before = {p.relative_to(settings.out_dir): p.read_bytes() for p in settings.out_dir.rglob("*") if p.is_file()}
+    before = tree(settings.out_dir)
     sitefiles.build(settings, settings.out_dir, pipeline_version=load(world, "meta.json")["pipeline_version"],
                     generated_at=GENERATED)
-    after_ = {p.relative_to(settings.out_dir): p.read_bytes() for p in settings.out_dir.rglob("*") if p.is_file()}
-    assert before == after_
+    assert tree(settings.out_dir) == before
+
+
+def test_output_that_breaks_the_contract_leaves_the_last_good_output(world, monkeypatch):
+    settings, _ = world
+    before = tree(settings.out_dir)
+
+    def broken(stats_dir):
+        raise ContractError("system.json: missing scopes")
+
+    monkeypatch.setattr(sitefiles.contract, "validate", broken)
+    with pytest.raises(ContractError):
+        sitefiles.build(settings, settings.out_dir, pipeline_version="x", generated_at="2099-01-01T00:00:00Z")
+    assert tree(settings.out_dir) == before
 
 
 def test_thresholds_are_settings(world, tmp_path):
@@ -171,12 +188,3 @@ def test_thresholds_are_settings(world, tmp_path):
 
 def test_unused_date_is_not_published(world):
     assert date(2026, 10, 5).isoformat() not in json.dumps(load(world, "quality.json"))
-
-
-def test_csv_headers_match_the_site_sample(world):
-    """The sample the site is built and tested on uses exactly the pipeline's columns."""
-    from wbot_site.build import SAMPLE_DIR
-    settings, _ = world
-    ours = {p.name: p.read_text(encoding="utf-8").partition("\n")[0] for p in (settings.out_dir / "csv").glob("*.csv")}
-    sample = {p.name: p.read_text(encoding="utf-8").partition("\n")[0] for p in (SAMPLE_DIR / "csv").glob("*.csv")}
-    assert ours == sample

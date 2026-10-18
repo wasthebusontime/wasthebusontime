@@ -1391,7 +1391,7 @@
   "trips_observed": 1403,
   "departures_scheduled": 4428,
   "departures_observed": 4132,
-  "uptime_service_hours": 0.9975
+  "uptime_service_hours": 0.9969
  },
  "trips": {
   "scheduled": 1476,
@@ -1585,19 +1585,8 @@
     {
      "code": "E133",
      "name": "Sample Transit Center",
-     "timepoint": true,
-     "timepoints": {
-      "n": 0,
-      "early": 0,
-      "on_time": 0,
-      "late": 0,
-      "early_alt": 0,
-      "on_time_alt": 0,
-      "late_alt": 0,
-      "p10": null,
-      "p50": null,
-      "p90": null
-     },
+     "timepoint": false,
+     "timepoints": null,
      "all_stops": {
       "n": 0,
       "early": 0,
@@ -1796,19 +1785,8 @@
     {
      "code": "E124",
      "name": "Placeholder Rd & 8th Ave",
-     "timepoint": true,
-     "timepoints": {
-      "n": 0,
-      "early": 0,
-      "on_time": 0,
-      "late": 0,
-      "early_alt": 0,
-      "on_time_alt": 0,
-      "late_alt": 0,
-      "p10": null,
-      "p50": null,
-      "p90": null
-     },
+     "timepoint": false,
+     "timepoints": null,
      "all_stops": {
       "n": 0,
       "early": 0,
@@ -1828,6 +1806,24 @@
  "notices": [
   {
    "code": "provisional"
+  },
+  {
+   "code": "data_loss",
+   "start": "2026-10-09T01:00:00Z",
+   "end": "2026-10-09T01:20:00Z",
+   "cause": "unknown"
+  },
+  {
+   "code": "data_loss",
+   "start": "2026-10-17T20:10:00Z",
+   "end": "2026-10-17T20:45:00Z",
+   "cause": "collector"
+  },
+  {
+   "code": "data_loss",
+   "start": "2026-10-28T15:30:00Z",
+   "end": "2026-10-28T16:05:00Z",
+   "cause": "feed"
   }
  ]
 }

@@ -5,11 +5,11 @@ percentiles and a 1-minute histogram, computed in DuckDB for any grouping.
 """
 
 import duckdb
+from wbot_site.contract import COUNTS, SUFFIX
 
 from . import rules
 from .config import ALT, HEADLINE, HIST_BUCKETS, HIST_START_MIN
 
-COUNTS = ("n", "early", "on_time", "late", "early_alt", "on_time_alt", "late_alt")
 PERCENTILES = (10, 50, 90)
 
 
@@ -30,7 +30,7 @@ def empty(hist: bool = False, percentiles: bool = True) -> dict:
 def reference(delays: list[int], hist: bool = True, percentiles: bool = True) -> dict:
     delays = sorted(delays)
     out = {"n": len(delays)}
-    for suffix, (lo, hi) in (("", HEADLINE), ("_alt", ALT)):
+    for suffix, (lo, hi) in ((SUFFIX["headline"], HEADLINE), (SUFFIX["alt"], ALT)):
         out["early" + suffix] = sum(1 for v in delays if v < lo)
         out["on_time" + suffix] = sum(1 for v in delays if lo <= v <= hi)
         out["late" + suffix] = sum(1 for v in delays if v > hi)

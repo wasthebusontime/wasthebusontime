@@ -999,7 +999,7 @@
   "trips_observed": 11,
   "departures_scheduled": 12,
   "departures_observed": 11,
-  "uptime_service_hours": 0.9975
+  "uptime_service_hours": 0.9969
  },
  "trips": {
   "scheduled": 12,
@@ -1063,19 +1063,8 @@
     {
      "code": "E132",
      "name": "Sample Fairgrounds",
-     "timepoint": true,
-     "timepoints": {
-      "n": 0,
-      "early": 0,
-      "on_time": 0,
-      "late": 0,
-      "early_alt": 0,
-      "on_time_alt": 0,
-      "late_alt": 0,
-      "p10": null,
-      "p50": null,
-      "p90": null
-     },
+     "timepoint": false,
+     "timepoints": null,
      "all_stops": {
       "n": 0,
       "early": 0,
@@ -1144,19 +1133,8 @@
     {
      "code": "E133",
      "name": "Sample Transit Center",
-     "timepoint": true,
-     "timepoints": {
-      "n": 0,
-      "early": 0,
-      "on_time": 0,
-      "late": 0,
-      "early_alt": 0,
-      "on_time_alt": 0,
-      "late_alt": 0,
-      "p10": null,
-      "p50": null,
-      "p90": null
-     },
+     "timepoint": false,
+     "timepoints": null,
      "all_stops": {
       "n": 0,
       "early": 0,

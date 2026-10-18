@@ -1,10 +1,6 @@
-import json
 import logging
 
-import pytest
-
 from wbot_site import data
-from wbot_site.data import StatsError
 
 
 def test_percent_rounds_half_up():
@@ -62,16 +58,3 @@ def test_unknown_notice_codes_are_skipped_with_a_warning(caplog):
         assert data.known_notices(notices, "system.json") == [{"code": "provisional"}]
     assert "brand_new_code" in caplog.text
 
-
-def test_load_json_checks_schema(tmp_path):
-    path = tmp_path / "x.json"
-    path.write_text(json.dumps({"schema": 1, "a": 1}))
-    assert data.load_json(path)["a"] == 1
-    path.write_text(json.dumps({"schema": 2}))
-    with pytest.raises(StatsError, match="schema 2"):
-        data.load_json(path)
-    path.write_text(json.dumps({"a": 1}))
-    with pytest.raises(StatsError, match="schema None"):
-        data.load_json(path)
-    with pytest.raises(StatsError, match="missing"):
-        data.load_json(tmp_path / "nope.json")

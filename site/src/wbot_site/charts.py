@@ -13,7 +13,8 @@ where it shows at about 1:1 so the text stays readable). CSS shows one of the tw
 from dataclasses import dataclass
 from html import escape
 
-from wbot_site.data import DAYTYPE_LABELS, DAYTYPES, date_text, delay_text, enough, hour_text, number, percent, split
+from wbot_site.contract import DAYTYPES
+from wbot_site.data import DAYTYPE_LABELS, date_text, delay_text, enough, hour_text, number, percent, split
 from wbot_site.windows import Windows
 
 PARTS = (("early", "early"), ("on_time", "on-time"), ("late", "late"))

@@ -10,6 +10,8 @@ dependencies = [
     "gtfs-realtime-bindings>=1.0",
     "pyarrow>=17",
     "tzdata>=2024.1",
+    # For wbot_site.contract (the site files format, standard library only).
+    "wbot-site",
     "zstandard>=0.23",
 ]
 
@@ -17,8 +19,8 @@ dependencies = [
 wbot-pipeline = "wbot_pipeline.__main__:main"
 
 [dependency-groups]
-# wbot-site is here so the tests can check the output with the site's own loader and build.
-dev = ["pytest>=8", "wbot-site"]
+# The tests also check the output with the site's own loader and build (wbot-site, above).
+dev = ["pytest>=8"]
 
 [tool.uv.sources]
 wbot-site = { path = "../site", editable = true }

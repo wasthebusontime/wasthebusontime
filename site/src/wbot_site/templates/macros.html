@@ -33,7 +33,7 @@
 
 {# "91%" or "Not enough data", for a perf block and a window. #}
 {% macro share(perf, part="on_time", window="headline", digits=0) %}
-{% if enough(perf, min_sample) %}{{ percent(perf[part ~ ("_alt" if window == "alt" else "")], perf.n, digits) }}{% else %}<span class="nodata">Not enough data</span>{% endif %}
+{% if enough(perf, min_sample) %}{{ percent(perf[count_key(part, window)], perf.n, digits) }}{% else %}<span class="nodata">Not enough data</span>{% endif %}
 {% endmacro %}
 
 {# Table cells: departures, early, on time, late (headline window), on time (alt window, if shown). #}
