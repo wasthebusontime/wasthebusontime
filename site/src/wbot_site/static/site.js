@@ -1,6 +1,6 @@
 // Optional: the site works without this file.
-// Remembers the timepoints / all stops choice across pages, runs the stop filter, and
-// lets keyboards scroll tables that are wider than the screen.
+// Remembers the timepoints / all stops choice across pages, runs the stop filter, sorts
+// tables by column, and lets keyboards scroll tables that are wider than the screen.
 (function () {
   var KEY = "wbot-scope";
   try {
@@ -41,6 +41,69 @@
       }, 500);
     });
   }
+
+  // Sortable tables: each column header cycles ascending, descending, then the original order.
+  // Keys come from data-sort, else the cell text; a cell spanning columns ("Not enough data")
+  // has no key and sorts last either way. Tables with the same caption (one per scope) sort
+  // together, so the order holds when the scope changes.
+  var sorters = [];
+  function compare(a, b) {
+    if (a === null || b === null) return a === null ? (b === null ? 0 : 1) : -1;
+    if (typeof a === "number" && typeof b === "number") return a - b;
+    return String(a).localeCompare(String(b), undefined, { numeric: true });
+  }
+  document.querySelectorAll("table.sortable").forEach(function (table) {
+    var caption = table.caption ? table.caption.textContent.trim() : "";
+    var tbody = table.tBodies[0];
+    var rows = Array.prototype.slice.call(tbody.rows);
+    var keys = rows.map(function (tr) {
+      var k = [];
+      Array.prototype.forEach.call(tr.cells, function (c) {
+        var v = null;
+        if (c.colSpan === 1) {
+          v = c.hasAttribute("data-sort") ? c.getAttribute("data-sort") : c.textContent.trim();
+          if (v !== "" && isFinite(v)) v = Number(v);
+        }
+        for (var i = 0; i < c.colSpan; i++) k.push(v);
+      });
+      return k;
+    });
+    var headers = Array.prototype.slice.call(table.tHead.rows[0].cells);
+    function apply(col, dir) {
+      var order = rows.map(function (_, i) { return i; });
+      if (dir) {
+        order.sort(function (i, j) {
+          var a = keys[i][col], b = keys[j][col];
+          if (a === null || b === null) return compare(a, b) || i - j;
+          return dir * compare(a, b) || i - j;
+        });
+      }
+      order.forEach(function (i) { tbody.appendChild(rows[i]); });
+      headers.forEach(function (th, j) {
+        if (dir && j === col) th.setAttribute("aria-sort", dir > 0 ? "ascending" : "descending");
+        else th.removeAttribute("aria-sort");
+      });
+    }
+    var state = { col: -1, dir: 0 };
+    sorters.push({ caption: caption, apply: apply, state: state });
+    headers.forEach(function (th, col) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sort";
+      while (th.firstChild) b.appendChild(th.firstChild);
+      var icon = document.createElement("span");
+      icon.className = "sort-icon";
+      icon.setAttribute("aria-hidden", "true");
+      b.insertBefore(icon, b.querySelector(".def"));
+      th.appendChild(b);
+      b.addEventListener("click", function () {
+        var dir = state.col !== col ? 1 : state.dir === 1 ? -1 : state.dir === -1 ? 0 : 1;
+        sorters.forEach(function (s) {
+          if (s.caption === caption) { s.state.col = dir ? col : -1; s.state.dir = dir; s.apply(col, dir); }
+        });
+      });
+    });
+  });
 
   // A table wider than the screen scrolls sideways; make its box focusable, with the
   // table's caption as its name, so it can be scrolled with the arrow keys.

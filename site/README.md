@@ -2,7 +2,7 @@
 
 Builds the static website for Was the Bus On Time? from the published statistics: one page for the whole system, one per route and one per stop, plus the text pages. The build reads precomputed JSON from the stats repo ([wasthebusontime/stats](https://github.com/wasthebusontime/stats)); it never touches raw feed data.
 
-Two runtime dependencies: Jinja2 (templates) and Python-Markdown (text pages). Charts are inline SVG drawn at build time. Pages work without JavaScript. The small site script only remembers the timepoints / all stops choice and runs the stop filter box; the stop map on `/stops/` needs JavaScript, and without it that page is the stop list.
+Two runtime dependencies: Jinja2 (templates) and Python-Markdown (text pages). Charts are inline SVG drawn at build time. Pages work without JavaScript. The small site script only remembers the timepoints / all stops choice, runs the stop filter box and sorts the routes table on the home page; the stop map on `/stops/` needs JavaScript, and without it that page is the stop list.
 
 ## Layout
 

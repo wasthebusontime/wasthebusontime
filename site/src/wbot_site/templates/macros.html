@@ -51,15 +51,15 @@
 {% if perf is none %}
 <td class="num" colspan="{{ 5 if windows.show_alt else 4 }}"><span class="nodata">Not a timepoint</span></td>
 {% elif enough(perf, min_sample) %}
-<td class="num">{{ perf.n | number }}</td>
-<td class="num">{{ percent(perf.early, perf.n, 1) }}</td>
-<td class="num">{{ percent(perf.on_time, perf.n, 1) }}</td>
-<td class="num">{{ percent(perf.late, perf.n, 1) }}</td>
+<td class="num" data-sort="{{ perf.n }}">{{ perf.n | number }}</td>
+<td class="num" data-sort="{{ perf.early / perf.n }}">{{ percent(perf.early, perf.n, 1) }}</td>
+<td class="num" data-sort="{{ perf.on_time / perf.n }}">{{ percent(perf.on_time, perf.n, 1) }}</td>
+<td class="num" data-sort="{{ perf.late / perf.n }}">{{ percent(perf.late, perf.n, 1) }}</td>
 {% if windows.show_alt %}
-<td class="num">{{ percent(perf.on_time_alt, perf.n, 1) }}</td>
+<td class="num" data-sort="{{ perf.on_time_alt / perf.n }}">{{ percent(perf.on_time_alt, perf.n, 1) }}</td>
 {% endif %}
 {% else %}
-<td class="num">{{ perf.n | number }}</td>
+<td class="num" data-sort="{{ perf.n }}">{{ perf.n | number }}</td>
 <td class="num" colspan="{{ 4 if windows.show_alt else 3 }}"><span class="nodata">Not enough data</span></td>
 {% endif %}
 {% endmacro %}

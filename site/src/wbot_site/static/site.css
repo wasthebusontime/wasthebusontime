@@ -146,6 +146,12 @@ table.data caption { text-align: left; font-weight: 600; padding-bottom: .25rem;
 table.data th, table.data td { padding: .25rem .6rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
 table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 table.data .def { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
+/* Column headers become buttons when site.js makes a table sortable. */
+table.data button.sort { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; width: 100%; text-align: inherit; cursor: pointer; }
+table.data button.sort:hover { text-decoration: underline; }
+table.data .sort-icon::after { content: "\2195"; margin-left: .3rem; color: var(--muted); font-weight: 400; }
+table.data th[aria-sort="ascending"] .sort-icon::after { content: "\25B2"; color: var(--text); }
+table.data th[aria-sort="descending"] .sort-icon::after { content: "\25BC"; color: var(--text); }
 
 /* Charts (inline SVG drawn at build time) */
 .chart { margin: 1.5rem 0; }

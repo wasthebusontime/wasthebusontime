@@ -14,12 +14,12 @@
 {% call(scope) scoped(repeat=true) %}
 {% set s = system.scopes[scope] %}
 <div class="table-wrap">
-<table class="data">
+<table class="data sortable">
 <caption>Routes</caption>
 <thead><tr><th scope="col">Route</th>{{ perf_header() }}</tr></thead>
 <tbody>
 {% for r in system.routes %}
-<tr><th scope="row"><a href="/routes/{{ r.slug }}/">Route {{ r.short_name }}</a> <span class="def">{{ r.long_name }}</span></th>{{ perf_cells(r[scope]) }}</tr>
+<tr><th scope="row" data-sort="{{ r.short_name }}"><a href="/routes/{{ r.slug }}/">Route {{ r.short_name }}</a> <span class="def">{{ r.long_name }}</span></th>{{ perf_cells(r[scope]) }}</tr>
 {% endfor %}
 </tbody>
 </table>
