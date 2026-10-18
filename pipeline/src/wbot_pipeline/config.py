@@ -15,7 +15,7 @@ from wbot_collector import layout
 
 # Bump when the way stop events are derived from the archive changes. Every
 # service date whose events were made by another version is reprocessed.
-EVENTS_VERSION = 1
+EVENTS_VERSION = 2
 
 # On-time windows in seconds late, inclusive. The headline is the common industry
 # window (1 min early to 5 min late); the alt is Intercity Transit's own (0 to 5).
@@ -26,6 +26,9 @@ HIST_BUCKETS = 30
 
 # Passed stops stay in TripUpdates about 15 minutes; a stop is read when it is final.
 RETENTION_S = 900
+# A departure's time can still be corrected for about 160 s after the bus leaves
+# (re-validation, 2026-10). One last seen sooner than this after it is not observed.
+MIN_SEEN_AFTER_DEP_S = 180
 # The collector polls TripUpdates every 30 s.
 POLL_S = 30
 # A TripUpdates fetch counts as stale (a feed-side problem) when its newest
@@ -57,7 +60,7 @@ class Settings:
     # A percentage needs at least this many departures behind it (meta.min_sample).
     min_sample: int = 30
     # Gaps in collection up to this long lose no departures (stops stay ~15 min).
-    gap_tolerance_s: int = 840
+    gap_tolerance_s: int = 780
     # A day whose observed share of timepoint departures is below this gets a notice.
     low_completeness_below: float = 0.8
     provisional: bool = True

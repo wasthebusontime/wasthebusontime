@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 {% endif %}
 <title>{% if title %}{{ title }} - {% endif %}Was the Bus On Time?</title>
-<meta name="description" content="Unofficial on-time statistics for Intercity Transit buses. Intercity Transit is headquartered in Olympia, Washington, and serves a Public Transportation Benefit Area in Thurston County. Not affiliated with Intercity Transit.">
+<meta name="description" content="Unofficial on-time statistics for {{ agency.NAME }} buses. {{ agency.NAME }} is headquartered in Olympia, Washington, and serves a Public Transportation Benefit Area in Thurston County. Not affiliated with {{ agency.NAME }}.">
 {% block icons %}
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" href="{{ "/static/icons/favicon.svg" | asset }}" type="image/svg+xml">
@@ -31,7 +31,7 @@
 {% endif %}
 <header class="site-header">
   <a class="site-name" href="/">Was the Bus On Time?</a>
-  <p class="tagline">Unofficial on-time statistics for Intercity Transit buses. Not affiliated with Intercity Transit.</p>
+  <p class="tagline">Unofficial on-time statistics for {{ agency.NAME }} buses. Not affiliated with {{ agency.NAME }}.</p>
   <nav class="site-nav" aria-label="Site">
     <a href="/">Routes</a>
     <a href="/stops/">Stops</a>

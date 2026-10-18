@@ -8,10 +8,10 @@ module also holds the display choices that aren't in the stats.
 
 from dataclasses import dataclass
 
-# Intercity Transit's own window (the alt window) is computed but hidden on the site for now.
+from wbot_site import agency
+
+# The agency's own window (the alt window) is computed but hidden on the site for now.
 SHOW_ALT = False
-# Intercity Transit's standard: this percent of terminal departures on time.
-TERMINAL_STANDARD = 90
 # Lower edges of the stop map's color bins, in percent on time, best first.
 MAP_BINS = (90, 80, 70)
 
@@ -52,7 +52,7 @@ class Windows:
 
     @property
     def alt_label(self) -> str:
-        return f"On time (Intercity Transit's own definition: {self.alt.span})"
+        return f"On time ({agency.NAME}'s own definition: {self.alt.span})"
 
 
 def from_meta(windows: dict) -> Windows:

@@ -4,7 +4,7 @@ from conftest import DAY
 from synth import TripPlan
 
 from wbot_pipeline import dateplan, events, static, timeutil
-from wbot_pipeline.config import EVENTS_VERSION
+from wbot_pipeline.config import EVENTS_VERSION, MIN_SEEN_AFTER_DEP_S
 
 
 def run(settings):
@@ -62,6 +62,19 @@ def test_observed_rule(settings, feed):
     assert all(x["observed"] for x in rows(settings, "trip_id = '901-0-3-v1' AND NOT is_last"))
 
 
+def test_departure_seen_too_briefly_after_leaving_is_not_observed(settings, feed):
+    # Left the first stop at 07:00:00; collection stopped at 07:01:00 and resumed after the
+    # stop had dropped out of the feed, so its time may not have settled.
+    o = timeutil.origin(DAY)
+    feed.plans["901-0-0-v1"] = TripPlan(delays=[0, 0, 0, 0, 0])
+    feed.gaps = [(o + 7 * 3600 + 61, o + 7 * 3600 + 30 * 60)]
+    feed.write()
+    run(settings)
+    (first,) = rows(settings, "trip_id = '901-0-0-v1' AND is_first")
+    assert first["seen_after_dep_s"] < MIN_SEEN_AFTER_DEP_S
+    assert first["delay_dep_s"] == 0 and not first["observed"]
+
+
 def test_long_gap_loses_departures_and_short_gap_loses_none(settings, feed):
     o = timeutil.origin(DAY)
     # Collector down 08:20 to 08:40 (20 min) and 07:20 to 07:30 (10 min).
@@ -70,16 +83,19 @@ def test_long_gap_loses_departures_and_short_gap_loses_none(settings, feed):
     run(settings)
     lost = rows(settings, f"scheduled AND NOT observed AND sched_dep_ts BETWEEN {o + 7 * 3600} AND {o + 10 * 3600}"
                           " AND NOT is_last")
-    # A departure is lost if no snapshot came in the ~15 minutes after it (here 08:19:30 to
-    # 08:25:15), or if its trip ended, and so lost its vehicle, before collection resumed.
-    # The second case also applies to gaps under 14 minutes: a re-validation item.
+    # A departure is lost if fewer than MIN_SEEN_AFTER_DEP_S of snapshots came after it before
+    # the stop dropped out (here after 08:16:30 to 08:25:15; the last snapshot before the
+    # long gap is 08:19:30), or if its trip ended, and so lost its vehicle, before collection
+    # resumed. The second case also applies to gaps under 13 minutes; accepted at the 2026-10
+    # re-validation.
     gap_list = feed.gaps
     trip_end = {}
     for x in rows(settings, "scheduled"):
         trip_end[x["trip_id"]] = max(trip_end.get(x["trip_id"], 0), x["sched_dep_ts"] + 30)
+    last_before = o + 8 * 3600 + 19 * 60 + 30
     for x in lost:
         dep = x["sched_dep_ts"] + 30
-        in_long_gap = o + 8 * 3600 + 19 * 60 + 30 <= dep <= o + 8 * 3600 + 25 * 60 + 15
+        in_long_gap = last_before - MIN_SEEN_AFTER_DEP_S < dep <= o + 8 * 3600 + 25 * 60 + 15
         trip_ended_in_gap = any(a - 30 <= dep and a <= trip_end[x["trip_id"]] < b for a, b in gap_list)
         assert in_long_gap or trip_ended_in_gap, x
     assert any(o + 8 * 3600 + 19 * 60 + 30 <= x["sched_dep_ts"] + 30 <= o + 8 * 3600 + 25 * 60 + 15 for x in lost)

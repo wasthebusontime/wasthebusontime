@@ -42,7 +42,10 @@ def test_text_formats():
     assert data.hour_text(25) == "1 am (next day)"
     assert data.date_text("2026-10-04") == "Oct 4, 2026"
     assert data.month_text("2026-11") == "Nov 2026"
-    assert data.timestamp_text("2026-10-04T04:32:23Z") == "2026-10-04 04:32 UTC"
+    # Pacific time, daylight and standard, and across midnight UTC.
+    assert data.timestamp_text("2026-10-16T13:17:30Z") == "Oct 16, 2026, 6:17 am"
+    assert data.timestamp_text("2026-11-02T20:05:00Z") == "Nov 2, 2026, 12:05 pm"
+    assert data.timestamp_text("2026-10-04T04:32:23Z") == "Oct 3, 2026, 9:32 pm"
 
 
 def test_period_text():

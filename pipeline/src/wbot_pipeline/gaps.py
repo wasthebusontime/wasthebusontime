@@ -10,8 +10,9 @@ later), because passed stops stay in the feed about 15 minutes.
 
 Cause, from what the log shows between the two good fetches:
   feed       the server answered with an error, or with stale data
-  collector  no attempts were logged, or they failed to connect (our side)
-  unknown    anything else (for example timeouts)
+  collector  no attempts were logged, or they failed to connect (our side,
+             including connect timeouts)
+  unknown    anything else (for example read timeouts)
 gap_causes.toml (next to this module) can set the cause and a note for known gaps.
 """
 
@@ -83,6 +84,8 @@ def classify(r: dict, service: list[tuple[int, int]] = ()) -> str:
     if status == 200:
         return "feed"           # answered, but the bytes didn't parse
     text = (error or "").lower()
+    if text.startswith(("connecterror", "connecttimeout")):
+        return "collector"      # never reached the server
     if "timeout" in text or "timed out" in text:
         return "unknown"
     return "collector"

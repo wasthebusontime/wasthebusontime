@@ -10,7 +10,7 @@ import pytest
 
 from conftest import html_pages, make_build
 from wbot_site.build import SAMPLE_DIR, main
-from wbot_site.data import StatsError
+from wbot_site.data import StatsError, percent
 
 OTD_URL = "https://www.soundtransit.org/help-contacts/business-information/open-transit-data-otd/transit-data-terms-use"
 
@@ -174,6 +174,36 @@ def test_stop_pages_say_whether_the_stop_is_a_timepoint(dev_site):
 def test_small_route_shows_not_enough_data(dev_site):
     html = (dev_site / "routes" / "906" / "index.html").read_text(encoding="utf-8")
     assert "Not enough data</span> for Route 906 yet" in html
+
+
+def sample_system() -> dict:
+    return json.loads((SAMPLE_DIR / "site" / "system.json").read_text(encoding="utf-8"))
+
+
+def test_terminal_section_uses_the_headline_window(dev_site):
+    t = sample_system()["terminal"]
+    html = (dev_site / "index.html").read_text(encoding="utf-8")
+    section = html.split("<h3>Terminal departures</h3>")[1].split("<h3>")[0]
+    assert f"{percent(t['on_time'], t['n'], 1)}</strong> of {t['n']:,} terminal departures" in section
+    assert "Intercity Transit's goal is that 90%" in section and "0 to 5 min late" in section
+    assert "about 20 seconds" in section
+
+
+def test_methodology_compares_with_the_agency_window(dev_site):
+    system = sample_system()
+    tp, t = system["scopes"]["timepoints"]["summary"], system["terminal"]
+    html = (dev_site / "methodology" / "index.html").read_text(encoding="utf-8")
+    assert "agency-comparison" not in html
+    assert f"{percent(tp['on_time_alt'], tp['n'], 1)} of timepoint departures" in html
+    assert f"{percent(t['on_time_alt'], t['n'], 1)} of terminal departures" in html
+
+
+def test_data_loss_times_are_pacific(dev_site):
+    # The sample's first data-loss window starts 2026-10-09T01:00:00Z.
+    html = (dev_site / "data-quality" / "index.html").read_text(encoding="utf-8")
+    assert "Gaps longer than about 13 minutes (Pacific time)" in html
+    table = html.split("<h2>Data-loss windows</h2>")[1].split("</table>")[0]
+    assert "Oct 8, 2026, 6:00 pm" in table and "UTC" not in table
 
 
 def test_prod_refuses_synthetic_stats(tmp_path):

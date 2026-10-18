@@ -12,11 +12,22 @@ The headline numbers use a common industry window: a bus is on time if it *depar
 |---|---|---|---|
 | On time (1 min early to 5 min late) | more than 1 min before | 1 min before to 5 min after | more than 5 min after |
 
-Intercity Transit's 2026 Transit Development Plan sets a standard that 90% of buses leave terminal departure points (the first stop of each trip) on time. The agency counts a bus as on time only from 0 to 5 minutes after the scheduled time, a little stricter than the window above on the early side.
+## How this differs from Intercity Transit's measure
 
-<!-- Hidden for now: a second row for Intercity Transit's own definition.
-| On time (Intercity Transit's own definition: 0 to 5 min late) | before the scheduled time | 0 to 5 min after | more than 5 min after |
--->
+Intercity Transit's 2026 Transit Development Plan counts a bus as on time only if it leaves a timepoint from 0 to 5 minutes after the scheduled time, and sets a goal that 90% of buses leave terminal departure points (the first stop of each trip) on time.
+
+We use the 1 minute early to 5 minutes late window everywhere on this site, the first stop of each trip included, because:
+
+- We measure every timepoint, not only the first stop of each trip.
+- The 1 minute early to 5 minutes late window is close to how many other transit agencies measure on-time performance.
+- One window keeps the numbers on every page comparable with each other.
+- Anyone can use our code to measure another transit agency, so the main numbers shouldn't depend on one agency's own rule.
+
+We still compute Intercity Transit's version. It is in the CSV files on the [Data](/data/) page, with a column for each window.
+
+<!-- agency-comparison -->
+
+Intercity Transit also publishes on-time figures by route for 2025. Those describe the routes before the agency's May 2026 redesign, so they can't be compared with the numbers here.
 
 ## Departures, not arrivals
 
@@ -31,11 +42,11 @@ Every page has a choice between two sets of stops:
 - **Timepoints** (the default): the stops with times printed in the schedule, not counting each trip's last stop. Drivers are expected not to leave them early. This matches how Intercity Transit measures on-time performance.
 - **All stops**: every stop, not counting each trip's last stop. Times at stops between timepoints are estimates the schedule fills in, not promises, so a bus can be "early" there without having left a timepoint early. Expect lower on-time numbers in this view.
 
-**Terminal departures** (the first stop of each trip) are also shown on their own, for comparison with the agency's 90% standard. The comparison is approximate, because the agency's window differs slightly (see above).
+**Terminal departures** (the first stop of each trip) are also shown on their own, next to Intercity Transit's 90% goal for them. They use the same window as everything else, so they compare with the goal only roughly (see above).
 
 ## Where the times come from
 
-Intercity Transit publishes real-time data about its buses. For a while after a bus leaves a stop, that data keeps reporting when it left. We record that data around the clock and use those reported departure times. A departure counts only if the data shows the bus was tracked when it left; times that are only predictions are never used.
+Intercity Transit publishes real-time data about its buses. For a while after a bus leaves a stop, that data keeps reporting when it left. We record that data around the clock and use those reported departure times. A departure counts only if the data shows the bus was tracked when it left, and only if we saw it for at least 3 minutes after the bus left, because a departure time can still be corrected in the first few minutes. Times that are only predictions are never used.
 
 Each departure is compared with the schedule that was in effect on that day, including holiday schedules, trips after midnight and daylight saving time changes.
 
@@ -43,7 +54,7 @@ Each departure is compared with the schedule that was in effect on that day, inc
 
 - Departures that weren't recorded are left out. They are never guessed and never counted as late or missed.
 - A trip with no tracked bus may have been cancelled, or may have run without working tracking. We can't tell the difference, so it is reported as **not recorded**.
-- Short interruptions in our recording (up to about 14 minutes) lose almost nothing, because the data keeps recent departures for a while. The exception is the last few stops of a trip that ends during the interruption. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
+- Short interruptions in our recording (up to about 13 minutes) lose almost nothing, because the data keeps recent departures for a while. The exception is the last few stops of a trip that ends during the interruption. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
 - A percentage is shown only when at least 30 departures are behind it. Otherwise the page says "Not enough data".
 
 ## Rounding
@@ -52,8 +63,8 @@ Percentages are computed from counts and rounded to whole percent in headlines a
 
 ## Limitations
 
-- **These are not the agency's numbers.** We use the same tracking system's public output, but the agency may use internal data, rounding or exclusions we can't see. Expect differences.
+- **These are not the agency's numbers.** We use a different on-time window (see above) and the same tracking system's public output, but the agency may use internal data, rounding or exclusions we can't see. Expect differences.
 - **Measurement point.** Departure times come from the tracking system's detection of a bus leaving a stop area, not from door sensors. A bus that leaves exactly on schedule may be recorded a few seconds either side.
-- **Terminal departures** may read slightly early, because buses often wait away from the exact stop location. This is being checked.
-- **Gaps.** Recording runs on home hardware; outages longer than about 14 minutes lose data, and the site says so.
+- **Terminal departures.** At the first stop of a trip, the recorded departure tends to come about 20 seconds before the bus is clear of the stop. About 5% of terminal departures are recorded 0 to 30 seconds early, so under Intercity Transit's stricter definition some of them may really have been on time.
+- **Gaps.** Recording runs on home hardware; outages longer than about 13 minutes lose data, and the site says so.
 - **Unofficial.** This site is not affiliated with or endorsed by Intercity Transit.

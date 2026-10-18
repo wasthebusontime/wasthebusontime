@@ -7,12 +7,13 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from markupsafe import Markup, escape
 
-from wbot_site import contract
+from wbot_site import agency, contract
 from wbot_site.windows import Windows, from_meta
 
 log = logging.getLogger("wbot_site")
@@ -168,8 +169,9 @@ def hour_text(hour: int) -> str:
 
 
 def timestamp_text(iso: str) -> str:
-    """2026-10-04T04:32:23Z -> 2026-10-04 04:32 UTC"""
-    return f"{iso[:10]} {iso[11:16]} UTC"
+    """2026-10-16T13:17:30Z -> Oct 16, 2026, 6:17 am (the agency's local time)"""
+    t = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(agency.TZ)
+    return f"{date_text(t.date().isoformat())}, {t.hour % 12 or 12}:{t.minute:02d} {'am' if t.hour < 12 else 'pm'}"
 
 
 def period_text(meta: dict) -> str:

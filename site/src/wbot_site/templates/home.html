@@ -3,7 +3,7 @@
 {% block main %}
 {# The header already shows the name; the h1 stays for screen readers and outlines. #}
 <h1 class="visually-hidden">Was the Bus On Time?</h1>
-<p class="lede">How often Intercity Transit buses leave their stops on time, measured from the agency's public real-time data and updated every night.</p>
+<p class="lede">How often {{ agency.NAME }} buses leave their stops on time, measured from the agency's public real-time data and updated every night.</p>
 {{ notices_line(notices) }}
 {% call(scope) scoped() %}
 {% set s = system.scopes[scope] %}

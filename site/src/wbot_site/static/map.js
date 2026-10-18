@@ -11,6 +11,7 @@ const BINS = root ? root.dataset.bins.split(" ").map(Number) : [];
 const CELL = root ? root.dataset.cell.split(" ") : [];
 const WINDOW = root ? root.dataset.window : "";
 const ALT_WINDOW = root ? root.dataset.altWindow : undefined;
+const AGENCY = root ? root.dataset.agency : "";
 if (root) start(root);
 
 function percent(count, n) {
@@ -100,7 +101,7 @@ function popupContent(stop, counts, minSample, scopeLabel) {
     const [n, early, onTime, late, onTimeAlt] = ["n", "early", "on_time", "late", "on_time_alt"].map((k) => count(counts, k));
     details.append(el("div", `${percent(onTime, n)} on time (${WINDOW}), ${percent(early, n)} early, ${percent(late, n)} late`));
     if (ALT_WINDOW) {
-      details.append(el("div", `${percent(onTimeAlt, n)} on time (${ALT_WINDOW}, Intercity Transit's own definition)`));
+      details.append(el("div", `${percent(onTimeAlt, n)} on time (${ALT_WINDOW}, ${AGENCY}'s own definition)`));
     }
     details.append(el("div", `${n.toLocaleString("en-US")} departures, ${scopeLabel.toLowerCase()}`));
   }

@@ -6,7 +6,7 @@
   <div class="scope-option">
     <input type="radio" name="scope" id="scope-timepoints" value="timepoints" checked>
     <label for="scope-timepoints">Timepoints</label>
-    <p class="scope-help">Timepoints are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how Intercity Transit measures on-time performance.</p>
+    <p class="scope-help">Timepoints are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how {{ agency.NAME }} measures on-time performance.</p>
   </div>
   <div class="scope-option">
     <input type="radio" name="scope" id="scope-all_stops" value="all_stops">
@@ -43,7 +43,7 @@
 <th scope="col" class="num">On time <span class="def">({{ windows.headline.span }})</span></th>
 <th scope="col" class="num">Late</th>
 {% if windows.show_alt %}
-<th scope="col" class="num">On time <span class="def">({{ windows.alt.span }}, Intercity Transit's own definition)</span></th>
+<th scope="col" class="num">On time <span class="def">({{ windows.alt.span }}, {{ agency.NAME }}'s own definition)</span></th>
 {% endif %}
 {% endmacro %}
 
@@ -103,7 +103,7 @@
 {% if n.code == "provisional" %}
   <li>These numbers are provisional while we check the method against more data.</li>
 {% elif n.code == "data_loss" %}
-  <li>No data was recorded from {{ n.start | timestamp }} to {{ n.end | timestamp }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
+  <li>No data was recorded from {{ n.start | timestamp }} to {{ n.end | timestamp }} {{ agency.TZ_NAME }} ({{ cause_text(n.cause) }}), so departures in that time are missing.</li>
 {% elif n.code == "low_completeness" %}
   <li>On {{ n.date | date }}, only {{ fraction(n.share) }} of scheduled departures were recorded.</li>
 {% elif n.code == "methodology_change" %}
@@ -114,7 +114,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro cause_text(cause) %}{{ {"collector": "a break in our recording", "feed": "a gap in Intercity Transit's real-time data"}.get(cause, "cause unknown") }}{% endmacro %}
+{% macro cause_text(cause) %}{{ {"collector": "a break in our recording", "feed": "a gap in {{ agency.NAME }}'s real-time data"}.get(cause, "cause unknown") }}{% endmacro %}
 
 {% macro monthly_table(rows) %}
 <table class="data">
@@ -131,19 +131,28 @@
 {# Terminal departures: the first stop of each trip, against the agency's standard. Measured on
    the agency's own window when it is shown, otherwise on the headline window, approximately. #}
 {% macro terminal(perf, subject) %}
-{% set w = "alt" if windows.show_alt else "headline" %}
 <h3>Terminal departures</h3>
-{% if windows.show_alt %}
-<p>The first stop of each trip. Intercity Transit's standard is that {{ terminal_standard }}% of buses leave terminal departure points on time, measured as {{ windows.alt.span }}.</p>
-{% else %}
-<p>The first stop of each trip. Intercity Transit's standard is that {{ terminal_standard }}% of buses leave terminal departure points on time. The agency measures this as {{ windows.alt.span }}, a little stricter than the {{ windows.headline.span }} used here, so the comparison is approximate.</p>
-{% endif %}
+<p>The first stop of each trip. {{ agency.NAME }}'s goal is that {{ agency.TERMINAL_GOAL }}% of buses leave terminal departure points on time, measured on its own stricter window ({{ windows.alt.span }}). This section uses the same window as the rest of the site ({{ windows.headline.span }}). Departures from the first stop also tend to be recorded about 20 seconds before the bus is clear of the stop. See the <a href="/methodology/">methodology</a> for both.</p>
 {% if enough(perf, min_sample) %}
-{% set on_time = split(perf, w)[1] %}
-<p class="terminal-result"><strong>{{ share(perf, window=w, digits=1) }}</strong> of {{ perf.n | number }} terminal departures for {{ subject }} were on time, {{ "at or above" if on_time * 100 >= terminal_standard * perf.n else "below" }} the {{ terminal_standard }}% standard. {{ share(perf, "early", window=w) }} left early and {{ share(perf, "late", window=w) }} left late.</p>
+<p class="terminal-result"><strong>{{ share(perf, digits=1) }}</strong> of {{ perf.n | number }} terminal departures for {{ subject }} were on time. {{ share(perf, "early") }} left early and {{ share(perf, "late") }} left late.</p>
 {% else %}
 <p><span class="nodata">Not enough data</span> ({{ perf.n | number }} terminal departures).</p>
 {% endif %}
+{% endmacro %}
+
+{# The system's numbers on the agency's own window, for the methodology page. #}
+{% macro agency_comparison(system) %}
+{% set rows = [("timepoint departures", system.scopes.timepoints.summary), ("terminal departures", system.terminal)] %}
+<p>On {{ agency.NAME }}'s own window ({{ windows.alt.span }}), for the whole system {{ period }}:</p>
+<ul>
+{% for what, perf in rows %}
+{% if enough(perf, min_sample) %}
+  <li>{{ percent(perf[count_key("on_time", "alt")], perf.n, 1) }} of {{ what }} were on time, compared with {{ share(perf, digits=1) }} on this site's window.</li>
+{% else %}
+  <li>{{ what | capitalize }}: <span class="nodata">Not enough data</span> ({{ perf.n | number }}).</li>
+{% endif %}
+{% endfor %}
+</ul>
 {% endmacro %}
 
 {# Arrivals at the last stop, reported separately from on-time departures. #}

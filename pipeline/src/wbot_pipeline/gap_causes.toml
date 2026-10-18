@@ -7,3 +7,9 @@ start = "2026-10-04T04:32:23Z"
 end = "2026-10-04T04:50:01Z"
 cause = "collector"
 note = "alert test"
+
+[[gap]]
+start = "2026-10-16T13:17:30Z"
+end = "2026-10-16T14:52:00Z"
+cause = "collector"
+note = "home internet outage"

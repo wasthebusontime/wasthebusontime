@@ -23,7 +23,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import charts, contract, data, windows
+from wbot_site import agency, charts, contract, data, windows
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -46,6 +46,8 @@ PAGES = {
     "unavailable": "unavailable/",
 }
 NO_SITEMAP = {"unavailable/", "404.html"}
+# Where a content page gets the system's numbers on the agency's own window.
+AGENCY_COMPARISON = "<!-- agency-comparison -->"
 
 
 @dataclass
@@ -113,7 +115,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         daytypes=contract.DAYTYPES,
         daytype_labels=data.DAYTYPE_LABELS,
         windows=stats.windows,
-        terminal_standard=windows.TERMINAL_STANDARD,
+        agency=agency,
         enough=data.enough,
         split=data.split,
         count_key=contract.count_key,
@@ -218,6 +220,10 @@ def render_markdown_pages(b: Build) -> None:
     for name, path in PAGES.items():
         md = markdown.Markdown(extensions=["meta", "tables"])
         body = md.convert((CONTENT_DIR / f"{name}.md").read_text(encoding="utf-8"))
+        if AGENCY_COMPARISON in body:
+            body = body.replace(AGENCY_COMPARISON, b.jinja.from_string(
+                '{% from "macros.html" import agency_comparison %}{{ agency_comparison(system) }}'
+            ).render(system=b.stats.system))
         title = md.Meta["title"][0]
         template = "unavailable.html" if name == "unavailable" else "page.html"
         extra = {"csv_files": csv_downloads(b)} if name == "data" else {}

@@ -7,6 +7,17 @@ An **unofficial**, open-source project that collects Intercity Transit's public 
 ## Status
 Early development. The [collector](collector/) archives the real-time data, the [statistics pipeline](pipeline/) turns it into on-time statistics, and the [site](site/) generator builds the website. The website isn't live yet, and no statistics are published yet.
 
+## Measuring a different agency
+The method isn't specific to Intercity Transit, and we try to keep it that way. To point a copy of this code at another agency's GTFS and GTFS-Realtime feeds, change:
+
+- **Feeds:** `REALTIME_BASE` and `STATIC_URL` in [collector/src/wbot_collector/config.py](collector/src/wbot_collector/config.py).
+- **The agency:** its name, its on-time goal for terminal departures and its time zone in [site/src/wbot_site/agency.py](site/src/wbot_site/agency.py). The pipeline uses the same time zone.
+- **On-time windows:** `HEADLINE` (the main numbers) and `ALT` (the agency's own definition, if it has one) in [pipeline/src/wbot_pipeline/config.py](pipeline/src/wbot_pipeline/config.py). The site's wording, charts and map follow from them.
+- **Start date:** `WBOT_PIPELINE_FIRST_SERVICE_DATE` (see [pipeline/deploy/pipeline.env.example](pipeline/deploy/pipeline.env.example)).
+- **Words written for this agency:** the pages in [site/content/](site/content/), the site name, description and service area in `site/src/wbot_site/templates/base.html`, and the data terms in `footer.html`.
+
+The method also relies on how this agency's real-time data behaves: how long departed stops stay in the feed, and whether trips carry block ids and vehicle ids. Check those for a new agency before trusting the numbers ([methodology](site/content/methodology.md)).
+
 ## Licenses
 - **Code:** [MIT](LICENSE)
 - **Site content and computed statistics:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE-CONTENT)

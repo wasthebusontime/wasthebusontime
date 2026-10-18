@@ -13,6 +13,7 @@ where it shows at about 1:1 so the text stays readable). CSS shows one of the tw
 from dataclasses import dataclass
 from html import escape
 
+from wbot_site import agency
 from wbot_site.contract import DAYTYPES
 from wbot_site.data import DAYTYPE_LABELS, date_text, delay_text, enough, hour_text, number, percent, split
 from wbot_site.windows import Windows
@@ -130,8 +131,8 @@ def headline_chart(perf: dict, subject: str, min_sample: int, windows: Windows) 
     rows_in = [(span, perf, "headline")]
     rows = [[span, *_count_cells(perf)]]
     if windows.show_alt:
-        rows_in.append((f"{alt} (Intercity Transit)", perf, "alt"))
-        rows.append([f"{alt} (Intercity Transit's own definition)", *_count_cells(perf, "alt")])
+        rows_in.append((f"{alt} ({agency.NAME})", perf, "alt"))
+        rows.append([f"{alt} ({agency.NAME}'s own definition)", *_count_cells(perf, "alt")])
     summary = (
         f"{subject}: {_pct(perf)} on time, {_pct(perf, 'early')} early, {_pct(perf, 'late')} late, "
         f"{number(perf['n'])} departures ({span})."

@@ -36,12 +36,27 @@ def test_http_errors_and_stale_data_are_feed_gaps():
     assert g["cause"] == "feed" and g["start"] == T0 + 630   # the first poll more than 10 min stale
 
 
-def test_connection_errors_are_ours_and_timeouts_unknown():
+def test_connection_errors_are_ours_and_read_timeouts_unknown():
     for error, cause in (("ConnectError: [Errno 101] Network is unreachable", "collector"),
+                         ("ConnectTimeout: timed out", "collector"),
                          ("ReadTimeout: timed out", "unknown")):
         rows = polls(T0 - 300, T0 + 600) + polls(T0 + 600, T0 + 900, status=None, entities=None, error=error) + \
             polls(T0 + 900, T0 + 4000)
         assert [g["cause"] for g in gaps.find_gaps(rows, SERVICE)] == [cause]
+
+
+def test_home_internet_outage_is_ours():
+    # 2026-10-16: the line dropped mid-connect, then every lookup failed.
+    first = fetch(T0 + 630, status=None, entities=None, error="ConnectTimeout: timed out")
+    rest = polls(T0 + 660, T0 + 1500, status=None, entities=None,
+                 error="ConnectError: [Errno -3] Temporary failure in name resolution")
+    rows = polls(T0 - 300, T0 + 630) + [first] + rest + polls(T0 + 1500, T0 + 4000)
+    assert [g["cause"] for g in gaps.find_gaps(rows, SERVICE)] == ["collector"]
+
+
+def test_shipped_overrides_are_valid():
+    for o in gaps.load_overrides():
+        assert o["start"] < o["end"] and o["cause"] in ("collector", "feed", "unknown")
 
 
 def test_outside_service_nothing_counts():

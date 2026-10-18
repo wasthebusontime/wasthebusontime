@@ -73,7 +73,7 @@ A trip's arrival at its last stop, reported separately because that stop has no 
 _Avoid_: last-stop departure
 
 **Observed**:
-Recorded with a tracked bus at the time it left; only observed departures count. Public pages say "recorded".
+Recorded with a tracked bus at the time it left, and seen for at least 180 s after it left (so its time had settled); only observed departures count. Public pages say "recorded".
 _Avoid_: seen (which only means the stop appeared in the feed)
 
 **Perf block**:
@@ -92,7 +92,7 @@ The share of scheduled trips or departures that were observed.
 A stretch of time, while trips were scheduled to run, when recording failed or the feed was stale.
 
 **Data loss**:
-A gap long enough (over about 14 minutes) that departures were lost, published with its cause.
+A gap long enough (over about 13 minutes) that departures were lost, published with its cause.
 _Avoid_: outage (which is only the cause)
 
 **Not recorded**:

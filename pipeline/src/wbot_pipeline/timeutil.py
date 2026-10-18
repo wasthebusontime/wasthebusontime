@@ -1,11 +1,11 @@
-"""Service dates and GTFS times. Everything is timezone-aware (America/Los_Angeles)."""
+"""Service dates and GTFS times. Everything is timezone-aware, in the agency's time zone."""
 
 from datetime import UTC, date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
 
+from wbot_site import agency
 from wbot_site.contract import BANDS
 
-TZ = ZoneInfo("America/Los_Angeles")
+TZ = agency.TZ
 
 
 def origin(d: date) -> int:

@@ -20,7 +20,7 @@ from pathlib import Path
 from wbot_collector import layout
 
 from . import archive, dateplan, gaps, rules, static, timeutil
-from .config import EVENTS_VERSION, Settings
+from .config import EVENTS_VERSION, MIN_SEEN_AFTER_DEP_S, Settings
 from .db import connect, quote
 from .rt import Reduced
 
@@ -194,7 +194,8 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
                CAST(r.act_arr_ts - ({o} + s.sched_arr_s) AS INTEGER) AS delay_arr_s,
                r.stop_sr, rt.trip_sr,
                r.trip_id IS NOT NULL AS seen,
-               coalesce(r.after_dep AND r.tu_ts >= r.act_dep_ts, false) AS observed,
+               coalesce(r.after_dep AND r.tu_ts >= r.act_dep_ts
+                        AND r.last_seen_ts - r.act_dep_ts >= {MIN_SEEN_AFTER_DEP_S}, false) AS observed,
                coalesce(r.after_arr AND r.tu_ts >= r.act_arr_ts, false) AS observed_arr,
                r.last_seen_ts,
                CAST(r.last_seen_ts - r.act_dep_ts AS INTEGER) AS seen_after_dep_s,
