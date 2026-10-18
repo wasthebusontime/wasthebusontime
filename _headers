@@ -1,0 +1,13 @@
+# Security headers for every response from Cloudflare Pages.
+# The same set goes into the real site at launch, minus X-Robots-Tag.
+# connect-src names the basemap tile host (R2, set up at launch);
+# cloudflareinsights.com is Cloudflare Web Analytics.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://cloudflareinsights.com https://tiles.wasthebusontime.com; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  X-Robots-Tag: noindex

@@ -1,0 +1,49 @@
+/* Placeholder styles, a small subset of the real site's site.css (main branch).
+   Colors are from docs/planning/topics/style-guide.md; keep them in step. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --text: #1d1a15;
+  --muted: #5f5a51;
+  --link: #65389f;
+  --head-bg: #4e2281;
+  --head-text: #ffffff;
+  --foot-bg: #f0ecfa;
+  --band-stripe: #65389f;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151411;
+    --text: #eae7e2;
+    --muted: #afaaa0;
+    --link: #bca1ed;
+    --head-bg: #2d1b47;
+    --head-text: #eae7e2;
+    --foot-bg: #1d162a;
+    --band-stripe: #8059bb;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 1rem; line-height: 1.55; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; display: flex; flex-direction: column; min-height: 100vh; }
+a { color: var(--link); text-underline-offset: .15em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 2px; }
+h1 { font-size: 2rem; line-height: 1.25; text-wrap: balance; margin: 1.5rem 0 .75rem; }
+@media (max-width: 30rem) { h1 { font-size: 1.6rem; } }
+p { text-wrap: pretty; max-width: 68ch; }
+main, .site-header, .site-footer { width: 100%; max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
+main { flex: 1 0 auto; }
+main:focus { outline: none; }
+
+/* Header and footer bands, as on the real site: border-image paints the color full width. */
+.site-header { padding-top: 1rem; padding-bottom: .9rem; margin-bottom: 1rem; border-image: conic-gradient(var(--head-bg) 0 0) fill 0 / 0 / 0 100vmax; }
+.site-name { font-size: 1.4rem; font-weight: 700; color: var(--head-text); text-decoration: none; }
+.site-header :focus-visible { outline-color: var(--head-text); }
+.site-footer { margin-top: 4rem; padding-top: 1.25rem; padding-bottom: 2.5rem; font-size: .9rem; color: var(--muted);
+  border-image: linear-gradient(var(--band-stripe) 0 4px, var(--foot-bg) 4px) fill 0 / 0 / 0 100vmax; }
+.site-footer p { margin: .3rem 0; }
+.non-affiliation { color: var(--text); }
+.skip-link { position: absolute; left: 1rem; top: -10rem; z-index: 100; padding: .4rem .75rem; background: var(--bg); color: var(--link); font-weight: 600; }
+.skip-link:focus { top: .5rem; }
