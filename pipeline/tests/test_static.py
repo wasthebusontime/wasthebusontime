@@ -45,3 +45,34 @@ def test_cache_and_active_services(tmp_path):
     assert con.execute("SELECT stop_name FROM stops WHERE stop_id = 'S2'").fetchone() == ("Example St & 1st Ave",)
     assert con.execute("SELECT count(*) FROM shapes").fetchone() == (0,)
     assert con.execute("SELECT stop_code FROM stops WHERE stop_id = 'S7'").fetchone() == (None,)
+
+
+def test_cache_version_follows_the_columns():
+    base = static.cache_version()
+    added = {**static.COLUMNS, "trips": [*static.COLUMNS["trips"], "wheelchair_accessible"]}
+    renamed = {**static.COLUMNS, "stops": ["stop_id", "stop_code", "stop_desc", "stop_lat", "stop_lon"]}
+    reordered = {**static.COLUMNS, "routes": static.COLUMNS["routes"][::-1]}
+    new_table = {**static.COLUMNS, "frequencies": ["trip_id", "start_time"]}
+    versions = [static.cache_version(c) for c in (added, renamed, reordered, new_table)]
+    assert len({base, *versions}) == 5
+    assert static.cache_version(fmt=static.CACHE_FORMAT + 1) != base
+    # Table order doesn't change it.
+    assert static.cache_version(dict(reversed(static.COLUMNS.items()))) == base
+
+
+def test_cache_version_is_a_stable_digest():
+    # A fixed digest, not hash(): the same across runs and Python versions.
+    assert static.cache_version({"routes": ["route_id"]}, 1) == "10a0e96f231932ae"
+
+
+def test_cache_with_other_columns_is_rebuilt(tmp_path, monkeypatch):
+    zip_path = write_gtfs(tmp_path / "static", "v1_11111111", default_trips())
+    (version,) = static.list_versions(zip_path.parent)
+    cache = static.ensure_cache(tmp_path / "derived", version)
+    columns = {**static.COLUMNS, "trips": [*static.COLUMNS["trips"], "wheelchair_accessible"]}
+    monkeypatch.setattr(static, "COLUMNS", columns)
+    monkeypatch.setattr(static, "CACHE_VERSION", static.cache_version(columns))
+    static.ensure_cache(tmp_path / "derived", version)
+    con = duckdb.connect()
+    static.register(con, cache)
+    assert con.execute("SELECT count(wheelchair_accessible) FROM trips").fetchone() == (0,)

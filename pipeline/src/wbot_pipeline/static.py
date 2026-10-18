@@ -6,6 +6,7 @@ under derived/static/{stem}/, which DuckDB queries cheaply.
 """
 
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -35,7 +36,18 @@ COLUMNS = {
     "calendar_dates": ["service_id", "date", "exception_type"],
     "shapes": ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"],
 }
-CACHE_VERSION = 2
+# Bump when the conversion itself changes (not the columns: those are in the hash below).
+CACHE_FORMAT = 1
+
+
+def cache_version(columns: dict[str, list[str]] = COLUMNS, fmt: int = CACHE_FORMAT) -> str:
+    """A digest of the cache's columns and format, so a column change rebuilds every cache.
+    Table order doesn't matter; column order does (it is the Parquet column order)."""
+    canonical = json.dumps({"format": fmt, "columns": columns}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
+
+CACHE_VERSION = cache_version()
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
