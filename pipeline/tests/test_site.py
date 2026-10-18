@@ -10,7 +10,7 @@ import pytest
 from conftest import DAY, after
 from synth import Feed, TripPlan, default_trips, write_gtfs
 
-from wbot_pipeline import pipeline, sitefiles, timeutil
+from wbot_pipeline import pipeline, rules, sitefiles, timeutil
 from wbot_pipeline.config import load_settings
 from wbot_pipeline.perf import reference
 from wbot_site import data as site_data
@@ -53,8 +53,7 @@ def eligible(settings, where="TRUE"):
     glob = (settings.derived_dir / "events" / "*" / "*.parquet").as_posix()
     return [r[0] for r in con.execute(f"""
         SELECT delay_dep_s FROM read_parquet('{glob}')
-        WHERE observed AND scheduled AND stop_sr = 'SCHEDULED' AND trip_sr = 'SCHEDULED' AND NOT is_last
-              AND delay_dep_s IS NOT NULL AND {where}""").fetchall()]
+        WHERE {rules.DEPARTURE} AND {where}""").fetchall()]
 
 
 def test_run_processes_both_days(world):

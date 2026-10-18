@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from . import archive, gaps, static, timeutil
+from . import archive, gaps, rules, static, timeutil
 from .config import EVENTS_VERSION, Settings
 from .db import connect, quote
 from .rt import Reduced
@@ -32,17 +32,6 @@ READ_AFTER_S = 3600
 # Wait this long after the last hour ends before calling a date complete
 # (the collector packs each hour two minutes after it ends).
 READY_AFTER_S = 600
-
-MACROS = [
-    "CREATE OR REPLACE MACRO gtfs_s(x) AS CASE WHEN x IS NULL THEN NULL ELSE "
-    "CAST(split_part(x, ':', 1) AS INTEGER) * 3600 + CAST(split_part(x, ':', 2) AS INTEGER) * 60 "
-    "+ CAST(split_part(x, ':', 3) AS INTEGER) END",
-    # Route slug: short name lowercased and URL-safe. Stop slug: the public code, URL-safe.
-    "CREATE OR REPLACE MACRO route_slug(x) AS "
-    "coalesce(nullif(trim(regexp_replace(lower(x), '[^a-z0-9]+', '-', 'g'), '-'), ''), 'route')",
-    "CREATE OR REPLACE MACRO stop_slug(x) AS regexp_replace(x, '[^A-Za-z0-9_-]', '-', 'g')",
-]
-
 
 @dataclass
 class Paths:
@@ -119,8 +108,7 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, no
 
     cache = static.ensure_cache(settings.derived_dir, v)
     con = connect(settings)
-    for macro in MACROS:
-        con.execute(macro)
+    rules.register(con)
     static.register(con, cache)
     services = static.active_services(con, d)
     con.execute("""
@@ -220,9 +208,9 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, no
         a AS (
             SELECT trip_id, bool_or(scheduled) AS scheduled, min(route_id) AS route_id,
                    min(route_slug) AS route_slug, min(direction_id) AS direction_id,
-                   count(*) FILTER (WHERE scheduled AND is_timepoint AND NOT is_last AND sched_dep_ts IS NOT NULL)
+                   count(*) FILTER (WHERE scheduled AND {rules.TIMED_STOP} AND sched_dep_ts IS NOT NULL)
                        AS eligible_timepoints,
-                   count(*) FILTER (WHERE scheduled AND is_timepoint AND NOT is_last AND sched_dep_ts IS NOT NULL
+                   count(*) FILTER (WHERE scheduled AND {rules.TIMED_STOP} AND sched_dep_ts IS NOT NULL
                                     AND observed AND stop_sr = 'SCHEDULED') AS observed_timepoints,
                    count(*) FILTER (WHERE stop_sr = 'SKIPPED') AS skipped_stops,
                    count(*) FILTER (WHERE stop_sr = 'NO_DATA') AS no_data_stops,

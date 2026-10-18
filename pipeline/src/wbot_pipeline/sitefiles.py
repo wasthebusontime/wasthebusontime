@@ -19,7 +19,7 @@ from pathlib import Path
 
 import duckdb
 
-from . import events, opendata, shapes, static, timeutil
+from . import events, opendata, rules, shapes, static, timeutil
 from .quality import data_loss, public_day, quality_days, uptime_share
 from .config import ALT, BANDS, DAYTYPES, EVENTS_VERSION, HEADLINE, SCHEMA, SCOPES, Settings
 from .db import connect, quote
@@ -76,34 +76,28 @@ def find_period(settings: Settings) -> Period | None:
 
 def prepare(settings: Settings, period: Period, versions: list[static.Version], db_path: Path) -> Stage:
     con = connect(settings, db_path)
-    for macro in events.MACROS:
-        con.execute(macro)
+    rules.register(con)
     files = [events.paths(settings, date.fromisoformat(m["service_date"])) for m in period.days]
     ev_list = ", ".join(f"'{quote(p.events)}'" for p in files)
     tr_list = ", ".join(f"'{quote(p.trips)}'" for p in files)
     con.execute(f"CREATE VIEW ev AS SELECT * FROM read_parquet([{ev_list}], union_by_name = true)")
     con.execute(f"CREATE VIEW tr AS SELECT * FROM read_parquet([{tr_list}], union_by_name = true)")
-    # Observed, on-time-eligible departures, once per scope they count in.
-    eligible = """observed AND scheduled AND stop_sr = 'SCHEDULED' AND trip_sr = 'SCHEDULED'
-                  AND NOT is_last AND delay_dep_s IS NOT NULL"""
-    cols = """strftime(service_date, '%Y-%m-%d') AS date, strftime(service_date, '%Y-%m') AS month, day_type,
-              service_hour AS hour,
-              CASE WHEN service_hour < 6 THEN 'early' WHEN service_hour < 9 THEN 'am_peak'
-                   WHEN service_hour < 15 THEN 'midday' WHEN service_hour < 18 THEN 'pm_peak' ELSE 'evening' END AS band,
+    # Departures, once per scope they count in.
+    cols = f"""strftime(service_date, '%Y-%m-%d') AS date, strftime(service_date, '%Y-%m') AS month, day_type,
+              service_hour AS hour, {rules.band('service_hour')} AS band,
               route_slug AS route, coalesce(direction_id, 0) AS direction_id, stop_code AS stop, is_first,
               delay_dep_s AS delay"""
     con.execute(f"""
         CREATE TABLE d AS
-        SELECT 'all_stops' AS scope, {cols} FROM ev WHERE {eligible}
+        SELECT 'all_stops' AS scope, {cols} FROM ev WHERE {rules.DEPARTURE}
         UNION ALL
-        SELECT 'timepoints' AS scope, {cols} FROM ev WHERE {eligible} AND is_timepoint
+        SELECT 'timepoints' AS scope, {cols} FROM ev WHERE {rules.DEPARTURE} AND is_timepoint
     """)
     # End-of-line arrivals: each trip's last stop.
-    con.execute("""
+    con.execute(f"""
         CREATE TABLE eol AS
         SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay
-        FROM ev WHERE is_last AND scheduled AND observed_arr AND stop_sr = 'SCHEDULED'
-              AND trip_sr = 'SCHEDULED' AND delay_arr_s IS NOT NULL
+        FROM ev WHERE {rules.END_OF_LINE}
     """)
     stage = Stage(settings, con, period, versions, pq=PerfQuery(con, "d"), eol=PerfQuery(con, "eol"))
     load_names(stage)
@@ -210,13 +204,12 @@ def trip_facts(stage: Stage, entity: str | None) -> dict:
     rows = stage.con.execute(f"""
         SELECT {ek} AS e,
                count(*) FILTER (WHERE scheduled) AS scheduled,
-               count(*) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED' AND eligible_timepoints > 0
-                                AND observed_timepoints >= {s.trip_coverage_min} * eligible_timepoints) AS observed,
+               count(*) FILTER (WHERE {rules.trip_observed(s.trip_coverage_min)}) AS observed,
                count(*) FILTER (WHERE scheduled AND trip_sr = 'CANCELED') AS cancelled,
                count(*) FILTER (WHERE trip_sr = 'ADDED') AS added,
                coalesce(sum(skipped_stops), 0) AS skipped,
-               coalesce(sum(eligible_timepoints) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED'), 0),
-               coalesce(sum(observed_timepoints) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED'), 0)
+               coalesce(sum(eligible_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
+               coalesce(sum(observed_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0)
         FROM tr GROUP BY e
     """).fetchall()
     uptime = uptime_share(stage.period.days)
@@ -378,14 +371,14 @@ def route_stop_order(stage: Stage) -> dict[tuple[str, int], list[tuple[str, bool
     """Stops of each route and direction in route order: by their average relative
     position along the trips that serve them. Value: [(code, timepoint here)]."""
     out = {}
-    for slug, direction, code, _, timepoint in stage.con.execute("""
+    for slug, direction, code, _, timepoint in stage.con.execute(f"""
         WITH t AS (
             SELECT route_slug, coalesce(direction_id, 0) AS direction_id, stop_code, is_timepoint, is_last,
                    (row_number() OVER w - 1) / greatest(count(*) OVER (PARTITION BY service_date, trip_id) - 1, 1) AS rel
             FROM ev WHERE scheduled
             WINDOW w AS (PARTITION BY service_date, trip_id ORDER BY stop_sequence)
         )
-        SELECT route_slug, direction_id, stop_code, avg(rel) AS pos, bool_or(is_timepoint AND NOT is_last)
+        SELECT route_slug, direction_id, stop_code, avg(rel) AS pos, bool_or({rules.TIMED_STOP})
         FROM t GROUP BY ALL ORDER BY route_slug, direction_id, pos, stop_code
     """).fetchall():
         out.setdefault((slug, direction), []).append((code, timepoint))
@@ -455,7 +448,7 @@ def write_stops(stage: Stage, site: Path) -> list[dict]:
     # Routes for which each stop is a timepoint (a departure from it is timed).
     timepoint_routes = {}
     for code, slug in con.execute(
-            "SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled AND is_timepoint AND NOT is_last").fetchall():
+            f"SELECT DISTINCT stop_code, route_slug FROM ev WHERE scheduled AND {rules.TIMED_STOP}").fetchall():
         timepoint_routes.setdefault(code, set()).add(slug)
     timepoint_somewhere = set(timepoint_routes)
     blocks = scope_blocks(stage, "stop", daily=False)

@@ -4,7 +4,7 @@ Used for quality.json, the notices and quality_daily.csv / data_loss.csv, so eac
 rule has one definition.
 """
 
-from . import timeutil
+from . import rules, timeutil
 
 
 def uptime_share(days: list[dict]) -> float:
@@ -32,10 +32,9 @@ def quality_days(stage) -> list[dict]:
     per_day = {r[0]: r[1:] for r in stage.con.execute(f"""
         SELECT strftime(service_date, '%Y-%m-%d'),
                count(*) FILTER (WHERE scheduled),
-               count(*) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED' AND eligible_timepoints > 0
-                                AND observed_timepoints >= {s.trip_coverage_min} * eligible_timepoints),
-               coalesce(sum(eligible_timepoints) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED'), 0),
-               coalesce(sum(observed_timepoints) FILTER (WHERE scheduled AND coalesce(trip_sr, '') <> 'CANCELED'), 0),
+               count(*) FILTER (WHERE {rules.trip_observed(s.trip_coverage_min)}),
+               coalesce(sum(eligible_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
+               coalesce(sum(observed_timepoints) FILTER (WHERE {rules.TRIP_COUNTED}), 0),
                count(*) FILTER (WHERE scheduled AND trip_sr = 'CANCELED'),
                count(*) FILTER (WHERE trip_sr = 'ADDED'),
                coalesce(sum(skipped_stops), 0)
