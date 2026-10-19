@@ -29,8 +29,12 @@
     d.addEventListener("toggle", function () {
       if (d.open) menus.forEach(function (other) { if (other !== d) other.open = false; });
     });
+    // Pressing a part of the menu that isn't a link (a grayed choice) moves focus to <main>
+    // (tabindex -1, the skip link's target), an ancestor; closing then crashed Edge and Chrome.
+    // The click handler below closes menus for clicks elsewhere.
     d.addEventListener("focusout", function (e) {
-      if (e.relatedTarget && !d.contains(e.relatedTarget)) d.open = false;
+      var t = e.relatedTarget;
+      if (t && !d.contains(t) && !t.contains(d)) d.open = false;
     });
     d.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && d.open) {

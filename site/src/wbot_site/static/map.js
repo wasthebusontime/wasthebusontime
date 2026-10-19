@@ -400,8 +400,11 @@ async function start(root) {
     d.addEventListener("toggle", () => {
       if (d.open) panels.filter((other) => other !== d).forEach((other) => (other.open = false));
     });
+    // Focus moving to an ancestor (pressing panel padding focuses <main>) isn't leaving;
+    // closing then can crash Edge and Chrome (see site.js).
     d.addEventListener("focusout", (e) => {
-      if (e.relatedTarget && !d.contains(e.relatedTarget)) d.open = false;
+      const t = e.relatedTarget;
+      if (t && !d.contains(t) && !t.contains(d)) d.open = false;
     });
     d.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && d.open) {
