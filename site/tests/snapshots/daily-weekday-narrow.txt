@@ -1,0 +1,48 @@
+<svg viewBox="0 0 320 214" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<line x1="32" y1="190" x2="314" y2="190" class="grid"/>
+<text x="26" y="194" text-anchor="end" class="small">70%</text>
+<line x1="32" y1="130" x2="314" y2="130" class="grid"/>
+<text x="26" y="134" text-anchor="end" class="small">80%</text>
+<line x1="32" y1="70" x2="314" y2="70" class="grid"/>
+<text x="26" y="74" text-anchor="end" class="small">90%</text>
+<line x1="32" y1="10" x2="314" y2="10" class="grid"/>
+<text x="26" y="14" text-anchor="end" class="small">100%</text>
+<line x1="32.0" y1="10" x2="32.0" y2="190" class="grid"/>
+<line x1="32.0" y1="190" x2="32.0" y2="194" class="axis"/>
+<line x1="63.3" y1="190" x2="63.3" y2="194" class="axis"/>
+<line x1="94.7" y1="190" x2="94.7" y2="194" class="axis"/>
+<line x1="126.0" y1="190" x2="126.0" y2="194" class="axis"/>
+<line x1="157.3" y1="190" x2="157.3" y2="194" class="axis"/>
+<line x1="188.7" y1="10" x2="188.7" y2="190" class="grid"/>
+<line x1="188.7" y1="190" x2="188.7" y2="194" class="axis"/>
+<line x1="220.0" y1="190" x2="220.0" y2="194" class="axis"/>
+<line x1="251.3" y1="190" x2="251.3" y2="194" class="axis"/>
+<line x1="282.7" y1="190" x2="282.7" y2="194" class="axis"/>
+<line x1="314.0" y1="190" x2="314.0" y2="194" class="axis"/>
+<line x1="32" y1="146.0" x2="314" y2="146.0" class="average"/>
+<polyline points="32.0,110.0 63.3,150.0 94.7,190.0 126.0,110.0 157.3,150.0 188.7,190.0 220.0,110.0 251.3,150.0 282.7,190.0 314.0,110.0" class="line"/>
+<circle cx="32.0" cy="110.0" r="4" class="dot"/>
+<circle cx="63.3" cy="150.0" r="4" class="dot"/>
+<circle cx="94.7" cy="190.0" r="4" class="dot"/>
+<circle cx="126.0" cy="110.0" r="4" class="dot"/>
+<circle cx="157.3" cy="150.0" r="4" class="dot"/>
+<circle cx="188.7" cy="190.0" r="4" class="dot"/>
+<circle cx="220.0" cy="110.0" r="4" class="dot"/>
+<circle cx="251.3" cy="150.0" r="4" class="dot"/>
+<circle cx="282.7" cy="190.0" r="4" class="dot"/>
+<circle cx="314.0" cy="110.0" r="4" class="dot"/>
+<text x="36" y="141" text-anchor="start" class="average-label">Average 77%</text>
+<circle cx="32.0" cy="110.0" r="6" class="hit"><title>Mon, Oct 19, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="63.3" cy="150.0" r="6" class="hit"><title>Tue, Oct 20, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="94.7" cy="190.0" r="6" class="hit"><title>Wed, Oct 21, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="126.0" cy="110.0" r="6" class="hit"><title>Thu, Oct 22, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="157.3" cy="150.0" r="6" class="hit"><title>Fri, Oct 23, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="188.7" cy="190.0" r="6" class="hit"><title>Mon, Oct 26, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="220.0" cy="110.0" r="6" class="hit"><title>Tue, Oct 27, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="251.3" cy="150.0" r="6" class="hit"><title>Wed, Oct 28, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="282.7" cy="190.0" r="6" class="hit"><title>Thu, Oct 29, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="314.0" cy="110.0" r="6" class="hit"><title>Fri, Oct 30, 2026: 83.3% on time, 60 departures</title></circle>
+<text x="32" y="206" text-anchor="start" class="small">Oct 19</text>
+<text x="188.667" y="206" text-anchor="middle" class="small">Oct 26</text>
+<text x="314" y="206" text-anchor="end" class="small">Oct 30</text>
+</svg>

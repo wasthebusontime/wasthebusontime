@@ -41,12 +41,30 @@ DAILY = [
     {"date": "2026-11-04", **perf(58, 2, 52, 4)},
 ]
 
+# Each day under a day type filter: only that day type's days (here Sundays, one too small).
+SUNDAYS = [
+    {"date": "2026-10-04", **perf(40, 1, 35, 4)},
+    {"date": "2026-10-11", **perf(42, 2, 30, 10)},
+    {"date": "2026-10-18", **perf(6, 0, 6, 0)},
+    {"date": "2026-10-25", **perf(38, 0, 36, 2)},
+    {"date": "2026-11-01", **perf(41, 3, 33, 5)},
+]
+WEEKDAY_DATES = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23",
+                 "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
+WEEKDAYS = [{"date": d, **perf(60, 2, 50 - i % 3 * 4, 8 + i % 3 * 4)} for i, d in enumerate(WEEKDAY_DATES)]
+
 CASES = {
     "headline": lambda: charts.headline_chart(SUMMARY, "Route 901", MIN, W),
     "daytype": lambda: charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN),
     "histogram": lambda: charts.histogram_chart(SUMMARY, "Route 901", MIN, W),
     "hour": lambda: charts.hour_chart(BY_HOUR, "Route 901", MIN),
     "daily": lambda: charts.daily_chart(DAILY, "Route 901", MIN),
+    # Under a filter: the chosen day type highlighted, the chosen band shaded, and Each day
+    # for one day type.
+    "daytype-chosen": lambda: charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN, daytype="saturday"),
+    "hour-band": lambda: charts.hour_chart(BY_HOUR, "Route 901", MIN, band="am_peak"),
+    "daily-sunday": lambda: charts.daily_chart(SUNDAYS, "Route 901", MIN, daytype="sunday"),
+    "daily-weekday": lambda: charts.daily_chart(WEEKDAYS, "Route 901", MIN, daytype="weekday"),
 }
 
 
@@ -203,3 +221,63 @@ def test_daily_marks_weekends_and_names_weekdays():
     assert chart.weekend_key and chart.rows[0][0] == "Wed, Nov 4, 2026"
     weekdays_only = charts.daily_chart(days("2026-10-05", [0.9] * 5), "Route 901", MIN)
     assert not weekdays_only.weekend_key and 'class="saturday"' not in weekdays_only.svg
+
+
+def test_hour_chart_shades_the_chosen_band():
+    chart = charts.hour_chart(BY_HOUR, "Route 901", MIN, band="am_peak")
+    # Hours 6, 7 and 8 of the five bars: from the first bar's left edge to the third's right.
+    step = charts.WIDE.plot / len(BY_HOUR)
+    shade = re.search(r'<rect x="([\d.]+)" y="0.0" width="([\d.]+)" height="174.0" class="chosen">', chart.svg)
+    assert shade and float(shade.group(1)) == charts.WIDE.left
+    assert abs(float(shade.group(2)) - 3 * step) < 0.1
+    assert chart.svg.index('class="chosen"') < chart.svg.index('class="grid"')  # behind everything
+    assert chart.summary.endswith("Shaded: AM peak (6 to 9 am), the time of day chosen.")
+    assert chart.chosen_key == "AM peak (6 to 9 am), the time of day chosen"
+    # A band with no hours in the chart shades nothing; no band, no key.
+    assert 'class="chosen"' not in charts.hour_chart(BY_HOUR, "Route 901", MIN, band="early").svg
+    assert charts.hour_chart(BY_HOUR, "Route 901", MIN).chosen_key == ""
+
+
+def test_daytype_chart_highlights_the_chosen_day_type():
+    chart = charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN, daytype="saturday")
+    for svg, lines in ((chart.svg, 1), (chart.svg_narrow, 2)):  # narrow: label and numbers on two lines
+        assert svg.count('class="chosen"') == 1 and "<title>Saturday (chosen)</title>" in svg
+        bold = re.findall(r'<text font-weight="bold"[^>]*>(.*?)</text>', svg)
+        assert len(bold) == lines and bold[0].startswith("Saturday:")
+    assert "saturday 90% (the day type chosen)" in chart.summary
+    assert chart.chosen_key == "Saturday, the day type chosen"
+    assert 'class="chosen"' not in charts.daytype_chart(BY_DAYTYPE, "Route 901", MIN).svg
+
+
+def test_daily_chart_for_one_day_type():
+    chart = charts.daily_chart(SUNDAYS, "Route 901", MIN, daytype="sunday")
+    # Evenly spaced, no weekend shading or week lines, and the average over the days shown.
+    xs = [float(x) for x in re.findall(r'<line x1="([\d.]+)" y1="\d+" x2="[\d.]+" y2="\d+" class="axis"/>', chart.svg)]
+    gaps = {round(b - a, 1) for a, b in zip(xs, xs[1:])}
+    assert len(xs) == 5 and len(gaps) == 1
+    assert 'class="saturday"' not in chart.svg and 'class="sunday"' not in chart.svg and not chart.weekend_key
+    assert not re.search(r'<line x1="([\d.]+)" y1="10" x2="\1"', chart.svg)  # no week lines
+    usable = [d for d in SUNDAYS if d["n"] >= MIN]
+    assert f"average {percent_of(usable)}" in chart.summary
+    assert chart.summary.startswith("Route 901, on time each Sunday over the last 5 Sundays:")
+    # Every Sunday's date is labeled where it fits.
+    for d in ("Oct 4", "Oct 11", "Oct 18", "Oct 25", "Nov 1"):
+        assert f">{d}</text>" in chart.svg, d
+    weekdays = charts.daily_chart(WEEKDAYS, "Route 901", MIN, daytype="weekday")
+    assert weekdays.summary.startswith("Route 901, on time each weekday over the last 10 weekdays:")
+    assert not weekdays.weekend_key
+
+
+def percent_of(rows: list[dict]) -> str:
+    from wbot_site.data import percent
+    return percent(sum(d["on_time"] for d in rows), sum(d["n"] for d in rows))
+
+
+def test_saturday_and_sunday_labels_thin_evenly_from_the_last_day():
+    rows = [{"date": (date(2026, 1, 4) + timedelta(weeks=i)).isoformat(), **perf(50, 0, 45, 5)} for i in range(40)]
+    for layout in (charts.WIDE, charts.NARROW):
+        step = layout.plot / 39
+        labels = charts._even_labels(layout, rows, step)
+        idx = [i for i, _ in labels]
+        assert idx[-1] == 39 and len({b - a for a, b in zip(idx, idx[1:])}) == 1
+        assert labels[-1][1] == "end"

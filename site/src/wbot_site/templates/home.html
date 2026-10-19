@@ -5,23 +5,30 @@
 <h1 class="visually-hidden">Was the Bus On Time?</h1>
 <p class="lede">How often {{ agency.NAME }} buses leave their stops on time, measured from the agency's public real-time data and updated every night.</p>
 {{ notices_line(notices) }}
-{{ settings_bar() }}
+{{ settings_bar(filter=filter) }}
+{% set lead = filter.lead if filter and filter.active else none %}
 {% call(scope) scoped() %}
 {% set s = system.scopes[scope] %}
-{{ headline(s.summary, "the whole system", scope) }}
+{{ headline(s.summary, "the whole system", scope, lead) }}
 {{ chart(charts.headline_chart(s.summary, "The whole system", min_sample, windows), "Early, on time and late") }}
 <div class="table-wrap">
 <table class="data sortable">
 <caption>Routes</caption>
 <thead><tr><th scope="col">Route</th>{{ perf_header() }}</tr></thead>
 <tbody>
-{% for r in system.routes %}
-<tr><th scope="row" data-sort="{{ r.short_name }}"><a href="/routes/{{ r.slug }}/">Route {{ r.short_name }}</a> <span class="def">{{ r.long_name }}</span></th>{{ perf_cells(r[scope]) }}</tr>
+{# Every route, in system.json's order; under a filter, routes with no scheduled service
+   have no link and no numbers. #}
+{% for base, r, href in route_rows %}
+{% if r %}
+<tr><th scope="row" data-sort="{{ base.short_name }}"><a href="{{ href }}">Route {{ base.short_name }}</a> <span class="def">{{ base.long_name }}</span></th>{{ perf_cells(r[scope]) }}</tr>
+{% else %}
+<tr class="no-service"><th scope="row" data-sort="{{ base.short_name }}">Route {{ base.short_name }} <span class="def">{{ base.long_name }}</span></th><td class="num" colspan="{{ 5 if windows.show_alt else 4 }}"><span class="nodata">No service</span></td></tr>
+{% endif %}
 {% endfor %}
 </tbody>
 </table>
 </div>
-{{ scope_charts(s, "The whole system") }}
+{{ scope_charts(s, "The whole system", filter) }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {% endcall %}
 <h2>Start and end of trips</h2>

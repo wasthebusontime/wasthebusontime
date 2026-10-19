@@ -45,6 +45,9 @@ class Stats:
     quality: dict
     routes: dict[str, dict] = field(default_factory=dict)
     stops: dict[str, dict] = field(default_factory=dict)
+    # Page presets with a file: preset name -> the route slugs with one (the system file
+    # exists for every name listed). Empty when the stats have no presets.
+    presets: dict[str, set[str]] = field(default_factory=dict)
 
     @property
     def windows(self) -> Windows:
@@ -65,6 +68,19 @@ class Stats:
     @property
     def routes_geojson(self) -> Path:
         return self.root / "site" / "routes.geojson"
+
+    def has_preset(self, daytype: str, band: str, slug: str | None = None) -> bool:
+        """Whether the system (slug None) or a route has a file for this preset; all-all is the
+        files themselves."""
+        if (daytype, band) == ("all", "all"):
+            return True
+        slugs = self.presets.get(contract.preset_name(daytype, band))
+        return slugs is not None and (slug is None or slug in slugs)
+
+    def preset(self, daytype: str, band: str, slug: str | None = None) -> dict:
+        """One page preset file, read when asked so the build holds one at a time."""
+        folder = self.root / "site" / "presets" / contract.preset_name(daytype, band)
+        return load_json(folder / ("system.json" if slug is None else f"routes/{slug}.json"))
 
     def map_periods(self) -> list[str]:
         """Periods with stop map presets ("all" first, then months), or [] if the stats have no map."""
@@ -92,6 +108,10 @@ def load_stats(stats_dir: Path) -> Stats:
         stats.routes[route["slug"]] = load_json(site / "routes" / f"{route['slug']}.json")
     for stop in stats.index["stops"]:
         stats.stops[stop["code"]] = load_json(site / "stops" / f"{stop['code']}.json")
+    for name in contract.PRESETS:
+        folder = site / "presets" / name
+        if folder.is_dir():
+            stats.presets[name] = {p.stem for p in (folder / "routes").glob("*.json")}
     return stats
 
 

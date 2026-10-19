@@ -1,5 +1,6 @@
 // Optional: the site works without this file.
-// Remembers the timepoints / all stops choice across pages, runs the stop filter, sorts
+// Remembers the timepoints / all stops choice across pages, closes the filter dropdowns like
+// menus, runs the stop filter, sorts
 // tables by column, and lets keyboards scroll tables that are wider than the screen.
 (function () {
   var KEY = "wbot-scope";
@@ -20,6 +21,29 @@
       }
     });
   });
+
+  // Day type and Time of day open like the stop map's dropdowns: one at a time, closed by a
+  // click elsewhere, by focus moving out, or by Escape (which returns focus to the button).
+  var menus = Array.prototype.slice.call(document.querySelectorAll("details.dropdown"));
+  menus.forEach(function (d) {
+    d.addEventListener("toggle", function () {
+      if (d.open) menus.forEach(function (other) { if (other !== d) other.open = false; });
+    });
+    d.addEventListener("focusout", function (e) {
+      if (e.relatedTarget && !d.contains(e.relatedTarget)) d.open = false;
+    });
+    d.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && d.open) {
+        d.open = false;
+        d.querySelector("summary").focus();
+      }
+    });
+  });
+  if (menus.length) {
+    document.addEventListener("click", function (e) {
+      menus.forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
+    });
+  }
 
   var filter = document.getElementById("stop-filter");
   if (filter) {

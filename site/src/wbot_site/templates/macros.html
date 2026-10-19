@@ -1,8 +1,9 @@
 {# The settings bar under a page's title: a row of optional controls, then a "What do these
-   mean?" disclosure. This ticket has one control, "Which stops"; day type and time of day go
-   in the same row later. CSS :has() shows one scope at a time; without :has() support the
-   switch is hidden and both scopes show one after the other under their headings. #}
-{% macro settings_bar(scope=true) %}
+   mean?" disclosure. "Which stops" is a switch: CSS :has() shows one scope at a time, and
+   without :has() support the switch is hidden and both scopes show one after the other under
+   their headings. Day type and Time of day (when the stats have page presets) are dropdowns
+   of links, one page per filter. #}
+{% macro settings_bar(scope=true, filter=none) %}
 <div class="settings-bar">
 <div class="settings-controls">
 {% if scope %}
@@ -14,6 +15,10 @@
   </span>
 </fieldset>
 {% endif %}
+{% if filter %}
+{{ dropdown("Day type", filter.daytypes) }}
+{{ dropdown("Time of day", filter.bands) }}
+{% endif %}
 </div>
 <details class="settings-help">
 <summary>What do these mean?</summary>
@@ -22,10 +27,34 @@
 <p><strong>All stops</strong>: at stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
 <p>Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
 {% endif %}
+{% if filter %}
+<p><strong>Day type</strong> and <strong>Time of day</strong> show only departures on those days and at those times, each counted at the time it was scheduled to leave. Two charts keep the rest for comparison: By hour of the day follows only the day type, with the chosen time of day shaded, and By day type follows only the time of day, with the chosen day type highlighted. Choices with no scheduled service are grayed out. The trips line, how complete the data is, and the notes always cover every day and time.</p>
+{% endif %}
 </details>
 {# site.js says here what changed when the scope changes. #}
 <p class="visually-hidden" id="scope-status" role="status"></p>
 </div>
+{% endmacro %}
+
+{# A dropdown of links in the settings bar, one per filter choice: the current one marked,
+   choices with no page (no scheduled service) grayed out and not links. A <details>, so it
+   opens without JavaScript; site.js closes it like a menu. #}
+{% macro dropdown(label, choices) %}
+{% set current = choices | selectattr("current") | first %}
+<details class="dropdown">
+<summary><span class="dropdown-label">{{ label }}</span> <span class="dropdown-value">{{ current.label }}</span></summary>
+<ul class="dropdown-list" aria-label="{{ label }}">
+{% for c in choices %}
+{% if c.current %}
+  <li><a href="{{ c.href }}" aria-current="page">{{ c.label }}</a></li>
+{% elif c.href %}
+  <li><a href="{{ c.href }}">{{ c.label }}</a></li>
+{% else %}
+  <li><span class="unavailable" aria-disabled="true">{{ c.label }} (no service)</span></li>
+{% endif %}
+{% endfor %}
+</ul>
+</details>
 {% endmacro %}
 
 {# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %}. The heading
@@ -72,18 +101,19 @@
 {% endif %}
 {% endmacro %}
 
-{# Big numbers at the top of a page, both windows labeled. #}
-{% macro headline(perf, subject, scope) %}
+{# Big numbers at the top of a page, both windows labeled. A filtered page's lead
+   ("Weekdays, AM peak (6 to 9 am)") starts the sentence. #}
+{% macro headline(perf, subject, scope, lead=none) %}
 {% set what = {"timepoints": "a timepoint", "stop": "this stop"}.get(scope, "a stop") %}
 <div class="headline">
 {% if enough(perf, min_sample) %}
-  <p class="headline-main"><span class="big">{{ share(perf) }}</span> {{ windows.headline_label }}</p>
+  <p class="headline-main">{% if lead %}<span class="headline-lead">{{ lead }}:</span> {% endif %}<span class="big">{{ share(perf) }}</span> {{ windows.headline_label }}</p>
   <p class="headline-parts">{{ share(perf, "early") }} early, {{ share(perf, "late") }} late, out of {{ perf.n | number }} departures (each time a bus left {{ what }}).</p>
   {% if windows.show_alt %}
   <p class="headline-alt"><span class="medium">{{ share(perf, window="alt") }}</span> {{ windows.alt_label }}</p>
   {% endif %}
 {% else %}
-  <p class="headline-main"><span class="nodata">Not enough data</span> for {{ subject }} yet ({{ perf.n | number }} departures; at least {{ min_sample }} are needed).</p>
+  <p class="headline-main">{% if lead %}<span class="headline-lead">{{ lead }}:</span> {% endif %}<span class="nodata">Not enough data</span> for {{ subject }} yet ({{ perf.n | number }} departures; at least {{ min_sample }} are needed).</p>
 {% endif %}
 </div>
 {% endmacro %}
@@ -213,6 +243,9 @@
 {% if c.weekend_key %}
 <ul class="chart-legend" aria-hidden="true"><li><span class="key saturday"></span>Saturday</li><li><span class="key sunday"></span>Sunday</li></ul>
 {% endif %}
+{% if c.chosen_key %}
+<ul class="chart-legend" aria-hidden="true"><li><span class="key chosen"></span>{{ c.chosen_key }}</li></ul>
+{% endif %}
 <figcaption>{{ c.summary | directions }}</figcaption>
 <details class="chart-table">
 <summary>Show table <span class="visually-hidden">({{ title }})</span></summary>
@@ -232,12 +265,16 @@
 {% endif %}
 {% endmacro %}
 
-{# The standard chart set for a scope block: by day type, by hour, daily trend, histogram. #}
-{% macro scope_charts(s, subject) %}
-{{ chart(charts.daytype_chart(s.by_daytype, subject, min_sample), "By day type") }}
-{{ chart(charts.hour_chart(s.by_hour, subject, min_sample), "By hour of the day") }}
+{# The standard chart set for a scope block: by day type, by hour, daily trend, histogram.
+   Under a filter, By day type highlights the chosen day type, By hour shades the chosen
+   band, and Each day shows only days of the chosen day type. #}
+{% macro scope_charts(s, subject, filter=none) %}
+{% set daytype = filter.daytype if filter and filter.daytype != "all" else none %}
+{% set band = filter.band if filter and filter.band != "all" else none %}
+{{ chart(charts.daytype_chart(s.by_daytype, subject, min_sample, daytype=daytype), "By day type") }}
+{{ chart(charts.hour_chart(s.by_hour, subject, min_sample, band=band), "By hour of the day") }}
 {% if s.daily is defined %}
-{{ chart(charts.daily_chart(s.daily, subject, min_sample), "Each day") }}
+{{ chart(charts.daily_chart(s.daily, subject, min_sample, daytype=daytype), "Each day") }}
 {% endif %}
 {{ chart(charts.histogram_chart(s.summary, subject, min_sample, windows), "How late buses left") }}
 {% endmacro %}

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{% if noindex %}
-<meta name="robots" content="noindex, nofollow">
+{% if robots %}
+<meta name="robots" content="{{ robots }}">
 {% endif %}
 <title>{% if title %}{{ title }} - {% endif %}Was the Bus On Time?</title>
 <meta name="description" content="Unofficial on-time statistics for {{ agency.NAME }} buses. {{ agency.NAME }} is headquartered in Olympia, Washington, and serves a Public Transportation Benefit Area in Thurston County. Not affiliated with {{ agency.NAME }}.">

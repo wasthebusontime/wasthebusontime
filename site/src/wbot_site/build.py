@@ -23,7 +23,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import agency, charts, contract, data, windows
+from wbot_site import agency, charts, contract, data, filters, windows
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -46,6 +46,10 @@ PAGES = {
     "unavailable": "unavailable/",
 }
 NO_SITEMAP = {"unavailable/", "404.html"}
+# Cloudflare Pages (Free plan) takes at most 20,000 files per site. The build fails well
+# before that, so a growing site is noticed while the last good build is still up.
+FILE_CAP = 20_000
+MAX_FILES = 15_000
 # Markers in content pages replaced by a macro (macros.html) over the system's numbers: the
 # numbers on the agency's own window, and where end-of-line arrivals came from.
 STATS_BLOCKS = {"<!-- agency-comparison -->": "agency_comparison", "<!-- end-of-line-sources -->": "end_of_line_sources"}
@@ -58,16 +62,22 @@ class Build:
     stats: Stats
     jinja: Environment
     pages: list[str] = field(default_factory=list)
+    filtered: set[str] = field(default_factory=set)
 
-    def render(self, template: str, path: str, **context) -> None:
-        """Renders a template to `path` ('' is the home page, 'x/' is x/index.html)."""
+    def render(self, template: str, path: str, *, filtered: bool = False, **context) -> None:
+        """Renders a template to `path` ('' is the home page, 'x/' is x/index.html). Filtered
+        pages stay out of search results, but their links are followed."""
         target = self.out / path / "index.html" if path == "" or path.endswith("/") else self.out / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        html = self.jinja.get_template(template).render(
-            path="/" + path, noindex=self.env == "dev" or path in NO_SITEMAP, **context
-        )
+        if self.env == "dev" or path in NO_SITEMAP:
+            robots = "noindex, nofollow"
+        else:
+            robots = "noindex, follow" if filtered else ""
+        html = self.jinja.get_template(template).render(path="/" + path, robots=robots, **context)
         target.write_text(html, encoding="utf-8", newline="\n")
         self.pages.append(path)
+        if filtered:
+            self.filtered.add(path)
 
 
 def choose_stats(stats_dir: Path | None, env: str) -> Stats:
@@ -168,7 +178,16 @@ def build(
     render_stats_pages(b)
     b.render("404.html", "404.html", title="Page not found")
     write_sitemap(b)
+    check_file_count(out)
     return b
+
+
+def check_file_count(out: Path) -> None:
+    files = sum(1 for p in out.rglob("*") if p.is_file())
+    if files > MAX_FILES:
+        raise StatsError(f"the build has {files:,} files, over this site's limit of {MAX_FILES:,} "
+                         f"(Cloudflare Pages allows {FILE_CAP:,}); see docs/adr/0001-precomputed-page-presets.md")
+    log.info("%d files (limit %d)", files, MAX_FILES)
 
 
 def clean_output(out: Path) -> None:
@@ -178,22 +197,6 @@ def clean_output(out: Path) -> None:
             raise SystemExit(f"{out} is not empty and doesn't look like a site build; refusing to delete it")
         shutil.rmtree(out)
     out.mkdir(parents=True)
-
-
-# Checkbox labels; the "all" presets are what the map loads when every box is ticked.
-BAND_NAMES = {"early": "Early", "am_peak": "AM peak", "midday": "Midday", "pm_peak": "PM peak", "evening": "Evening"}
-
-
-def band_label(key: str, first: int, end: int) -> str:
-    """"AM peak (6 to 9 am)", with the hours from the contract's band."""
-    if first == 0:
-        hours = f"before {data.hour_text(end)}"
-    elif end >= 24:
-        hours = f"{data.hour_text(first)} on"
-    else:
-        a, b = data.hour_text(first), data.hour_text(end)
-        hours = f"{a.split()[0]} to {b}" if a.split()[1] == b.split()[1] else f"{a} to {b}"
-    return f"{BAND_NAMES[key]} ({hours})"
 
 
 def copy_map_data(b: Build, tiles_url: str) -> dict | None:
@@ -212,7 +215,7 @@ def copy_map_data(b: Build, tiles_url: str) -> dict | None:
         "routes": [(r["slug"], f"Route {r['short_name']} {r['long_name']}") for r in b.stats.system["routes"]],
         "periods": [(p, "Whole period" if p == "all" else data.month_text(p)) for p in periods],
         "daytypes": list(data.DAYTYPE_LABELS.items()),
-        "bands": [(key, band_label(key, first, end)) for key, first, end in contract.BANDS],
+        "bands": [(key, filters.band_label(key)) for key, _, _ in contract.BANDS],
         "bins": " ".join(str(b) for b in windows.MAP_BINS),
         "cell": " ".join(contract.MAP_CELL),
         "legend": windows.map_legend(),
@@ -245,25 +248,71 @@ def csv_downloads(b: Build) -> list[dict]:
 
 def render_stats_pages(b: Build) -> None:
     stats = b.stats
-    system = stats.system
-    b.render(
-        "home.html", "", title=None,
-        system=system, notices=data.known_notices(system["notices"], "system.json"),
-    )
+    notices = data.known_notices(stats.system["notices"], "system.json")
+    for daytype, band in page_presets(stats):
+        render_home(b, daytype, band, notices)
     for slug, route in stats.routes.items():
-        name = route_name(route["route"])
-        b.render(
-            "route.html", f"routes/{slug}/", title=" ".join(filter(None, [name, route["route"].get("long_name")])),
-            name=name, route=route,
-            notices=data.known_notices(route["notices"], f"routes/{slug}.json"),
-        )
+        notices = data.known_notices(route["notices"], f"routes/{slug}.json")
+        for daytype, band in page_presets(stats, slug):
+            render_route(b, slug, daytype, band, notices)
     b.render("stops.html", "stops/", title="Stops", stops=stats.index["stops"], route_names=route_names(stats))
     for code, stop in stats.stops.items():
         b.render(
             "stop.html", f"stops/{code}/", title=f"{data.directions_text(stop['stop']['name'])}, stop {code}", stop=stop, route_names=route_names(stats),
             notices=data.known_notices(stop["notices"], f"stops/{code}.json"),
         )
-    b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=system["completeness"])
+    b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=stats.system["completeness"])
+
+
+def page_presets(stats: Stats, slug: str | None = None) -> list[tuple[str, str]]:
+    """(daytype, band) of every page to build for the home page (slug None) or a route:
+    all-all first, then each preset with a file. Without presets, only all-all."""
+    return [(dt, band) for dt in contract.MAP_DAYTYPES for band in contract.MAP_BANDS
+            if stats.has_preset(dt, band, slug)]
+
+
+def page_filter(stats: Stats, base: str, daytype: str, band: str, slug: str | None = None) -> filters.Filter | None:
+    """The page's filter and its menus, or None when the stats have no presets."""
+    if not stats.presets:
+        return None
+    return filters.make(base, daytype, band, lambda dt, bd: stats.has_preset(dt, bd, slug))
+
+
+def render_home(b: Build, daytype: str, band: str, notices: list[dict]) -> None:
+    """The home page under one filter. Completeness, trips and notices are never filtered, so
+    they come from system.json. Every route keeps its row in the routes table, without a link
+    or numbers where it had no service in the preset."""
+    stats = b.stats
+    flt = page_filter(stats, "/", daytype, band)
+    active = bool(flt and flt.active)
+    system = {**stats.system, **stats.preset(daytype, band)} if active else stats.system
+    rows = {r["slug"]: r for r in system["routes"]}
+    route_rows = [
+        (base, rows.get(base["slug"]), f"/routes/{base['slug']}/{filters.path(daytype, band)}" if base["slug"] in rows else None)
+        for base in stats.system["routes"]
+    ]
+    b.render(
+        "home.html", filters.path(daytype, band), filtered=active, title=flt.title if active else None,
+        system=system, route_rows=route_rows, notices=notices, filter=flt,
+    )
+
+
+def render_route(b: Build, slug: str, daytype: str, band: str, notices: list[dict]) -> None:
+    stats = b.stats
+    route = stats.routes[slug]
+    path = f"routes/{slug}/"
+    flt = page_filter(stats, "/" + path, daytype, band, slug)
+    active = bool(flt and flt.active)
+    name = route_name(route["route"])
+    if active:
+        route = {**route, **stats.preset(daytype, band, slug)}
+        title = f"{name}, {flt.words}"
+    else:
+        title = " ".join(filter(None, [name, route["route"].get("long_name")]))
+    b.render(
+        "route.html", path + filters.path(daytype, band), filtered=active, title=title,
+        name=name, route=route, notices=notices, filter=flt,
+    )
 
 
 def route_name(route: dict) -> str:
@@ -276,7 +325,7 @@ def route_names(stats: Stats) -> dict[str, str]:
 
 def write_sitemap(b: Build) -> None:
     lastmod = b.stats.meta["generated_at"][:10]
-    urls = [p for p in sorted(b.pages) if p not in NO_SITEMAP]
+    urls = [p for p in sorted(b.pages) if p not in NO_SITEMAP and p not in b.filtered]
     lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     lines += [f"<url><loc>{BASE_URL}/{p}</loc><lastmod>{lastmod}</lastmod></url>" for p in urls]
     lines.append("</urlset>")

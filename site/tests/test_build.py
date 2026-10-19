@@ -41,7 +41,8 @@ def target_of(out: Path, path: str) -> Path:
 def test_sample_builds_every_page(dev_site):
     stats_pages = 1 + 6 + 1 + 33 + 1  # home, routes, stop index, stops, data quality
     text_pages = 6  # about (with AI use), terms, privacy, methodology, data, unavailable
-    assert len(html_pages(dev_site)) == stats_pages + text_pages + 1  # + 404
+    filtered = 18 + 87  # one per page preset file: 18 system, 87 route
+    assert len(html_pages(dev_site)) == stats_pages + text_pages + 1 + filtered  # + 404
     for path in ["routes/901/index.html", "stops/E101/index.html", "data/routes_daily.csv",
                  "static/site.css", "sitemap.xml", "robots.txt", "404.html"]:
         assert (dev_site / path).is_file(), path
@@ -298,16 +299,27 @@ def test_dev_falls_back_to_sample(tmp_path):
 
 
 def test_prod_build_has_no_banner_and_no_noindex(real_looking_stats, tmp_path):
+    """Only the unavailable page, the 404 page and filtered pages carry noindex; filtered
+    pages let their links be followed."""
     out = tmp_path / "out"
     make_build(real_looking_stats, out, "prod")
+    filtered = re.compile(r"(routes/\w+/)?(all-days|weekdays|saturday|sunday)/[a-z-]+/index\.html")
     for page in html_pages(out):
         html = page.read_text(encoding="utf-8")
         assert "DEV PREVIEW" not in html and "SAMPLE DATA" not in html, page
-        noindex = page.relative_to(out).as_posix() in ("unavailable/index.html", "404.html")
-        assert ('content="noindex' in html) == noindex, page
+        rel = page.relative_to(out).as_posix()
+        robots = re.findall(r'<meta name="robots" content="([^"]*)">', html)
+        if rel in ("unavailable/index.html", "404.html"):
+            assert robots == ["noindex, nofollow"], page
+        elif filtered.fullmatch(rel):
+            assert robots == ["noindex, follow"], page
+        else:
+            assert robots == [], page
     sitemap = (out / "sitemap.xml").read_text(encoding="utf-8")
     assert "<loc>https://wasthebusontime.com/routes/901/</loc>" in sitemap
     assert "unavailable" not in sitemap and "404" not in sitemap
+    for slug in ("all-days", "weekdays", "saturday/", "sunday/", "all-day"):
+        assert slug not in sitemap, slug
     assert "Sitemap: https://wasthebusontime.com/sitemap.xml" in (out / "robots.txt").read_text()
 
 

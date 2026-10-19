@@ -3,10 +3,11 @@
 {% block main %}
 <h1>{{ name }} <span class="subtitle">{{ route.route.long_name }}</span></h1>
 {{ notices_line(notices) }}
-{{ settings_bar() }}
+{{ settings_bar(filter=filter) }}
+{% set lead = filter.lead if filter and filter.active else none %}
 {% call(scope) scoped() %}
 {% set s = route.scopes[scope] %}
-{{ headline(s.summary, name, scope) }}
+{{ headline(s.summary, name, scope, lead) }}
 {{ chart(charts.headline_chart(s.summary, name, min_sample, windows), "Early, on time and late") }}
 <div class="table-wrap">
 <table class="data">
@@ -19,7 +20,7 @@
 </tbody>
 </table>
 </div>
-{{ scope_charts(s, name) }}
+{{ scope_charts(s, name, filter) }}
 <div class="table-wrap">{{ monthly_table(s.monthly) }}</div>
 {# Timepoints scope lists only timepoints, plus the last stop (its end-of-line row). #}
 {% for direction in route.stops %}

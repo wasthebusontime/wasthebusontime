@@ -1,0 +1,41 @@
+<svg viewBox="0 0 640 174" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<line x1="40" y1="150" x2="630" y2="150" class="grid"/>
+<text x="34" y="154" text-anchor="end" class="small">70%</text>
+<line x1="40" y1="103.333" x2="630" y2="103.333" class="grid"/>
+<text x="34" y="107.333" text-anchor="end" class="small">80%</text>
+<line x1="40" y1="56.6667" x2="630" y2="56.6667" class="grid"/>
+<text x="34" y="60.6667" text-anchor="end" class="small">90%</text>
+<line x1="40" y1="10" x2="630" y2="10" class="grid"/>
+<text x="34" y="14" text-anchor="end" class="small">100%</text>
+<line x1="40.0" y1="150" x2="40.0" y2="154" class="axis"/>
+<line x1="187.5" y1="150" x2="187.5" y2="154" class="axis"/>
+<line x1="335.0" y1="150" x2="335.0" y2="154" class="axis"/>
+<line x1="482.5" y1="150" x2="482.5" y2="154" class="axis"/>
+<line x1="630.0" y1="150" x2="630.0" y2="154" class="axis"/>
+<line x1="40" y1="88.3" x2="630" y2="88.3" class="average"/>
+<polyline points="40.0,68.3 187.5,143.3" class="line"/>
+<polyline points="482.5,34.6 630.0,101.1" class="line"/>
+<circle cx="40.0" cy="68.3" r="4" class="dot"/>
+<circle cx="187.5" cy="143.3" r="4" class="dot"/>
+<circle cx="482.5" cy="34.6" r="4" class="dot"/>
+<circle cx="630.0" cy="101.1" r="4" class="dot"/>
+<text x="44" y="83.3" text-anchor="start" class="average-label">Average 83%</text>
+<circle cx="40.0" cy="68.3" r="6" class="hit"><title>Sun, Oct 4, 2026: 87.5% on time, 40 departures</title></circle>
+<circle cx="187.5" cy="143.3" r="6" class="hit"><title>Sun, Oct 11, 2026: 71.4% on time, 42 departures</title></circle>
+<circle cx="482.5" cy="34.6" r="6" class="hit"><title>Sun, Oct 25, 2026: 94.7% on time, 38 departures</title></circle>
+<circle cx="630.0" cy="101.1" r="6" class="hit"><title>Sun, Nov 1, 2026: 80.5% on time, 41 departures</title></circle>
+<text x="40" y="166" text-anchor="start" class="small">Oct 4</text>
+<text x="187.5" y="166" text-anchor="middle" class="small">Oct 11</text>
+<text x="335" y="166" text-anchor="middle" class="small">Oct 18</text>
+<text x="482.5" y="166" text-anchor="middle" class="small">Oct 25</text>
+<text x="630" y="166" text-anchor="end" class="small">Nov 1</text>
+</svg>
+
+Route 901, on time each Sunday over the last 5 Sundays: average 83%, lowest 71% on Oct 11, 2026, highest 95% on Oct 25, 2026, latest 80% on Nov 1, 2026.
+
+Date | Departures | Early | On time | Late
+Sun, Nov 1, 2026 | 41 | 3 (7.3%) | 33 (80.5%) | 5 (12.2%)
+Sun, Oct 25, 2026 | 38 | 0 (0.0%) | 36 (94.7%) | 2 (5.3%)
+Sun, Oct 18, 2026 | 6 | Not enough data |  | 
+Sun, Oct 11, 2026 | 42 | 2 (4.8%) | 30 (71.4%) | 10 (23.8%)
+Sun, Oct 4, 2026 | 40 | 1 (2.5%) | 35 (87.5%) | 4 (10.0%)

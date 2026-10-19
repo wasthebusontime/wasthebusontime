@@ -1,0 +1,62 @@
+<svg viewBox="0 0 640 174" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<line x1="40" y1="150" x2="630" y2="150" class="grid"/>
+<text x="34" y="154" text-anchor="end" class="small">70%</text>
+<line x1="40" y1="103.333" x2="630" y2="103.333" class="grid"/>
+<text x="34" y="107.333" text-anchor="end" class="small">80%</text>
+<line x1="40" y1="56.6667" x2="630" y2="56.6667" class="grid"/>
+<text x="34" y="60.6667" text-anchor="end" class="small">90%</text>
+<line x1="40" y1="10" x2="630" y2="10" class="grid"/>
+<text x="34" y="14" text-anchor="end" class="small">100%</text>
+<line x1="40.0" y1="10" x2="40.0" y2="150" class="grid"/>
+<line x1="40.0" y1="150" x2="40.0" y2="154" class="axis"/>
+<line x1="105.6" y1="150" x2="105.6" y2="154" class="axis"/>
+<line x1="171.1" y1="150" x2="171.1" y2="154" class="axis"/>
+<line x1="236.7" y1="150" x2="236.7" y2="154" class="axis"/>
+<line x1="302.2" y1="150" x2="302.2" y2="154" class="axis"/>
+<line x1="367.8" y1="10" x2="367.8" y2="150" class="grid"/>
+<line x1="367.8" y1="150" x2="367.8" y2="154" class="axis"/>
+<line x1="433.3" y1="150" x2="433.3" y2="154" class="axis"/>
+<line x1="498.9" y1="150" x2="498.9" y2="154" class="axis"/>
+<line x1="564.4" y1="150" x2="564.4" y2="154" class="axis"/>
+<line x1="630.0" y1="150" x2="630.0" y2="154" class="axis"/>
+<line x1="40" y1="115.8" x2="630" y2="115.8" class="average"/>
+<polyline points="40.0,87.8 105.6,118.9 171.1,150.0 236.7,87.8 302.2,118.9 367.8,150.0 433.3,87.8 498.9,118.9 564.4,150.0 630.0,87.8" class="line"/>
+<circle cx="40.0" cy="87.8" r="4" class="dot"/>
+<circle cx="105.6" cy="118.9" r="4" class="dot"/>
+<circle cx="171.1" cy="150.0" r="4" class="dot"/>
+<circle cx="236.7" cy="87.8" r="4" class="dot"/>
+<circle cx="302.2" cy="118.9" r="4" class="dot"/>
+<circle cx="367.8" cy="150.0" r="4" class="dot"/>
+<circle cx="433.3" cy="87.8" r="4" class="dot"/>
+<circle cx="498.9" cy="118.9" r="4" class="dot"/>
+<circle cx="564.4" cy="150.0" r="4" class="dot"/>
+<circle cx="630.0" cy="87.8" r="4" class="dot"/>
+<text x="44" y="110.8" text-anchor="start" class="average-label">Average 77%</text>
+<circle cx="40.0" cy="87.8" r="6" class="hit"><title>Mon, Oct 19, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="105.6" cy="118.9" r="6" class="hit"><title>Tue, Oct 20, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="171.1" cy="150.0" r="6" class="hit"><title>Wed, Oct 21, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="236.7" cy="87.8" r="6" class="hit"><title>Thu, Oct 22, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="302.2" cy="118.9" r="6" class="hit"><title>Fri, Oct 23, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="367.8" cy="150.0" r="6" class="hit"><title>Mon, Oct 26, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="433.3" cy="87.8" r="6" class="hit"><title>Tue, Oct 27, 2026: 83.3% on time, 60 departures</title></circle>
+<circle cx="498.9" cy="118.9" r="6" class="hit"><title>Wed, Oct 28, 2026: 76.7% on time, 60 departures</title></circle>
+<circle cx="564.4" cy="150.0" r="6" class="hit"><title>Thu, Oct 29, 2026: 70.0% on time, 60 departures</title></circle>
+<circle cx="630.0" cy="87.8" r="6" class="hit"><title>Fri, Oct 30, 2026: 83.3% on time, 60 departures</title></circle>
+<text x="40" y="166" text-anchor="start" class="small">Oct 19</text>
+<text x="367.778" y="166" text-anchor="middle" class="small">Oct 26</text>
+<text x="630" y="166" text-anchor="end" class="small">Oct 30</text>
+</svg>
+
+Route 901, on time each weekday over the last 10 weekdays: average 77%, lowest 70% on Oct 21, 2026, highest 83% on Oct 30, 2026, latest 83% on Oct 30, 2026.
+
+Date | Departures | Early | On time | Late
+Fri, Oct 30, 2026 | 60 | 2 (3.3%) | 50 (83.3%) | 8 (13.3%)
+Thu, Oct 29, 2026 | 60 | 2 (3.3%) | 42 (70.0%) | 16 (26.7%)
+Wed, Oct 28, 2026 | 60 | 2 (3.3%) | 46 (76.7%) | 12 (20.0%)
+Tue, Oct 27, 2026 | 60 | 2 (3.3%) | 50 (83.3%) | 8 (13.3%)
+Mon, Oct 26, 2026 | 60 | 2 (3.3%) | 42 (70.0%) | 16 (26.7%)
+Fri, Oct 23, 2026 | 60 | 2 (3.3%) | 46 (76.7%) | 12 (20.0%)
+Thu, Oct 22, 2026 | 60 | 2 (3.3%) | 50 (83.3%) | 8 (13.3%)
+Wed, Oct 21, 2026 | 60 | 2 (3.3%) | 42 (70.0%) | 16 (26.7%)
+Tue, Oct 20, 2026 | 60 | 2 (3.3%) | 46 (76.7%) | 12 (20.0%)
+Mon, Oct 19, 2026 | 60 | 2 (3.3%) | 50 (83.3%) | 8 (13.3%)

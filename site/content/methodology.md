@@ -54,6 +54,10 @@ Every page has a choice between two sets of stops:
 
 **Terminal departures** (the first stop of each trip) are also shown on their own, next to Intercity Transit's 90% goal for them. They use the same window as everything else, so they compare with the goal only roughly (see above).
 
+## Day type and time of day
+
+The home page and route pages can also be filtered to one day type (weekdays, Saturday or Sunday) and one time of day: early (before 6 am), AM peak (6 to 9 am), midday (9 am to 3 pm), PM peak (3 to 6 pm) or evening (6 pm on), by the hour of the service day. Each departure counts in the time of day it was scheduled to leave, not when its trip started, and an end-of-line arrival in the time of day it was scheduled to arrive: a trip that starts at 5:50 pm counts its departures before 6 pm under PM peak, and its later departures and its arrival at 6:20 pm under evening. Trip counts, how complete the data is, and the notes always cover every day and time.
+
 ## Where the times come from
 
 Intercity Transit publishes real-time data about its buses. For a while after a bus leaves a stop, that data keeps reporting when it left. We record that data around the clock and use those reported departure times. A departure counts only if the data shows the bus was tracked when it left, and only if we saw it for at least 3 minutes after the bus left, because a departure time can still be corrected in the first few minutes. Times that are only predictions are never used.

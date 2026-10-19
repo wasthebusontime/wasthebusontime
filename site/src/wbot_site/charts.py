@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 
-from wbot_site import agency
+from wbot_site import agency, filters
 from wbot_site.contract import DAYTYPES
 from wbot_site.data import (
     DAYTYPE_LABELS, date_text, delay_text, enough, hour_text, number, percent, split, weekday_date_text,
@@ -50,6 +50,7 @@ class Chart:
     legend: bool = False  # colored early / on time / late, so the page shows a key
     svg_narrow: str = ""
     weekend_key: bool = False  # shaded Saturdays and Sundays, so the page shows a key
+    chosen_key: str = ""  # what the shading for the page's filter marks, for its key
 
 
 # The drawing is hidden from screen readers: the summary sentence under it and the table
@@ -91,11 +92,14 @@ def _count_cells(perf: dict, window: str = "headline") -> list[str]:
 # Stacked early / on time / late bars
 
 
-def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: int) -> tuple[list[str], int]:
+def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: int,
+             chosen: int | None = None) -> tuple[list[str], int]:
     """rows: (label, perf, window). Each row is a text line over a 100% bar; on narrow
-    screens the label and the numbers take a line each."""
+    screens the label and the numbers take a line each. The chosen row (the page's filter)
+    is shaded behind and its text is bold."""
     body, y = [], 0
-    for label, perf, window in rows:
+    for row, (label, perf, window) in enumerate(rows):
+        start, first = y, len(body)
         y += 16
         if not enough(perf, min_sample):
             n = perf["n"] if perf else 0
@@ -106,6 +110,7 @@ def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: in
             else:
                 body.append(_text(0, y, f"{label}: not enough data ({number(n)} departures)"))
             y += 12
+            _choose(body, first, row == chosen, L, start, y, label)
             continue
         parts = dict(zip(("early", "on_time", "late"), split(perf, window)))
         line = ", ".join(f"{_pct(perf, p, window)} {PART_LABELS[p]}" for p in ("on_time", "early", "late"))
@@ -124,7 +129,17 @@ def _stacked(L: Layout, rows: list[tuple[str, dict | None, str]], min_sample: in
                 body.append(_rect(x, y, max(w - 2, 0.5), 20, cls, f"{label}: {number(parts[part])} {PART_LABELS[part]} ({_pct(perf, part, window, 1)})"))
             x += w
         y += 28
+        _choose(body, first, row == chosen, L, start, y - 4, label)
     return body, y
+
+
+def _choose(body: list[str], first: int, chosen: bool, L: Layout, top: float, bottom: float, label: str) -> None:
+    """Shades the chosen row from `top` to `bottom`, behind its marks, and makes its text bold."""
+    if not chosen:
+        return
+    for i in range(first, len(body)):
+        body[i] = body[i].replace("<text ", '<text font-weight="bold" ', 1)
+    body.insert(first, _rect(0, top + 2, L.width, bottom - top - 2, "chosen", f"{label} (chosen)"))
 
 
 def headline_chart(perf: dict, subject: str, min_sample: int, windows: Windows) -> Chart | None:
@@ -145,16 +160,20 @@ def headline_chart(perf: dict, subject: str, min_sample: int, windows: Windows) 
     return Chart(wide, summary, ["On-time window", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
 
 
-def daytype_chart(by_daytype: dict, subject: str, min_sample: int) -> Chart | None:
-    present = [(DAYTYPE_LABELS[d], by_daytype.get(d)) for d in DAYTYPES if by_daytype.get(d) and by_daytype[d]["n"] > 0]
-    if not any(enough(p, min_sample) for _, p in present):
+def daytype_chart(by_daytype: dict, subject: str, min_sample: int, daytype: str | None = None) -> Chart | None:
+    """On time by day type; under a day type filter, that day type's row is highlighted."""
+    present = [(d, DAYTYPE_LABELS[d], by_daytype.get(d)) for d in DAYTYPES if by_daytype.get(d) and by_daytype[d]["n"] > 0]
+    if not any(enough(p, min_sample) for _, _, p in present):
         return None
-    rows_in = [(label, p, "headline") for label, p in present]
-    parts = [f"{label.lower()} {_pct(p)}" if enough(p, min_sample) else f"{label.lower()} not enough data" for label, p in present]
+    chosen = next((i for i, (d, _, _) in enumerate(present) if d == daytype), None)
+    rows_in = [(label, p, "headline") for _, label, p in present]
+    parts = [(f"{label.lower()} {_pct(p)}" if enough(p, min_sample) else f"{label.lower()} not enough data")
+             + (" (the day type chosen)" if i == chosen else "") for i, (_, label, p) in enumerate(present)]
     summary = f"{subject}, on time by day type: {', '.join(parts)}."
-    rows = [[label, *_count_cells(p)] for label, p in present]
-    wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample))
-    return Chart(wide, summary, ["Day type", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow)
+    rows = [[label, *_count_cells(p)] for _, label, p in present]
+    wide, narrow = _both(lambda L: _stacked(L, rows_in, min_sample, chosen))
+    return Chart(wide, summary, ["Day type", "Departures", "Early", "On time", "Late"], rows, legend=True, svg_narrow=narrow,
+                 chosen_key=f"{present[chosen][1]}, the day type chosen" if chosen is not None else "")
 
 
 # Delay histogram
@@ -217,11 +236,19 @@ def _axis_y(L: Layout, body: list[str], top: int, plot_h: int, ticks: tuple[int,
         body.append(_text(L.left - 6, y + 4, f"{pct}%", "end", "small"))
 
 
-def _hours(L: Layout, by_hour: list[dict], min_sample: int) -> tuple[list[str], int]:
+def _hours(L: Layout, by_hour: list[dict], min_sample: int, band: str | None = None) -> tuple[list[str], int]:
     top, plot_h = 16, 140
     base = top + plot_h
     step = L.plot / len(by_hour)
     body: list[str] = []
+    # The chosen band's hours as one shaded column behind everything, from above the plot to
+    # under the hour numbers, so it shows where the bars fill the plot.
+    if band:
+        first, end = filters.BAND_HOURS[band]
+        inside = [i for i, h in enumerate(by_hour) if first <= h["hour"] < end]
+        if inside:
+            x0, x1 = L.left + inside[0] * step, L.left + (inside[-1] + 1) * step
+            body.append(_rect(x0, 0, x1 - x0, base + 18, "chosen", filters.band_label(band)))
     _axis_y(L, body, top, plot_h)
     for i, h in enumerate(by_hour):
         cx = L.left + i * step + step / 2
@@ -240,7 +267,8 @@ def _hours(L: Layout, by_hour: list[dict], min_sample: int) -> tuple[list[str], 
     return body, base + 36
 
 
-def hour_chart(by_hour: list[dict], subject: str, min_sample: int) -> Chart | None:
+def hour_chart(by_hour: list[dict], subject: str, min_sample: int, band: str | None = None) -> Chart | None:
+    """On time by hour; under a time of day filter, that band's hours are shaded."""
     usable = [h for h in by_hour if enough(h, min_sample)]
     if not usable:
         return None
@@ -250,10 +278,13 @@ def hour_chart(by_hour: list[dict], subject: str, min_sample: int) -> Chart | No
         f"{subject}, on time by hour: lowest {_pct(worst)} at {hour_text(worst['hour'])}, "
         f"highest {_pct(best)} at {hour_text(best['hour'])}."
     )
+    if band:
+        summary += f" Shaded: {filters.band_label(band)}, the time of day chosen."
     rows = [[hour_text(h["hour"]), *_count_cells(h)] if enough(h, min_sample)
             else [hour_text(h["hour"]), number(h["n"]), "Not enough data", "", ""] for h in by_hour]
-    wide, narrow = _both(lambda L: _hours(L, by_hour, min_sample))
-    return Chart(wide, summary, ["Hour", "Departures", "Early", "On time", "Late"], rows, svg_narrow=narrow)
+    wide, narrow = _both(lambda L: _hours(L, by_hour, min_sample, band))
+    return Chart(wide, summary, ["Hour", "Departures", "Early", "On time", "Late"], rows, svg_narrow=narrow,
+                 chosen_key=f"{filters.band_label(band)}, the time of day chosen" if band else "")
 
 
 # Daily trend
@@ -284,9 +315,10 @@ def _short_date(d: dict) -> str:
     return date_text(d["date"]).rsplit(",", 1)[0]
 
 
-def _date_labels(L: Layout, daily: list[dict], step: float) -> list[tuple[int, str]]:
+def _date_labels(L: Layout, daily: list[dict], step: float, week: int = 7) -> list[tuple[int, str]]:
     """(index, anchor) of the dates to label: Mondays, thinned so their labels never touch,
-    then the first and last day where they fit beside them."""
+    then the first and last day where they fit beside them. `week` is the days shown per
+    week (5 when only weekdays are)."""
     gap = 8
     last = len(daily) - 1
 
@@ -302,7 +334,7 @@ def _date_labels(L: Layout, daily: list[dict], step: float) -> list[tuple[int, s
 
     mondays = [i for i, d in enumerate(daily) if _weekday(d) == 0]
     every = 1
-    while 7 * every * step < 6 * (6.4 if L.narrow else 5.6) + gap:
+    while week * every * step < 6 * (6.4 if L.narrow else 5.6) + gap:
         every += 1
     labels = [(i, "middle") for i in mondays[::every]]
     for i, anchor in ((0, "start"), (last, "end")):
@@ -312,7 +344,20 @@ def _date_labels(L: Layout, daily: list[dict], step: float) -> list[tuple[int, s
     return sorted(labels)
 
 
-def _days(L: Layout, daily: list[dict], min_sample: int) -> tuple[list[str], int]:
+def _even_labels(L: Layout, daily: list[dict], step: float) -> list[tuple[int, str]]:
+    """(index, anchor) of the dates to label when only Saturdays or Sundays are shown: every
+    k-th day counting back from the last, with k as small as keeps the labels apart."""
+    last = len(daily) - 1
+    width = 6 * (6.4 if L.narrow else 5.6) + 8
+    every = 1
+    while every * step < width:
+        every += 1
+    return [(i, "start" if i == 0 else "end" if i == last else "middle") for i in range(last % every, last + 1, every)]
+
+
+def _days(L: Layout, daily: list[dict], min_sample: int, daytype: str | None = None) -> tuple[list[str], int]:
+    """The Each day line. Under a day type filter only that day type's days are given, evenly
+    spaced: no weekend shading, and week lines and Monday labels only for weekdays."""
     usable = [d for d in daily if enough(d, min_sample)]
     top, plot_h = 10, 180 if L.narrow else 140
     base = top + plot_h
@@ -323,16 +368,17 @@ def _days(L: Layout, daily: list[dict], min_sample: int) -> tuple[list[str], int
     y = lambda share: top + plot_h * (100 - share * 100) / (100 - lo)
     body: list[str] = []
 
+    weeks = daytype in (None, "weekday")
     # Saturdays and Sundays as shaded columns behind everything, one day wide.
     for i, d in enumerate(daily):
-        kind = {5: "saturday", 6: "sunday"}.get(_weekday(d))
+        kind = {5: "saturday", 6: "sunday"}.get(_weekday(d)) if daytype is None else None
         if kind:
             x0, x1 = max(x(i) - step / 2, L.left), min(x(i) + step / 2, right)
             body.append(_rect(x0, top, x1 - x0, plot_h, kind, weekday_date_text(d["date"])))
     _axis_y(L, body, top, plot_h, tuple(range(lo, 101, 10)))
     # A line at the start of each week, and a tick for each day where they have room.
     for i, d in enumerate(daily):
-        if _weekday(d) == 0:
+        if weeks and _weekday(d) == 0:
             body.append(f'<line x1="{x(i):.1f}" y1="{top}" x2="{x(i):.1f}" y2="{base}" class="grid"/>')
         if step >= 6:
             body.append(f'<line x1="{x(i):.1f}" y1="{base}" x2="{x(i):.1f}" y2="{base + 4}" class="axis"/>')
@@ -367,24 +413,32 @@ def _days(L: Layout, daily: list[dict], min_sample: int) -> tuple[list[str], int
             body.append(f'<circle cx="{x(i):.1f}" cy="{y(_share(d)):.1f}" r="6" class="hit"><title>'
                         f'{escape(weekday_date_text(d["date"]))}: {_pct(d, digits=1)} on time, {number(d["n"])} departures</title></circle>')
 
-    for i, anchor in _date_labels(L, daily, step):
+    labels = _date_labels(L, daily, step, 5 if daytype else 7) if weeks else _even_labels(L, daily, step)
+    for i, anchor in labels:
         body.append(_text(x(i), base + 16, _short_date(daily[i]), anchor, "small"))
     return body, base + 24
 
 
-def daily_chart(daily: list[dict], subject: str, min_sample: int) -> Chart | None:
+# What a day is called in the Each day summary, by the day type filter.
+DAY_WORDS = {None: ("day", "days"), "weekday": ("weekday", "weekdays"),
+             "saturday": ("Saturday", "Saturdays"), "sunday": ("Sunday", "Sundays")}
+
+
+def daily_chart(daily: list[dict], subject: str, min_sample: int, daytype: str | None = None) -> Chart | None:
+    """On time each day. Under a day type filter, `daily` holds only that day type's days."""
     usable = [d for d in daily if enough(d, min_sample)]
     if len(usable) < 2:
         return None
     low = min(usable, key=lambda d: (_share(d), d["date"]))
     high = max(usable, key=lambda d: (_share(d), d["date"]))
+    one, many = DAY_WORDS[daytype]
     summary = (
-        f"{subject}, on time each day over the last {len(daily)} days: average {_average(usable)}, "
+        f"{subject}, on time each {one} over the last {len(daily)} {many}: average {_average(usable)}, "
         f"lowest {_pct(low)} on {date_text(low['date'])}, highest {_pct(high)} on {date_text(high['date'])}, "
         f"latest {_pct(usable[-1])} on {date_text(usable[-1]['date'])}."
     )
     rows = [[weekday_date_text(d["date"]), *_count_cells(d)] if enough(d, min_sample)
             else [weekday_date_text(d["date"]), number(d["n"]), "Not enough data", "", ""] for d in reversed(daily)]
-    wide, narrow = _both(lambda L: _days(L, daily, min_sample))
+    wide, narrow = _both(lambda L: _days(L, daily, min_sample, daytype))
     return Chart(wide, summary, ["Date", "Departures", "Early", "On time", "Late"], rows,
-                 svg_narrow=narrow, weekend_key=any(_weekday(d) >= 5 for d in daily))
+                 svg_narrow=narrow, weekend_key=daytype is None and any(_weekday(d) >= 5 for d in daily))
