@@ -6,8 +6,22 @@ the site's own dependencies.
 
 A stats directory has the same layout as the stats repo:
   site/meta.json, system.json, stops.json, quality.json, routes/{slug}.json,
-  stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json
+  stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
+  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
   csv/*.csv
+
+Page presets (presets/, optional: stats without them are valid) are the route and system
+numbers for one day type and band, for every name in PRESETS. A preset file has the shapes
+of system.json or routes/{slug}.json for the parts that can be filtered: scopes, terminal,
+end_of_line, stops (routes) and the routes table (system), counted only on departures in that
+day type and band, except that by_hour keeps every band and by_daytype every day type. A
+departure's band is that of its own scheduled time and an end-of-line arrival's that of its
+scheduled arrival, not the trip's start. It
+adds "preset" ({daytype, band}) and "scheduled" ({timepoints, all_stops}: scheduled departures,
+not counting cancelled trips; a routes table row carries its route's). It leaves out
+completeness, trips and notices, which are never filtered. A route, or the whole system, with
+no scheduled departures in a preset has no file there: a preset file always has
+scheduled.all_stops above 0, and a preset's routes table lists exactly its route files.
 """
 
 import json
@@ -21,6 +35,16 @@ BANDS = (("early", 0, 6), ("am_peak", 6, 9), ("midday", 9, 15), ("pm_peak", 15, 
 # Stop map presets: one file per period, day type and band; "all" means no filter.
 MAP_DAYTYPES = ("all", *DAYTYPES)
 MAP_BANDS = ("all", *(key for key, _, _ in BANDS))
+
+
+def preset_name(daytype: str, band: str) -> str:
+    """The name of a map or page preset: preset_name("weekday", "am_peak") -> "weekday-am_peak"."""
+    return f"{daytype}-{band}"
+
+
+# Page presets: every day type and band but all-all, which is the files themselves.
+PRESETS = tuple(preset_name(dt, b) for dt in MAP_DAYTYPES for b in MAP_BANDS if (dt, b) != ("all", "all"))
+
 # Notice codes the site knows. A file may carry others (the pipeline can add a code first);
 # the site skips them.
 NOTICE_FIELDS = {
@@ -68,7 +92,8 @@ def map_periods(stats_dir: Path) -> list[str]:
 def validate(stats_dir: Path) -> None:
     """Check a stats directory's site files. Raises ContractError naming the file and the
     first problem: a missing file or key, a scope missing, counts that don't add up, a
-    notice without its fields, or a map preset that is missing or the wrong size."""
+    notice without its fields, a map preset that is missing or the wrong size, or a page
+    preset that is malformed, has no service, or doesn't add up with the others."""
     site = Path(stats_dir) / "site"
     meta = _load(site, "meta.json")
     _keys(meta, ("synthetic", "generated_at", "data_through", "collection_start", "pipeline_version",
@@ -106,8 +131,11 @@ def validate(stats_dir: Path) -> None:
     for period in map_periods(stats_dir):
         for daytype in MAP_DAYTYPES:
             for band in MAP_BANDS:
-                name = f"map/{period}/{daytype}-{band}.json"
+                name = f"map/{period}/{preset_name(daytype, band)}.json"
                 _map(_load(site, name), name, n)
+
+    if (site / "presets").is_dir():
+        _presets(site, system)
 
 
 # The checks. `where` names the file and the place in it, for the error message.
@@ -192,6 +220,12 @@ def _notices(notices, where: str) -> None:
 
 def _route(doc: dict, where: str) -> None:
     _keys(doc, ("route", "scopes", "terminal", "end_of_line", "completeness", "trips", "stops", "notices"), where)
+    _route_numbers(doc, where)
+    _notices(doc["notices"], where)
+
+
+def _route_numbers(doc: dict, where: str) -> None:
+    """The parts a route file and a route's page preset share."""
     _keys(doc["route"], ("slug", "short_name", "long_name", "route_id"), f"{where}: route")
     _scopes(doc["scopes"], where, daily=True)
     for scope in SCOPES:
@@ -207,7 +241,6 @@ def _route(doc: dict, where: str) -> None:
             if stop["timepoints"] is not None:
                 _perf(stop["timepoints"], f"{at}.timepoints")
             _perf(stop["all_stops"], f"{at}.all_stops")
-    _notices(doc["notices"], where)
 
 
 def _stop(doc: dict, where: str) -> None:
@@ -235,3 +268,96 @@ def _map(doc: dict, where: str, n: int) -> None:
             if not isinstance(cell, list) or len(cell) != len(MAP_CELL) or not all(isinstance(v, int) for v in cell):
                 raise ContractError(f"{where}: {scope}[{i}] is {cell!r}, expected {len(MAP_CELL)} counts "
                                     f"({', '.join(MAP_CELL)})")
+
+
+def _presets(site: Path, system: dict) -> None:
+    """Page presets: each file well formed, with service, and the right routes; then the counts
+    add up across presets (_preset_sums)."""
+    slugs = {row["slug"] for row in system["routes"]}
+    totals = {}
+    for folder in sorted((site / "presets").iterdir()):
+        name = folder.name
+        if name not in PRESETS or not folder.is_dir():
+            raise ContractError(f"presets/{name}: not a page preset (expected a folder named daytype-band "
+                                f"from MAP_DAYTYPES and MAP_BANDS, not all-all)")
+        daytype, band = name.split("-")
+        where = f"presets/{name}/system.json"
+        doc = _load(site, where)
+        _keys(doc, ("preset", "scheduled", "scopes", "terminal", "end_of_line", "routes"), where)
+        _preset_head(doc, where, daytype, band)
+        _scopes(doc["scopes"], where, daily=True)
+        _perf(doc["terminal"], f"{where}: terminal")
+        totals[(daytype, band, None)] = _preset_counts(doc)
+        rows = set()
+        for i, row in enumerate(_list(doc, "routes", where)):
+            at = f"{where}: routes[{i}]"
+            _keys(row, ("slug", "short_name", "long_name", "scheduled", *SCOPES), at)
+            if row["slug"] not in slugs:
+                raise ContractError(f"{at}: route {row['slug']!r} is not in system.json")
+            for scope in SCOPES:
+                _perf(row[scope], f"{at}.{scope}")
+            rows.add(row["slug"])
+            route_where = f"presets/{name}/routes/{row['slug']}.json"
+            route = _load(site, route_where)
+            _keys(route, ("preset", "route", "scheduled", "scopes", "terminal", "end_of_line", "stops"), route_where)
+            _preset_head(route, route_where, daytype, band)
+            _route_numbers(route, route_where)
+            if route["route"]["slug"] != row["slug"] or route["scheduled"] != row["scheduled"]:
+                raise ContractError(f"{route_where}: route or scheduled differ from its row in {where}")
+            totals[(daytype, band, row["slug"])] = _preset_counts(route)
+        files = {p.stem for p in (folder / "routes").glob("*.json")}
+        if files - rows:
+            raise ContractError(f"presets/{name}/routes/{sorted(files - rows)[0]}.json: "
+                                f"route has no row in {where}")
+    base = {None: system}
+    for slug in slugs:
+        base[slug] = _load(site, f"routes/{slug}.json")
+    for e, doc in base.items():
+        totals[("all", "all", e)] = {"scheduled.timepoints": doc["completeness"]["departures_scheduled"],
+                                     **{f"scopes.{scope}.summary.n": doc["scopes"][scope]["summary"]["n"]
+                                        for scope in SCOPES}}
+    _preset_sums(totals, [None, *sorted(slugs)])
+
+
+def _preset_head(doc: dict, where: str, daytype: str, band: str) -> None:
+    """A page preset's "preset" names its folder, and its "scheduled" counts show service."""
+    if doc["preset"] != {"daytype": daytype, "band": band}:
+        raise ContractError(f"{where}: preset is {doc['preset']!r}, expected "
+                            f"{{'daytype': {daytype!r}, 'band': {band!r}}} from its folder")
+    _keys(doc["scheduled"], SCOPES, f"{where}: scheduled")
+    for scope in SCOPES:
+        n = doc["scheduled"][scope]
+        if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+            raise ContractError(f"{where}: scheduled.{scope} is {n!r}, expected a count")
+    if doc["scheduled"]["all_stops"] == 0:
+        raise ContractError(f"{where}: scheduled.all_stops is 0; a preset with no scheduled departures has no file")
+
+
+# The counts that add up across page presets (_preset_sums).
+PRESET_SUMS = (*(f"scheduled.{scope}" for scope in SCOPES), *(f"scopes.{scope}.summary.n" for scope in SCOPES))
+
+
+def _preset_counts(doc: dict) -> dict:
+    """A preset file's PRESET_SUMS counts."""
+    return {**{f"scheduled.{scope}": doc["scheduled"][scope] for scope in SCOPES},
+            **{f"scopes.{scope}.summary.n": doc["scopes"][scope]["summary"]["n"] for scope in SCOPES}}
+
+
+def _preset_sums(totals: dict, entities: list) -> None:
+    """Within a day type the bands add up to its all-day preset, and within a band the day types
+    add up to all days; all-all is the files themselves (whose scheduled.timepoints is
+    completeness.departures_scheduled). A preset without a file counts 0."""
+    def file(daytype, band, e):
+        folder = "" if (daytype, band) == ("all", "all") else f"presets/{preset_name(daytype, band)}/"
+        return folder + ("system.json" if e is None else f"routes/{e}.json")
+
+    groups = [((dt, "all"), [(dt, b) for b in MAP_BANDS[1:]], (dt, "*")) for dt in MAP_DAYTYPES]
+    groups += [(("all", b), [(dt, b) for dt in DAYTYPES], ("*", b)) for b in MAP_BANDS]
+    for e in entities:
+        for whole, parts, label in groups:
+            expected = totals.get((*whole, e))
+            for key, want in (expected or dict.fromkeys(PRESET_SUMS, 0)).items():
+                total = sum(totals.get((*part, e), {}).get(key, 0) for part in parts)
+                if total != want:
+                    raise ContractError(f"{file(*whole, e)}: {key} is {want}, but {file(*label, e)} "
+                                        f"add up to {total}")

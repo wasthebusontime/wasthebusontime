@@ -36,6 +36,11 @@ TIMED_STOP = "(is_timepoint AND NOT is_last)"
 DEPARTURE = """(observed AND scheduled AND stop_sr = 'SCHEDULED' AND trip_sr = 'SCHEDULED'
                AND NOT is_last AND delay_dep_s IS NOT NULL)"""
 
+# A scheduled departure: a stop other than the last on a scheduled trip that wasn't cancelled.
+# With is_timepoint, these are completeness's departures_scheduled (its eligible timepoints).
+SCHEDULED_DEPARTURE = """(scheduled AND NOT is_last AND sched_dep_ts IS NOT NULL
+                         AND coalesce(trip_sr, '') <> 'CANCELED')"""
+
 # An end-of-line arrival that counts: the same, at the trip's last stop, on the arrival. The
 # feed never lists a last stop, so an arrival found from the block or GPS has no stop status.
 END_OF_LINE = """(is_last AND scheduled AND observed_arr

@@ -111,5 +111,9 @@ _Avoid_: stats JSON, data files
 **Map preset**:
 One precomputed stop map view for a period, day type and band.
 
+**Page preset**:
+One precomputed set of route and system numbers for a day type and band, from which a filtered home or route page is built. Public and code text call the choice a "filter" or "preset", never a "view" (see **Scope**).
+_Avoid_: view, filtered view (in public text and code)
+
 **Synthetic**:
 Made-up sample data, marked so it can never be published as real numbers.

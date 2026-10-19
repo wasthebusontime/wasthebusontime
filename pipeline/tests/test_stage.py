@@ -16,7 +16,8 @@ DAY2 = DAY + timedelta(days=1)
 EV = dict(service_date="DATE", trip_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER", stop_code="VARCHAR",
           stop_sequence="INTEGER", day_type="VARCHAR", service_hour="INTEGER", is_first="BOOLEAN", is_last="BOOLEAN",
           is_timepoint="BOOLEAN", delay_dep_s="INTEGER", delay_arr_s="INTEGER", observed="BOOLEAN",
-          observed_arr="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR", method="VARCHAR")
+          observed_arr="BOOLEAN", scheduled="BOOLEAN", stop_sr="VARCHAR", trip_sr="VARCHAR", method="VARCHAR",
+          sched_dep_ts="BIGINT")
 TR = dict(service_date="DATE", trip_id="VARCHAR", route_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER",
           scheduled="BOOLEAN", trip_sr="VARCHAR",
           eligible_timepoints="INTEGER", observed_timepoints="INTEGER", skipped_stops="INTEGER",
@@ -30,6 +31,7 @@ def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoi
     timepoints = set(range(len(stops))) if timepoints is None else timepoints
     stop_sr = stop_sr or {}
     last = len(stops) - 1
+    start = int((day - date(2026, 1, 1)).total_seconds()) + hour * 3600
     events = []
     for i, (code, delay) in enumerate(zip(stops, delays)):
         events.append(dict(
@@ -38,9 +40,9 @@ def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoi
             service_hour=hour, is_first=i == 0, is_last=i == last, is_timepoint=i in timepoints,
             delay_dep_s=None if i == last else delay, delay_arr_s=delay if i == last else None,
             observed=observed, observed_arr=observed, scheduled=scheduled,
-            stop_sr=stop_sr.get(i, "SCHEDULED"), trip_sr=trip_sr, method=eol_method if i == last else "tu"))
+            stop_sr=stop_sr.get(i, "SCHEDULED"), trip_sr=trip_sr, method=eol_method if i == last else "tu",
+            sched_dep_ts=None if i == last else start + 60 * i))
     timed = [e for e in events if e["is_timepoint"] and not e["is_last"]]
-    start = int((day - date(2026, 1, 1)).total_seconds()) + hour * 3600
     row = dict(service_date=day, trip_id=trip_id, route_id="R" + route, route_slug=route, direction_id=direction,
                scheduled=scheduled, trip_sr=trip_sr,
                eligible_timepoints=len(timed),
@@ -166,6 +168,46 @@ def test_map_cells_add_up(tmp_path):
     assert cells[("2026-10", "weekday", "am_peak", "all_stops", "E2")] == [1, 0, 0, 1, 0]
     parts = [cells.get(("all", dt, "all", "all_stops", "E1"), [0] * 5) for dt in ("weekday", "saturday", "sunday")]
     assert [sum(p[k] for p in parts) for k in range(5)] == cells[("all", "all", "all", "all_stops", "E1")]
+
+
+SAT = date(2026, 10, 10)
+
+
+def test_only_narrows_to_a_day_type_and_band(tmp_path):
+    trips = [trip("am", "901", A, [10, 20, 30, 40], hour=7), trip("pm", "901", A, [400, 400, 400, 0], hour=16),
+             trip("sat", "901", A, [-90, 0, 0, 0], hour=7, day=SAT)]
+    stage = make_stage(tmp_path, *trips, days=(DAY, SAT))
+    narrowed = stage.only("weekday", "am_peak")
+    block = narrowed.perf_blocks(None, daily=True)[("all_stops", None)]
+    assert block["summary"] == reference([10, 20, 30])
+    # By hour follows the day type only, by day type the band only.
+    assert [(h["hour"], h["n"]) for h in block["by_hour"]] == [(7, 3), (16, 3)]
+    assert {dt: v["n"] for dt, v in block["by_daytype"].items()} == {"weekday": 3, "saturday": 3, "sunday": 0}
+    # Each day lists only weekdays: Tuesday to Friday.
+    assert [d["date"] for d in block["daily"]] == [(DAY + timedelta(days=i)).isoformat() for i in range(4)]
+    assert narrowed.end_of_line([])[()]["n"] == 1 and stage.end_of_line([])[()]["n"] == 3
+    assert narrowed.perf([], terminal=True)[()]["n"] == 1
+    assert stage.only("all", "am_peak").perf(["scope"])[("all_stops",)]["n"] == 6
+    assert stage.perf(["scope"])[("all_stops",)]["n"] == 9         # the Stage itself is unchanged
+    assert stage.only("sunday", "all").perf_blocks(None, daily=True) == {}
+    with pytest.raises(ValueError):
+        stage.only("weekday", "late_night")
+
+
+def test_scheduled_departures_by_day_type_and_band(tmp_path):
+    trips = [trip("am", "901", A, [0, 0, 0, 0], hour=7, timepoints={0, 3}),
+             trip("unseen", "901", A, [0, 0, 0, 0], hour=16, observed=False),
+             trip("cancel", "901", A, [0, 0, 0, 0], hour=16, trip_sr="CANCELED"),
+             trip("added", "901", A, [0, 0, 0, 0], hour=16, trip_sr="ADDED", scheduled=False),
+             trip("sat", "902", A, [0, 0, 0, 0], hour=7, day=SAT)]
+    stage = make_stage(tmp_path, *trips, days=(DAY, SAT))
+    # Every stop but the last, of scheduled trips that weren't cancelled, observed or not.
+    assert stage.scheduled_departures("route") == {"901": {"timepoints": 4, "all_stops": 6},
+                                                   "902": {"timepoints": 3, "all_stops": 3}}
+    assert stage.scheduled_departures(None)[None]["timepoints"] == stage.trip_facts(None)[None]["completeness"][
+        "departures_scheduled"] == 7
+    assert stage.only("weekday", "pm_peak").scheduled_departures("route") == {"901": {"timepoints": 3, "all_stops": 3}}
+    assert stage.only("saturday", "pm_peak").scheduled_departures(None) == {}
 
 
 def test_detours_flag_trips_on_their_routes_while_active(tmp_path):

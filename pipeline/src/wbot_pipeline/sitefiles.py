@@ -6,7 +6,8 @@ come from a Stage (stage.py); this module lays them out as files.
 
 Output layout (written to a fresh directory, then swapped in):
   site/meta.json, system.json, stops.json, quality.json, routes/{slug}.json,
-  stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json
+  stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
+  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
   csv/*.csv (see opendata.py)
 """
 
@@ -19,7 +20,7 @@ from datetime import date
 from pathlib import Path
 
 from wbot_site import contract
-from wbot_site.contract import MAP_BANDS, MAP_CELL, MAP_DAYTYPES, SCHEMA, SCOPES
+from wbot_site.contract import MAP_BANDS, MAP_CELL, MAP_DAYTYPES, PRESETS, SCHEMA, SCOPES, preset_name
 
 from . import alerts, events, opendata, rules, shapes, static, timeutil
 from .config import ALT, EVENTS_VERSION, HEADLINE, Settings
@@ -210,31 +211,20 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
     detours = stage.detours()
     days = stage.quality_days()
     facts_sys = stage.trip_facts(None).get(None) or EMPTY_TRIP_FACTS
-    route_facts = stage.trip_facts("route")
-    sys_blocks = stage.perf_blocks(None, daily=True)
-    route_blocks = stage.perf_blocks("route", daily=True)
-    terminal = stage.perf(["route"], terminal=True, hist=True)
-    terminal_sys = stage.perf([], terminal=True, hist=True)
-    eol_sys, eol_routes = end_of_line(stage, None), end_of_line(stage, "route")
 
     # Routes: every route with scheduled trips in the period.
     slugs = sorted(stage.served_routes(), key=route_order)
-    route_rows = []
-    for slug in slugs:
-        info = names.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
-        route_rows.append({
-            "slug": slug, "short_name": info["short_name"], "long_name": info["long_name"],
-            "timepoints": strip(route_blocks.get(("timepoints", slug), {"summary": empty()})["summary"]),
-            "all_stops": strip(route_blocks.get(("all_stops", slug), {"summary": empty()})["summary"]),
-        })
+    order = stage.route_stop_order()
+    routes = route_numbers(stage, names, slugs, order)
+    system = system_numbers(stage, names, routes)
     write(site / "system.json", {
         "schema": SCHEMA,
-        "scopes": {scope: sys_blocks.get((scope, None)) or stage.empty_block(daily=True) for scope in SCOPES},
-        "terminal": terminal_sys.get((), empty(hist=True)),
-        "end_of_line": eol_sys.get(None, EMPTY_EOL),
+        "scopes": system["scopes"],
+        "terminal": system["terminal"],
+        "end_of_line": system["end_of_line"],
         "completeness": facts_sys["completeness"],
         "trips": facts_sys["trips"],
-        "routes": route_rows,
+        "routes": system["routes"],
         "notices": system_notices(stage, loss, days),
     })
     write(site / "quality.json", {
@@ -243,7 +233,8 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
                      "end": d["end"], "header": d["header"], "trips": d["trips"]} for d in detours],
     })
 
-    write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss, detours)
+    write_routes(stage, names, site, routes, loss, detours)
+    write_presets(stage, names, site, slugs, order)
     index = write_stops(stage, names, site, detours)
     write_map(stage, site, index)
     write_geojson(stage, names, versions, site, slugs)
@@ -253,18 +244,25 @@ def route_name(names: Names, slug: str) -> str:
     return names.routes.get(slug, {}).get("short_name", slug)
 
 
-def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, route_facts, loss, detours) -> None:
+def route_info(names: Names, slug: str) -> dict:
+    return {"slug": slug, **names.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})}
+
+
+def route_numbers(stage: Stage, names: Names, slugs: list[str], order) -> dict[str, dict]:
+    """The filterable parts of each route's file, by slug: scopes (with by_direction), terminal,
+    end_of_line and stops. Directions and stops follow `order` (route_stop_order), so a narrowed
+    Stage (Stage.only) gives the same rows, with empty blocks where nothing ran."""
+    blocks = stage.perf_blocks("route", daily=True)
     by_direction = stage.perf(["scope", "route", "direction_id"])
     by_stop = stage.perf(["scope", "route", "direction_id", "stop"])
-    order = stage.route_stop_order()
-    spans = stage.route_spans()
-    notices_base = [{"code": "provisional"}] if stage.settings.provisional else []
+    terminal = stage.perf(["route"], terminal=True, hist=True)
+    eol = end_of_line(stage, "route")
+    out = {}
     for slug in slugs:
-        info = names.routes.get(slug, {"short_name": slug, "long_name": "", "route_id": slug})
         directions = sorted(d for (r, d) in order if r == slug)
         scopes = {}
         for scope in SCOPES:
-            block = dict(route_blocks.get((scope, slug)) or stage.empty_block(daily=True))
+            block = dict(blocks.get((scope, slug)) or stage.empty_block(daily=True))
             block["by_direction"] = [{
                 "direction_id": d, "headsign": headsign(names, slug, d, order),
                 **by_direction.get((scope, slug, d), empty()),
@@ -280,6 +278,31 @@ def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, 
                     "all_stops": by_stop.get(("all_stops", slug, d, code), empty()),
                 })
             stop_lists.append({"direction_id": d, "stops": rows})
+        out[slug] = {"scopes": scopes, "terminal": terminal.get((slug,), empty(hist=True)),
+                     "end_of_line": eol.get(slug, EMPTY_EOL), "stops": stop_lists}
+    return out
+
+
+def system_numbers(stage: Stage, names: Names, routes: dict[str, dict]) -> dict:
+    """The filterable parts of system.json: scopes, terminal, end_of_line and the routes table,
+    whose rows are the summaries in `routes` (route_numbers), in its order."""
+    blocks = stage.perf_blocks(None, daily=True)
+    return {
+        "scopes": {scope: blocks.get((scope, None)) or stage.empty_block(daily=True) for scope in SCOPES},
+        "terminal": stage.perf([], terminal=True, hist=True).get((), empty(hist=True)),
+        "end_of_line": end_of_line(stage, None).get(None, EMPTY_EOL),
+        "routes": [{
+            **{k: v for k, v in route_info(names, slug).items() if k != "route_id"},
+            **{scope: strip(r["scopes"][scope]["summary"]) for scope in SCOPES},
+        } for slug, r in routes.items()],
+    }
+
+
+def write_routes(stage: Stage, names: Names, site: Path, routes: dict[str, dict], loss, detours) -> None:
+    route_facts = stage.trip_facts("route")
+    spans = stage.route_spans()
+    notices_base = [{"code": "provisional"}] if stage.settings.provisional else []
+    for slug, numbers in routes.items():
         facts = route_facts.get(slug) or EMPTY_TRIP_FACTS
         windows = spans.get(slug, [])
         notices = notices_base + [
@@ -290,16 +313,43 @@ def write_routes(stage, names, site, slugs, route_blocks, terminal, eol_routes, 
                      "description": d["description"], "trips": d["trips"]} for d in detours if d["route"] == slug]
         write(site / "routes" / f"{slug}.json", {
             "schema": SCHEMA,
-            "route": {"slug": slug, "short_name": info["short_name"], "long_name": info["long_name"],
-                      "route_id": info["route_id"]},
-            "scopes": scopes,
-            "terminal": terminal.get((slug,), empty(hist=True)),
-            "end_of_line": eol_routes.get(slug, EMPTY_EOL),
+            "route": route_info(names, slug),
+            "scopes": numbers["scopes"],
+            "terminal": numbers["terminal"],
+            "end_of_line": numbers["end_of_line"],
             "completeness": facts["completeness"],
             "trips": facts["trips"],
-            "stops": stop_lists,
+            "stops": numbers["stops"],
             "notices": notices,
         })
+
+
+def write_presets(stage: Stage, names: Names, site: Path, slugs: list[str], order) -> None:
+    """Page presets: system.json and routes/{slug}.json for every day type and band but all-all,
+    with only that day type and band's departures (Stage.only), compact like the map presets. A
+    route, or the whole system, with no scheduled departures in a preset has no file there."""
+    for dt in MAP_DAYTYPES:
+        for b in MAP_BANDS:
+            name = preset_name(dt, b)
+            if name not in PRESETS:
+                continue
+            part = stage.only(dt, b)
+            scheduled = part.scheduled_departures("route")
+            served = [slug for slug in slugs if slug in scheduled]
+            if not served:
+                continue
+            folder, preset = site / "presets" / name, {"daytype": dt, "band": b}
+            routes = route_numbers(part, names, served, order)
+            system = system_numbers(part, names, routes)
+            for row in system["routes"]:
+                row["scheduled"] = scheduled[row["slug"]]
+            write(folder / "system.json", {
+                "schema": SCHEMA, "preset": preset, "scheduled": part.scheduled_departures(None)[None], **system},
+                compact=True)
+            for slug, numbers in routes.items():
+                write(folder / "routes" / f"{slug}.json", {
+                    "schema": SCHEMA, "preset": preset, "route": route_info(names, slug),
+                    "scheduled": scheduled[slug], **numbers}, compact=True)
 
 
 def headsign(names: Names, slug: str, direction: int, order) -> str:

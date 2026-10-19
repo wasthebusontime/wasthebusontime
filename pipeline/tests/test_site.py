@@ -152,6 +152,44 @@ def test_map_presets_and_route_lines(world):
     assert line[0] == [-122.9, 47.04] and len(line) == 2     # straight line: inner points simplified away
 
 
+def test_page_presets(world):
+    settings, _ = world
+    presets = settings.out_dir / "site" / "presets"
+    files = sorted(p.relative_to(presets).as_posix() for p in presets.rglob("*.json"))
+    # Weekday trips at 7 and 8 am and one after midnight (evening); none on other day types or bands.
+    # Route 902 has no evening trip, so its evening presets have no file.
+    assert files == [f"{name}/{f}" for name, routes in (
+        ("all-am_peak", ["901", "902"]), ("all-evening", ["901"]), ("weekday-all", ["901", "902"]),
+        ("weekday-am_peak", ["901", "902"]), ("weekday-evening", ["901"]))
+        for f in [*(f"routes/{r}.json" for r in routes), "system.json"]]
+    evening = load(world, "presets", "weekday-evening", "system.json")
+    assert evening["preset"] == {"daytype": "weekday", "band": "evening"}
+    assert [(r["slug"], r["scheduled"]["all_stops"]) for r in evening["routes"]] == [("901", 8)]   # 4 stops, 2 days
+    route = load(world, "presets", "weekday-am_peak", "routes", "901.json")
+    codes = [[s["code"] for s in d["stops"]] for d in route["stops"]]
+    assert codes == [[s["code"] for s in d["stops"]] for d in load(world, "routes", "901.json")["stops"]]
+    assert "completeness" not in route and "notices" not in route
+
+
+def test_page_presets_add_up_to_the_route_file(world):
+    base = load(world, "routes", "901.json")
+
+    def total(names, key):
+        return sum(key(load(world, "presets", name, "routes", "901.json")) for name in names)
+
+    def n(doc):
+        return doc["scopes"]["all_stops"]["summary"]["n"]
+
+    def scheduled(doc, scope="all_stops"):
+        return doc["scheduled"][scope]
+
+    assert total(["all-am_peak", "all-evening"], n) == n(base)
+    assert total(["all-am_peak", "all-evening"], lambda d: scheduled(d, "timepoints")) == \
+        base["completeness"]["departures_scheduled"]
+    weekday = load(world, "presets", "weekday-all", "routes", "901.json")
+    assert total(["weekday-am_peak", "weekday-evening"], scheduled) == scheduled(weekday)
+
+
 def test_csv_columns(world):
     settings, _ = world
     csv_dir = settings.out_dir / "csv"

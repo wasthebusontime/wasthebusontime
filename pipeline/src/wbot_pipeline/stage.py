@@ -11,13 +11,16 @@ in-memory tables. The tables derived from them stay inside this module: callers 
 
 Departures can be grouped by these dimensions (perf keys): date, month, day_type, hour, band,
 scope, route, direction_id, stop, is_first. Every departure appears once per scope it counts in.
+
+only() narrows a Stage to one day type and band, for the page presets.
 """
 
+import copy
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import duckdb
-from wbot_site.contract import DAYTYPES, MAP_CELL, SCOPES
+from wbot_site.contract import DAYTYPES, MAP_BANDS, MAP_CELL, MAP_DAYTYPES, SCOPES
 
 from . import alerts, rules, timeutil
 from .config import Settings
@@ -63,13 +66,43 @@ class Stage:
         # End-of-line arrivals: each trip's last stop.
         con.execute(f"""
             CREATE TABLE eol AS
-            SELECT strftime(service_date, '%Y-%m') AS month, route_slug AS route, delay_arr_s AS delay, method
+            SELECT strftime(service_date, '%Y-%m') AS month, day_type, {rules.band('service_hour')} AS band,
+                   route_slug AS route, delay_arr_s AS delay, method
             FROM ev WHERE {rules.END_OF_LINE}
+        """)
+        # Scheduled departures, counted, by day type, band, route and whether at a timepoint.
+        con.execute(f"""
+            CREATE TABLE sd AS
+            SELECT day_type, {rules.band('service_hour')} AS band, route_slug AS route, is_timepoint, count(*) AS n
+            FROM ev WHERE {rules.SCHEDULED_DEPARTURE} GROUP BY ALL
         """)
         self._pq = PerfQuery(con, "d")
         self._eol = PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay"),
                                                  "from_block": "(method = 'block')", "from_gps": "(method = 'gps')"})
         self._flag_detours(alerts.load_extra_routes() if extra_routes is None else extra_routes)
+        self._only = {}
+
+    def only(self, daytype: str, band: str) -> "Stage":
+        """This Stage narrowed to one day type and band (from MAP_DAYTYPES and MAP_BANDS; "all" is
+        no filter), on the same connection. Departures, end-of-line arrivals and scheduled
+        departures are filtered, with two exceptions in perf_blocks: by_hour keeps every band
+        and by_daytype every day type. Trips, quality and the network as scheduled are not."""
+        if daytype not in MAP_DAYTYPES or band not in MAP_BANDS:
+            raise ValueError(f"no preset {daytype}-{band}")
+        narrowed = copy.copy(self)
+        narrowed._only = {k: v for k, v in (("day_type", daytype), ("band", band)) if v != "all"}
+        return narrowed
+
+    def _where(self, *dims: str) -> str:
+        """only()'s filter on the given dimensions (default: day_type and band), as SQL."""
+        return " AND ".join(f"{d} = '{v}'" for d, v in self._only.items() if d in (dims or self._only)) or "TRUE"
+
+    def _daily_dates(self) -> list[date]:
+        """The dates of the "daily" list: the last daily_days of the period, of only()'s day type."""
+        dates = self.period.dates[-self.settings.daily_days:]
+        if "day_type" in self._only:
+            dates = [d for d in dates if timeutil.daytype(d) == self._only["day_type"]]
+        return dates
 
     def close(self) -> None:
         self._con.close()
@@ -80,18 +113,19 @@ class Stage:
              percentiles: bool = True) -> dict[tuple, dict]:
         """Perf blocks per group of `keys` (dimensions). terminal: only terminal departures, all stops."""
         where = "scope = 'all_stops' AND is_first" if terminal else "TRUE"
-        return self._pq.get(keys, where=where, hist=hist, percentiles=percentiles)
+        return self._pq.get(keys, where=f"{where} AND {self._where()}", hist=hist, percentiles=percentiles)
 
     def perf_blocks(self, entity: str | None, daily: bool) -> dict[tuple, dict]:
         """{(scope, entity value or None): block} with summary, by_hour, by_daytype,
-        daily (optional) and monthly, for every value of `entity` (a dimension) at once."""
-        pq, ek = self._pq, ([entity] if entity else [])
-        summary = pq.get(["scope", *ek], hist=True)
-        by_hour = pq.get(["scope", *ek, "hour"])
-        by_daytype = pq.get(["scope", *ek, "day_type"])
-        monthly = pq.get(["scope", *ek, "month"])
-        by_date = pq.get(["scope", *ek, "date"], percentiles=False) if daily else {}
-        dates = self.period.dates[-self.settings.daily_days:]
+        daily (optional) and monthly, for every value of `entity` (a dimension) at once.
+        Under only(), by_hour follows the day type alone and by_daytype the band alone."""
+        pq, ek, where = self._pq, ([entity] if entity else []), self._where()
+        summary = pq.get(["scope", *ek], where=where, hist=True)
+        by_hour = pq.get(["scope", *ek, "hour"], where=self._where("day_type"))
+        by_daytype = pq.get(["scope", *ek, "day_type"], where=self._where("band"))
+        monthly = pq.get(["scope", *ek, "month"], where=where)
+        by_date = pq.get(["scope", *ek, "date"], where=where, percentiles=False) if daily else {}
+        dates = self._daily_dates()
         hours, months = _by_base(by_hour), _by_base(monthly)
         blocks = {}
         entities = {k[1] if entity else None for k in summary}
@@ -113,8 +147,7 @@ class Stage:
         """A perf_blocks block with no departures."""
         block = {"summary": empty(hist=True), "by_hour": [], "by_daytype": {dt: empty() for dt in DAYTYPES}}
         if daily:
-            block["daily"] = [{"date": d.isoformat(), **empty(percentiles=False)}
-                              for d in self.period.dates[-self.settings.daily_days:]]
+            block["daily"] = [{"date": d.isoformat(), **empty(percentiles=False)} for d in self._daily_dates()]
         block["monthly"] = []
         return block
 
@@ -144,7 +177,18 @@ class Stage:
         any time before the schedule; n_block and n_gps count arrivals by where they came from."""
         return {key: {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
                       "n_block": p["from_block"], "n_gps": p["from_gps"]}
-                for key, p in self._eol.get(keys).items()}
+                for key, p in self._eol.get(keys, where=self._where()).items()}
+
+    # Scheduled departures.
+
+    def scheduled_departures(self, entity: str | None) -> dict:
+        """{route (entity "route") or None: {"timepoints": n, "all_stops": n}} for every route or the
+        system with any; timepoints matches completeness's departures_scheduled."""
+        ek = "route" if entity else "NULL"
+        return {e: {"timepoints": int(tp), "all_stops": int(n)} for e, tp, n in self._con.execute(f"""
+            SELECT {ek} AS e, coalesce(sum(n) FILTER (WHERE is_timepoint), 0), sum(n)
+            FROM sd WHERE {self._where()} GROUP BY e
+        """).fetchall()}
 
     # Detours.
 
