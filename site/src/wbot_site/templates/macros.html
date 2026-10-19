@@ -1,31 +1,39 @@
-{# Timepoints / all stops toggle. CSS :has() shows one scope at a time; without
-   :has() support the toggle is hidden and both scopes show under their headings. #}
-{% macro scope_toggle() %}
-<fieldset class="scope-toggle">
+{# The settings bar under a page's title: a row of optional controls, then a "What do these
+   mean?" disclosure. This ticket has one control, "Which stops"; day type and time of day go
+   in the same row later. CSS :has() shows one scope at a time; without :has() support the
+   switch is hidden and both scopes show one after the other under their headings. #}
+{% macro settings_bar(scope=true) %}
+<div class="settings-bar">
+<div class="settings-controls">
+{% if scope %}
+<fieldset class="scope-switch">
   <legend>Which stops</legend>
-  <div class="scope-option">
-    <input type="radio" name="scope" id="scope-timepoints" value="timepoints" checked>
-    <label for="scope-timepoints">Timepoints</label>
-    <p class="scope-help">Timepoints are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how {{ agency.NAME }} measures on-time performance.</p>
-  </div>
-  <div class="scope-option">
-    <input type="radio" name="scope" id="scope-all_stops" value="all_stops">
-    <label for="scope-all_stops">All stops</label>
-    <p class="scope-help">At stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
-  </div>
-  <p class="scope-help scope-note">Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
-  {# site.js says here what changed, since the numbers above the toggle change too. #}
-  <p class="visually-hidden" id="scope-status" role="status"></p>
+  <span class="switch">
+    <input type="radio" name="scope" id="scope-timepoints" value="timepoints" checked><label for="scope-timepoints">Timepoints</label>
+    <input type="radio" name="scope" id="scope-all_stops" value="all_stops"><label for="scope-all_stops">All stops</label>
+  </span>
 </fieldset>
+{% endif %}
+</div>
+<details class="settings-help">
+<summary>What do these mean?</summary>
+{% if scope %}
+<p><strong>Timepoints</strong> are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how {{ agency.NAME }} measures on-time performance.</p>
+<p><strong>All stops</strong>: at stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
+<p>Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
+{% endif %}
+</details>
+{# site.js says here what changed when the scope changes. #}
+<p class="visually-hidden" id="scope-status" role="status"></p>
+</div>
 {% endmacro %}
 
-{# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %}.
-   Pages use it twice around the toggle; the second heading (repeat=true) is only
-   seen when both scopes show one after the other (no :has() support). #}
-{% macro scoped(repeat=false) %}
+{# Renders the caller once per scope: {% call(scope) scoped() %}...{% endcall %}. The heading
+   names the scope shown; without :has() support it separates the two scopes. #}
+{% macro scoped() %}
 {% for scope in scopes %}
 <section class="scope scope-{{ scope }}">
-<h2 class="scope-heading{{ " repeat" if repeat }}">{{ scope_labels[scope] }}{% if repeat %}: details{% endif %}</h2>
+<h2 class="scope-heading">{{ scope_labels[scope] }}</h2>
 {{ caller(scope) }}
 </section>
 {% endfor %}

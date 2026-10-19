@@ -8,7 +8,7 @@
     var radio = saved && document.getElementById("scope-" + saved);
     if (radio) radio.checked = true;
   } catch (e) {}
-  // The toggle also changes the numbers above it, so say so to screen readers.
+  // Say what changed to screen readers: every number below the switch.
   var scopeStatus = document.getElementById("scope-status");
   document.querySelectorAll('input[name="scope"]').forEach(function (r) {
     r.addEventListener("change", function () {
@@ -16,7 +16,7 @@
       scrollable();
       if (scopeStatus) {
         var label = document.querySelector('label[for="' + r.id + '"]').textContent;
-        scopeStatus.textContent = "Showing " + label.toLowerCase() + ". The numbers above and below changed.";
+        scopeStatus.textContent = "Showing " + label.toLowerCase() + ". The numbers below changed.";
       }
     });
   });

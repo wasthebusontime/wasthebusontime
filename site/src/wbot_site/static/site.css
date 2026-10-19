@@ -123,21 +123,38 @@ main:focus { outline: none; }
 .alert-text { white-space: pre-line; }
 .notices-line { margin: .25rem 0 .75rem; padding-left: .6rem; border-left: 3px solid var(--early); font-size: .9rem; color: var(--muted); }
 
-/* Timepoints / all stops toggle */
-.scope-toggle { border: 1px solid var(--rule); padding: .5rem 1rem; margin: 1rem 0; }
-.scope-option { margin: .25rem 0; }
-.scope-option label { font-weight: 600; }
-.scope-help { margin: 0 0 0 1.6rem; font-size: .85rem; color: var(--muted); }
-.scope-note { margin: .6rem 0 0; }
-@supports not selector(:has(a)) { .scope-toggle { display: none; } }
+/* Settings bar under the title. The controls float left so the "What do these mean?" summary
+   sits on the same row, and the open panel clears below them at full width; on a narrow
+   screen the summary wraps under the controls. */
+.settings-bar { display: flow-root; margin: 1rem 0; padding: .5rem .75rem; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; font-size: .95rem; line-height: 1.4; }
+.settings-controls { float: left; display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-right: 1.5rem; }
+.scope-switch { margin: 0; padding: 0; border: 0; min-width: 0; }
+/* A floated legend sits inline beside the switch instead of on the fieldset's border. */
+.scope-switch legend { float: left; padding: calc(.25rem + 1px) 0; margin-right: .6rem; color: var(--muted); }
+.switch { display: inline-flex; }
+.switch input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+.switch label { padding: .25rem .8rem; border: 1px solid var(--muted); background: var(--bg); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.switch label:first-of-type { border-radius: 4px 0 0 4px; }
+.switch label:last-of-type { border-radius: 0 4px 4px 0; border-left: 0; }
+.switch label:hover { text-decoration: underline; }
+.switch input:checked + label { background: var(--link); border-color: var(--link); color: var(--bg); }
+.switch input:focus-visible + label { outline: 2px solid var(--link); outline-offset: 2px; position: relative; }
+@media (forced-colors: active) {
+  .switch input:checked + label { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+}
+.settings-help summary { display: inline-block; padding: calc(.25rem + 1px) 0; color: var(--link); cursor: pointer; }
+.settings-help summary:hover { text-decoration: underline; }
+/* inline-block drops the usual triangle, so draw one; the empty alt text keeps it unspoken. */
+.settings-help summary::after { content: "\25B8" / ""; display: inline-block; margin-left: .35rem; }
+.settings-help[open] summary::after { content: "\25BE" / ""; }
+.settings-help[open] summary { margin-bottom: .25rem; }
+.settings-help p { clear: both; max-width: 68ch; margin: .4rem 0; font-size: .9rem; }
+/* Without :has() support the switch can't hide a scope: both show, one after the other. */
+@supports not selector(:has(a)) { .scope-switch { display: none; } .settings-controls { margin-right: 0; } }
 body:has(#scope-timepoints:checked) .scope-all_stops { display: none; }
 body:has(#scope-all_stops:checked) .scope-timepoints { display: none; }
 /* Small capitals rather than uppercase text, so screen readers get "Timepoints", not "TIMEPOINTS". */
 .scope-heading { font-size: 1.15rem; font-variant-caps: all-small-caps; letter-spacing: .05em; color: var(--muted); }
-/* With the toggle working, the repeated heading under it is for screen readers only. */
-@supports selector(:has(a)) {
-  .scope-heading.repeat { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-}
 
 .headline .big { font-size: 2.5rem; font-weight: 700; }
 .headline .medium { font-size: 1.5rem; font-weight: 700; }

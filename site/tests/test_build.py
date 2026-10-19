@@ -140,22 +140,48 @@ def test_every_page_has_the_icon(dev_site):
             assert [i.split("?")[0] for i in icons] == ["/favicon.ico", "/static/icons/favicon.svg", "/apple-touch-icon.png"], page
 
 
-def test_toggle_on_stats_pages_only(dev_site):
+def test_scope_switch_on_stats_pages_only(dev_site):
     assert 'id="scope-timepoints"' in (dev_site / "index.html").read_text(encoding="utf-8")
-    # A stop page is about one stop: every departure from it, no toggle.
-    assert 'id="scope-timepoints"' not in (dev_site / "stops" / "E101" / "index.html").read_text(encoding="utf-8")
-    assert 'id="scope-timepoints"' not in (dev_site / "about" / "index.html").read_text(encoding="utf-8")
+    # A stop page is about one stop: every departure from it, so no switch and no bar.
+    for page in [dev_site / "stops" / "E101" / "index.html", dev_site / "about" / "index.html"]:
+        html = page.read_text(encoding="utf-8")
+        assert 'id="scope-timepoints"' not in html and 'class="settings-bar"' not in html, page
 
 
-def test_stats_pages_put_the_toggle_under_the_headline_and_notes_at_the_end(dev_site):
+def test_stats_pages_put_the_settings_bar_above_the_headline_and_notes_at_the_end(dev_site):
     for page in [dev_site / "index.html", dev_site / "routes" / "901" / "index.html"]:
         html = page.read_text(encoding="utf-8")
-        markers = ['class="notices-line"', 'class="headline"', 'class="scope-toggle"', '<caption>', 'id="notes"', 'class="site-footer"']
+        markers = ['class="notices-line"', 'class="settings-bar"', 'class="headline"', '<caption>', 'id="notes"', 'class="site-footer"']
         order = [html.index(m) for m in markers if m in html]
         assert order == sorted(order), page
         assert ('class="notices-line"' in html) == ('id="notes"' in html), page
-        assert html.count('class="scope-toggle"') == 1, page
+        assert html.count('class="settings-bar"') == 1, page
+        # One section per scope, all of it below the bar.
+        assert html.count('<section class="scope ') == 2, page
+        assert html.index('class="settings-bar"') < html.index('<section class="scope '), page
     assert 'id="notes"' in (dev_site / "index.html").read_text(encoding="utf-8")
+
+
+def stop_tables(html: str, scope: str) -> dict[str, list[str]]:
+    """Each stop table in one scope's section of a route page: caption, then the stop codes."""
+    section = html.split(f'<section class="scope scope-{scope}">')[1].split("</section>")[0]
+    tables = re.findall(r"<caption>((?:Timepoints|Stops) to .*?)</caption>(.*?)</table>", section, re.S)
+    return {caption: re.findall(r'<th scope="row"><a href="/stops/(\w+)/">', body) for caption, body in tables}
+
+
+def test_timepoints_stop_tables_list_timepoints_and_the_last_stop(dev_site):
+    route = json.loads((SAMPLE_DIR / "site" / "routes" / "901.json").read_text(encoding="utf-8"))
+    html = (dev_site / "routes" / "901" / "index.html").read_text(encoding="utf-8")
+    timepoints, all_stops = stop_tables(html, "timepoints"), stop_tables(html, "all_stops")
+    assert len(timepoints) == len(all_stops) == len(route["stops"])
+    for direction, (caption, codes), (all_caption, all_codes) in zip(route["stops"], timepoints.items(), all_stops.items()):
+        stops = direction["stops"]
+        assert caption.startswith("Timepoints to ") and caption.endswith(", in route order")
+        assert all_caption.startswith("Stops to ")
+        # In the sample, each direction's last stop isn't a timepoint, so this checks it stays.
+        assert not stops[-1]["timepoint"]
+        assert codes == [st["code"] for st in stops if st["timepoint"]] + [stops[-1]["code"]]
+        assert all_codes == [st["code"] for st in stops]
 
 
 def test_stop_pages_say_whether_the_stop_is_a_timepoint(dev_site):
