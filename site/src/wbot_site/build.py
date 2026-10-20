@@ -294,6 +294,7 @@ def render_patterns(b: Build) -> None:
         without=[(r, little) for r, ps, little in routes if not ps],
         count=sum(len(ps) for ps in by_route.values()),
         pattern_period=data.period_text(doc), ratio=patterns.ratio_words, minutes=patterns.minutes_words,
+        mostly=patterns.MOSTLY,
     )
 
 

@@ -47,7 +47,7 @@ def test_general_pattern_at_the_minimum():
     assert p.share == pytest.approx(1 / 3) and too_little == []
     assert p.doc() == {"id": "carry_over.13.0.A.all-all", "kind": "carry_over", "route": "13", "direction_id": 0,
                        "stops": ["A"], "preset": None, "rank": 1, "trips": 30, "days": 10, "late": 60,
-                       "matched": 20, "share": 0.3333}
+                       "matched": 20, "share": 0.3333, "previous": []}
 
 
 def test_too_few_trips_is_too_little_data():
@@ -159,9 +159,9 @@ def test_document():
 def test_csv_rows():
     cs = cells(10, 3, 0) + cells(10, 3, 3, band="pm_peak")
     rows = patterns.csv_rows(found(cs)[0])
-    assert rows == [["carry_over.13.0.A.all-all", "carry_over", "13", 0, "A", "all", "all", 1, 60, 10, 120, 60, 0.5],
+    assert rows == [["carry_over.13.0.A.all-all", "carry_over", "13", 0, "A", "all", "all", 1, 60, 10, 120, 60, 0.5, ""],
                     ["carry_over.13.0.A.all-pm_peak", "carry_over", "13", 0, "A", "all", "pm_peak", 2, 30, 10, 60, 60,
-                     1.0]]
+                     1.0, ""]]
 
 
 # The measure, from stop events and trips (Stage.carry_over_cells).
@@ -169,9 +169,10 @@ def test_csv_rows():
 def stage_with(trips):
     """trips: (events, trip row, carry_over, start_delay_s) per trip."""
     con = duckdb.connect()
-    tr_cols = {**TR, "carry_over": "BOOLEAN", "start_delay_s": "INTEGER"}
+    tr_cols = {**TR, "carry_over": "BOOLEAN", "start_delay_s": "INTEGER", "prev_trip_id": "VARCHAR"}
     ev = [e for events, *_ in trips for e in events]
-    tr = [{**row, "carry_over": carry_over, "start_delay_s": start} for _, row, carry_over, start in trips]
+    tr = [{"prev_trip_id": None, **row, "carry_over": carry_over, "start_delay_s": start}
+          for _, row, carry_over, start in trips]
     for name, cols, rows in (("ev", EV, ev), ("tr", tr_cols, tr), ("al", AL, [])):
         con.execute(f"CREATE TABLE {name} ({', '.join(f'{k} {v}' for k, v in cols.items())})")
         if rows:
@@ -198,3 +199,49 @@ def test_measure_counts_late_departures_at_all_stops():
         (*trip("o1", "13", stops, [0, 0, 0, 0], day=day, hour=16), False, 0),
     ])
     assert s.carry_over_cells() == [Cell("2026-10-06", "13", 0, "A", "weekday", "pm_peak", 5, 2, 3)]
+
+
+# Where the bus came from: the previous trip's route and direction, for the matched trips.
+
+def test_previous_routes_are_summed_per_slot_largest_first():
+    cs = [c._replace(prev_route="9x", prev_direction_id=1) for c in cells(10, 3, 2)]
+    cs += [c._replace(prev_route="13", prev_direction_id=1) for c in cells(10, 1, 1)]
+    (p,) = found(cs)[0]
+    assert p.matched == 60
+    assert p.doc()["previous"] == [{"route": "9x", "direction_id": 1, "matched": 40},
+                                   {"route": "13", "direction_id": 1, "matched": 20}]
+
+
+def test_previous_routes_ties_by_route_then_direction():
+    cs = [c._replace(prev_route="13", prev_direction_id=1) for c in cells(10, 3, 1)]
+    cs += [c._replace(prev_route="13", prev_direction_id=0) for c in cells(10, 3, 1)]
+    (p,) = found(cs)[0]
+    assert [(x["route"], x["direction_id"]) for x in p.doc()["previous"]] == [("13", 0), ("13", 1)]
+
+
+def test_previous_route_unknown_is_left_out():
+    (p,) = found(cells(10, 3, 1))[0]
+    assert p.doc()["previous"] == []
+
+
+def test_csv_rows_carry_the_previous_routes():
+    cs = [c._replace(prev_route="9x", prev_direction_id=1) for c in cells(10, 3, 3)]
+    (row,) = patterns.csv_rows(found(cs)[0])
+    assert row[-1] == "9x:1:60"
+
+
+def test_measure_knows_the_previous_trips_route():
+    day = date(2026, 10, 6)
+    stops = ["A", "S2", "S3", "S4"]
+    prev = trip("p1", "9x", ["Z", "Y", "A"], [0, 0, 0], direction=1, day=day, hour=15)
+    c1 = trip("c1", "13", stops, [400, 500, 200, 600], day=day, hour=16)
+    n1 = trip("n1", "13", stops, [350, 100, 320, 0], day=day, hour=16)
+    s = stage_with([
+        (*prev, False, 0),
+        (c1[0], {**c1[1], "prev_trip_id": "p1"}, True, 400),
+        # Not matched: no previous route, whatever its previous trip.
+        (n1[0], {**n1[1], "prev_trip_id": "p1"}, False, 350),
+    ])
+    got = [c for c in s.carry_over_cells() if c.route == "13"]
+    assert sorted(got) == sorted([Cell("2026-10-06", "13", 0, "A", "weekday", "pm_peak", 2, 2, 1, "9x", 1),
+                                  Cell("2026-10-06", "13", 0, "A", "weekday", "pm_peak", 2, 0, 1)])

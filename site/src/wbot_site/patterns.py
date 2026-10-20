@@ -27,6 +27,9 @@ BANNED = ("caus", "reason", r"due to", "blame", "fault", "driver", "operator", "
 SHARE_FRACTIONS = (Fraction(1, 3), Fraction(2, 5), Fraction(1, 2), Fraction(3, 5), Fraction(2, 3),
                    Fraction(3, 4), Fraction(4, 5), Fraction(9, 10))
 NEARLY_ALL = 0.95
+# Where the bus came from: "mostly from" when the largest previous route covers less than this
+# share of a pattern's matched late departures.
+MOSTLY = 0.9
 
 # Bands inside a slot: after a day type ("weekday PM peaks"), and on their own ("on PM peaks").
 BAND_PLURAL = {"early": "early mornings", "am_peak": "AM peaks", "midday": "middays", "pm_peak": "PM peaks",
@@ -100,9 +103,61 @@ def share_of(share: float, noun: str) -> str:
     return f"{words} of the {noun}" if words == "about half" else f"{words} {noun}"
 
 
-def carry_over(p: dict, names: Names) -> str:
+class Plain:
+    """Names a template puts in a sentence, as plain text."""
+
+    def __init__(self, names: Names):
+        self.names = names
+
+    def stop(self, code: str) -> str:
+        return self.names.stops[code]
+
+    def route(self, slug: str) -> str:
+        return self.names.routes[slug]
+
+
+class Linked(Plain):
+    """The same names as links (stop and route pages), as markers that sentence_html swaps
+    for the links once the rest of the sentence is escaped."""
+
+    def __init__(self, names: Names):
+        super().__init__(names)
+        self.links: dict[str, str] = {}
+
+    def _mark(self, html: str) -> str:
+        mark = f"~~link{len(self.links)}~~"
+        self.links[mark] = html
+        return mark
+
+    def stop(self, code: str) -> str:
+        return self._mark(f'<a href="/stops/{escape(code)}/">{directions_html(self.names.stops[code])}</a>')
+
+    def route(self, slug: str) -> str:
+        return self._mark(f'<a href="/routes/{escape(slug)}/">{escape(self.names.routes[slug])}</a>')
+
+
+def came_from(p: dict, link: Plain) -> str:
+    """Where the bus came from on the matched trips, between "arrived" and "too late": " from
+    Route 9X", " from Route 13, going the other way,", " (mostly from Route 9X)" when the
+    largest previous route covers less than MOSTLY of them, "" when unknown."""
+    previous = [x for x in p["previous"] if x["route"] in link.names.routes]
+    if not previous:
+        return ""
+    top = previous[0]
+    if top["route"] != p["route"]:
+        source = link.route(top["route"])
+    elif top["direction_id"] != p["direction_id"]:
+        source = f"{link.route(top['route'])}, going the other way"
+    else:
+        source = f"an earlier {link.route(top['route'])} trip"
+    if top["matched"] < MOSTLY * p["matched"]:
+        return f" (mostly from {source})"
+    return f" from {source}," if source.endswith("the other way") else f" from {source}"
+
+
+def carry_over(p: dict, names: Names, link: Plain) -> str:
     return (f"On {where(p, names)}, {share_of(p['share'], 'late departures')} were on trips that left "
-            f"{names.stops[p['stops'][0]]} late right after a carry-over.")
+            f"{link.stop(p['stops'][0])} late, after the bus arrived{came_from(p, link)} too late to leave on time.")
 
 
 # One sentence template per kind. A kind without one (added to the pipeline first) isn't shown.
@@ -110,17 +165,17 @@ TEMPLATES = {"carry_over": carry_over}
 
 
 def sentence(p: dict, names: Names) -> str:
-    return TEMPLATES[p["kind"]](p, names)
+    return TEMPLATES[p["kind"]](p, names, Plain(names))
 
 
 def sentence_html(p: dict, names: Names) -> Markup:
-    """The sentence for a page: escaped, each stop name a link to its stop page (so it reads
-    as a name, not part of the sentence), direction codes read out."""
-    marks = {f"~~stop{i}~~": code for i, code in enumerate(p["stops"])}
-    marked = Names(names.routes, names.headsigns, {**names.stops, **{code: m for m, code in marks.items()}})
-    html = str(escape(sentence(p, marked)))
-    for mark, code in marks.items():
-        html = html.replace(mark, f'<a href="/stops/{escape(code)}/">{directions_html(names.stops[code])}</a>')
+    """The sentence for a page: escaped, stop names and the route the bus came from as links
+    to their pages (so a stop reads as a name, not part of the sentence), direction codes read
+    out. The pattern's own route isn't a link: the page around it is about that route."""
+    link = Linked(names)
+    html = str(escape(TEMPLATES[p["kind"]](p, names, link)))
+    for mark, a in link.links.items():
+        html = html.replace(mark, a)
     return Markup(html)
 
 

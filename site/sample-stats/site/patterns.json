@@ -35,7 +35,14 @@
    "days": 19,
    "late": 520,
    "matched": 317,
-   "share": 0.6096
+   "share": 0.6096,
+   "previous": [
+    {
+     "route": "901",
+     "direction_id": 1,
+     "matched": 317
+    }
+   ]
   },
   {
    "id": "carry_over.902.0.E133.all-pm_peak",
@@ -54,7 +61,14 @@
    "days": 18,
    "late": 476,
    "matched": 270,
-   "share": 0.5672
+   "share": 0.5672,
+   "previous": [
+    {
+     "route": "901",
+     "direction_id": 0,
+     "matched": 270
+    }
+   ]
   },
   {
    "id": "carry_over.905.0.E111.all-all",
@@ -70,7 +84,19 @@
    "days": 24,
    "late": 1238,
    "matched": 472,
-   "share": 0.3813
+   "share": 0.3813,
+   "previous": [
+    {
+     "route": "905",
+     "direction_id": 1,
+     "matched": 356
+    },
+    {
+     "route": "903",
+     "direction_id": 0,
+     "matched": 92
+    }
+   ]
   },
   {
    "id": "carry_over.905.1.E133.all-all",
@@ -86,7 +112,14 @@
    "days": 22,
    "late": 1113,
    "matched": 391,
-   "share": 0.3513
+   "share": 0.3513,
+   "previous": [
+    {
+     "route": "905",
+     "direction_id": 0,
+     "matched": 391
+    }
+   ]
   },
   {
    "id": "carry_over.905.0.E111.all-am_peak",
@@ -105,7 +138,19 @@
    "days": 15,
    "late": 220,
    "matched": 114,
-   "share": 0.5182
+   "share": 0.5182,
+   "previous": [
+    {
+     "route": "905",
+     "direction_id": 1,
+     "matched": 66
+    },
+    {
+     "route": "903",
+     "direction_id": 0,
+     "matched": 24
+    }
+   ]
   }
  ],
  "routes": {

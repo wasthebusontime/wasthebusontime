@@ -1,6 +1,6 @@
-id,kind,route,direction_id,stops,daytype,band,rank,trips,days,late,matched,share
-carry_over.902.1.E101.all-pm_peak,carry_over,902,1,E101,all,pm_peak,1,107,19,520,317,0.6096
-carry_over.902.0.E133.all-pm_peak,carry_over,902,0,E133,all,pm_peak,2,100,18,476,270,0.5672
-carry_over.905.0.E111.all-all,carry_over,905,0,E111,all,all,1,416,24,1238,472,0.3813
-carry_over.905.1.E133.all-all,carry_over,905,1,E133,all,all,2,384,22,1113,391,0.3513
-carry_over.905.0.E111.all-am_peak,carry_over,905,0,E111,all,am_peak,3,69,15,220,114,0.5182
+id,kind,route,direction_id,stops,daytype,band,rank,trips,days,late,matched,share,previous
+carry_over.902.1.E101.all-pm_peak,carry_over,902,1,E101,all,pm_peak,1,107,19,520,317,0.6096,901:1:317
+carry_over.902.0.E133.all-pm_peak,carry_over,902,0,E133,all,pm_peak,2,100,18,476,270,0.5672,901:0:270
+carry_over.905.0.E111.all-all,carry_over,905,0,E111,all,all,1,416,24,1238,472,0.3813,905:1:356 903:0:92
+carry_over.905.1.E133.all-all,carry_over,905,1,E133,all,all,2,384,22,1113,391,0.3513,905:0:391
+carry_over.905.0.E111.all-am_peak,carry_over,905,0,E111,all,am_peak,3,69,15,220,114,0.5182,905:1:66 903:0:24

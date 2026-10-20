@@ -105,15 +105,18 @@ def trips_file(month: str) -> str:
 # writes the sentences. A pattern is general (preset null) or tied to one day type and band
 # (a page preset's names). trips: trips with a late departure behind it; days: service days
 # with a matched trip; late: late departures; matched: those the pattern covers; share:
-# matched / late, rounded to 4 places; rank: 1 to n within its route.
+# matched / late, rounded to 4 places; rank: 1 to n within its route; previous: where the bus
+# came from on the matched trips, [{route, direction_id, matched}] largest first (the previous
+# trip on the block; empty when unknown), adding up to at most matched.
 PATTERNS_FILE = "patterns.json"
 PATTERNS_CSV = "patterns.csv"
 PATTERN_KINDS = ("carry_over", "slow_segment", "i5_traffic")
 PATTERN_FIELDS = ("id", "kind", "route", "direction_id", "stops", "preset", "rank", "trips", "days", "late",
-                  "matched", "share")
+                  "matched", "share", "previous")
 PATTERN_COUNTS = ("trips", "days", "late", "matched")
+# previous: space-separated route:direction_id:matched, largest first.
 PATTERNS_COLUMNS = ("id", "kind", "route", "direction_id", "stops", "daytype", "band", "rank", "trips", "days",
-                    "late", "matched", "share")
+                    "late", "matched", "share", "previous")
 
 
 def pattern_filters(preset: dict | None) -> list[str]:
@@ -474,6 +477,7 @@ def _patterns(stats_dir: Path, meta: dict, slugs: set, codes: set) -> None:
         if p["share"] != round(p["matched"] / p["late"], 4):
             raise ContractError(f"{at}: share {p['share']!r} isn't matched / late "
                                 f"({round(p['matched'] / p['late'], 4)})")
+        _previous(p, slugs, at)
         by_route.setdefault(p["route"], []).append(p)
         for code in set(p["stops"]):
             by_stop.setdefault(code, []).append(p)
@@ -500,6 +504,24 @@ def _patterns(stats_dir: Path, meta: dict, slugs: set, codes: set) -> None:
         csv_ids = [row[0] for row in rows if row]
     if sorted(csv_ids) != sorted(ids):
         raise ContractError(f"csv/{PATTERNS_CSV}: rows don't match the patterns in site/{PATTERNS_FILE}")
+
+
+def _previous(p: dict, slugs: set, at: str) -> None:
+    """A pattern's previous routes: known routes and directions, largest first, adding up to at most matched."""
+    previous = p["previous"]
+    if not isinstance(previous, list):
+        raise ContractError(f"{at}: previous {previous!r} isn't a list")
+    for x in previous:
+        _keys(x, ("route", "direction_id", "matched"), f"{at}.previous")
+        if x["route"] not in slugs:
+            raise ContractError(f"{at}: previous route {x['route']!r} is not in system.json")
+        if x["direction_id"] not in (0, 1):
+            raise ContractError(f"{at}: previous direction_id {x['direction_id']!r}, expected 0 or 1")
+        _count(x["matched"], f"{at}: previous matched")
+    if sum(x["matched"] for x in previous) > p["matched"]:
+        raise ContractError(f"{at}: previous adds up to more than matched ({p['matched']})")
+    if [x["matched"] for x in previous] != sorted((x["matched"] for x in previous), reverse=True):
+        raise ContractError(f"{at}: previous isn't largest first")
 
 
 def validate_trips(folder: Path) -> None:

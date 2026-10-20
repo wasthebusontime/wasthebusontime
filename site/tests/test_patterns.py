@@ -44,12 +44,16 @@ def no_patterns_site(tmp_path):
 def carry_over(**over):
     p = {"id": "carry_over.905.0.E111.all-all", "kind": "carry_over", "route": "905", "direction_id": 0,
          "stops": ["E111"], "preset": None, "rank": 1, "trips": 68, "days": 16, "late": 588, "matched": 510,
-         "share": 0.8673}
+         "share": 0.8673, "previous": [{"route": "905", "direction_id": 1, "matched": 510}]}
     return {**p, **over}
 
 
+def prev(*parts):
+    return [{"route": r, "direction_id": d, "matched": m} for r, d, m in parts]
+
+
 NAMES = patterns.Names(
-    routes={"905": "Route 905"},
+    routes={"905": "Route 905", "9x": "Route 9X"},
     headsigns={("905", 0): "Sample Transit Center"},
     stops={"E111": "Fictional Blvd & 1st Ave [sb]"},
 )
@@ -79,24 +83,54 @@ def test_specific_patterns_name_their_slot(preset, words):
 
 def test_carry_over_sentence():
     assert patterns.sentence(carry_over(), NAMES) == (
-        "On Route 905 to Sample Transit Center, about 9 in 10 late departures were on trips "
-        "that left Fictional Blvd & 1st Ave [sb] late right after a carry-over.")
+        "On Route 905 to Sample Transit Center, about 9 in 10 late departures were on trips that left "
+        "Fictional Blvd & 1st Ave [sb] late, after the bus arrived from Route 905, going the other way, "
+        "too late to leave on time.")
     specific = carry_over(preset={"daytype": "weekday", "band": "pm_peak"}, share=0.3513)
     assert patterns.sentence(specific, NAMES) == (
         "On Route 905 to Sample Transit Center on weekday PM peaks (3 to 6 pm), about 1 in 3 late departures "
-        "were on trips that left Fictional Blvd & 1st Ave [sb] late right after a carry-over.")
+        "were on trips that left Fictional Blvd & 1st Ave [sb] late, after the bus arrived from Route 905, "
+        "going the other way, too late to leave on time.")
 
 
-def test_stop_names_link_to_their_stop_page():
+@pytest.mark.parametrize("previous, words", [
+    (prev(("9x", 1, 510)), "after the bus arrived from Route 9X too late to leave on time."),
+    (prev(("905", 1, 510)), "after the bus arrived from Route 905, going the other way, too late to leave on time."),
+    (prev(("905", 0, 510)), "after the bus arrived from an earlier Route 905 trip too late to leave on time."),
+    # Mostly: the largest covers under 9 in 10 of the matched late departures.
+    (prev(("9x", 1, 400), ("905", 1, 110)), "after the bus arrived (mostly from Route 9X) too late to leave on time."),
+    (prev(("905", 1, 450), ("9x", 1, 60)),
+     "after the bus arrived (mostly from Route 905, going the other way) too late to leave on time."),
+    (prev(("9x", 1, 459)), "after the bus arrived from Route 9X too late to leave on time."),
+    (prev(("9x", 1, 458)), "after the bus arrived (mostly from Route 9X) too late to leave on time."),
+    ([], "after the bus arrived too late to leave on time."),
+])
+def test_carry_over_says_where_the_bus_came_from(previous, words):
+    text = patterns.sentence(carry_over(previous=previous), NAMES)
+    assert text.endswith("left Fictional Blvd & 1st Ave [sb] late, " + words), text
+
+
+def test_a_previous_route_missing_from_the_names_still_reads():
+    text = patterns.sentence(carry_over(previous=prev(("gone", 0, 510))), NAMES)
+    assert text.endswith("after the bus arrived too late to leave on time.")
+
+
+def test_stop_and_previous_route_link_to_their_pages():
     html = str(patterns.sentence_html(carry_over(), NAMES))
     assert ('left <a href="/stops/E111/">Fictional Blvd &amp; 1st Ave <span aria-hidden="true">[sb]</span>'
             '<span class="visually-hidden">southbound</span></a> late') in html
+    # The pattern's own route isn't a link; the previous one is.
     assert html.startswith("On Route 905 to Sample Transit Center, about 9 in 10")
+    assert 'arrived from <a href="/routes/905/">Route 905</a>, going the other way, too late' in html
+    other = str(patterns.sentence_html(carry_over(previous=prev(("9x", 1, 510))), NAMES))
+    assert 'arrived from <a href="/routes/9x/">Route 9X</a> too late' in other
 
 
-def test_panels_link_the_stop(dev_site):
+def test_panels_link_the_stop_and_previous_route(dev_site):
     html = read(dev_site, "patterns")
     assert re.search(r'<p class="pattern-text">[^\n]*left <a href="/stops/E111/">Fictional Blvd', html)
+    assert re.search(r'<p class="pattern-text">[^\n]*arrived from <a href="/routes/901/">Route 901</a> too late', html)
+    assert 'arrived (mostly from <a href="/routes/905/">Route 905</a>, going the other way) too late' in html
 
 
 def test_half_reads_as_half_of_the():
@@ -118,15 +152,17 @@ def test_no_template_says_cause_blame_or_fix():
     shares = (0.3333, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.97, 1.0)
     presets = [None] + [{"daytype": dt, "band": b} for dt in contract.MAP_DAYTYPES for b in contract.MAP_BANDS
                         if (dt, b) != ("all", "all")]
+    previous = (prev(("9x", 1, 510)), prev(("905", 1, 510)), prev(("905", 0, 510)), prev(("9x", 1, 300)), [])
     checked = 0
     for kind in patterns.TEMPLATES:
         for preset in presets:
             for share in shares:
-                p = carry_over(kind=kind, preset=preset, share=share)
-                for text in (patterns.sentence(p, NAMES), patterns.detail(p)):
-                    assert patterns.banned_words(text) == [], text
-                    checked += 1
-    assert checked >= 2 * len(presets) * len(shares)
+                for pr in previous:
+                    p = carry_over(kind=kind, preset=preset, share=share, previous=pr)
+                    for text in (patterns.sentence(p, NAMES), patterns.detail(p)):
+                        assert patterns.banned_words(text) == [], text
+                        checked += 1
+    assert checked >= 2 * len(presets) * len(shares) * len(previous)
 
 
 @pytest.mark.parametrize("text", [
@@ -256,7 +292,7 @@ def test_patterns_page_prints_the_rules_from_patterns_json(dev_site):
     how = read(dev_site, "patterns").split('id="how-we-find-patterns"', 1)[1]
     for words in ("more than 5 minutes late", "at least 1 in 3", "at least 30 trips", "at least 5 different days",
                   "10 percentage points", "10 minutes or more", "more than 1 minute after", "Rules version 1",
-                  "since collection began on Oct 4, 2026"):
+                  "since collection began on Oct 4, 2026", "fewer than 9 in 10"):
         assert words in how, words
     for term in ("Pattern", "Carry-over", "Layover", "Block", "Segment"):
         assert f"<dt>{term}</dt>" in how, term

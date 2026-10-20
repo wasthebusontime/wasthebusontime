@@ -312,13 +312,15 @@ class Stage:
         trips with a known carry-over value, a counted first-stop departure and at least one
         late departure, their late departures at all stops (headline window, first stop
         included), those on trips that left the first stop late right after a carry-over,
-        and the trips."""
+        and the trips; matched trips are split by their previous trip's route and direction."""
         late = rules.window_counts("delay_dep_s")["late"]
         start_late = rules.window_counts("t.start_delay_s")["late"]
         rows = self._con.execute(f"""
             WITH t AS (
-                SELECT service_date, trip_id, carry_over AND {start_late} AS matched
-                FROM tr t WHERE scheduled AND carry_over IS NOT NULL AND start_delay_s IS NOT NULL
+                SELECT t.service_date, t.trip_id, t.carry_over AND {start_late} AS matched,
+                       p.route_slug AS prev_route, coalesce(p.direction_id, 0) AS prev_direction_id
+                FROM tr t LEFT JOIN tr p ON p.service_date = t.service_date AND p.trip_id = t.prev_trip_id
+                WHERE t.scheduled AND t.carry_over IS NOT NULL AND t.start_delay_s IS NOT NULL
             ),
             f AS (
                 SELECT service_date, trip_id, route_slug, coalesce(direction_id, 0) AS direction_id, stop_code,
@@ -327,12 +329,14 @@ class Stage:
             ),
             n AS (SELECT service_date, trip_id, count(*) AS late FROM ev WHERE {rules.DEPARTURE} AND {late} GROUP BY ALL)
             SELECT strftime(t.service_date, '%Y-%m-%d'), f.route_slug, f.direction_id, f.stop_code, f.day_type, f.band,
-                   sum(n.late), coalesce(sum(n.late) FILTER (WHERE t.matched), 0), count(*)
+                   sum(n.late), coalesce(sum(n.late) FILTER (WHERE t.matched), 0), count(*),
+                   CASE WHEN t.matched THEN t.prev_route END AS pr,
+                   CASE WHEN t.matched AND t.prev_route IS NOT NULL THEN t.prev_direction_id END AS pd
             FROM t JOIN f USING (service_date, trip_id) JOIN n USING (service_date, trip_id)
             GROUP BY ALL ORDER BY ALL
         """).fetchall()
-        return [Cell(d, r, int(di), s, dt, b, int(late), int(matched), int(trips))
-                for d, r, di, s, dt, b, late, matched, trips in rows]
+        return [Cell(d, r, int(di), s, dt, b, int(late), int(matched), int(trips), pr, None if pd is None else int(pd))
+                for d, r, di, s, dt, b, late, matched, trips, pr, pd in rows]
 
     def route_spans(self) -> dict[str, list[tuple[int, int]]]:
         """Per route, the (first departure, last arrival) of its scheduled trips on each service date."""

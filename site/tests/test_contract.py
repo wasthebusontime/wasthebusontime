@@ -241,6 +241,16 @@ def set_share(doc, share):
     (lambda d: d["routes"][general(d)["route"]].update({"all-all": 99}), "patterns.json: routes."),
     (lambda d: d["stops"].pop(general(d)["stops"][0]), "patterns.json: stops."),
     (lambda d: d["too_little_data"].append(general(d)["route"]), "too_little_data lists"),
+    (lambda d: general(d).pop("previous"), r"patterns\[\d+\]: missing previous"),
+    (lambda d: general(d).update(previous=[{"route": "nope", "direction_id": 0, "matched": 1}]),
+     "previous route 'nope' is not in system.json"),
+    (lambda d: general(d).update(previous=[{"route": general(d)["route"], "direction_id": 2, "matched": 1}]),
+     "previous direction_id 2"),
+    (lambda d: general(d).update(previous=[{"route": general(d)["route"], "direction_id": 0,
+                                            "matched": general(d)["matched"] + 1}]), "previous adds up to"),
+    (lambda d: general(d).update(previous=[{"route": general(d)["route"], "direction_id": 0, "matched": 1},
+                                           {"route": general(d)["route"], "direction_id": 1, "matched": 2}]),
+     "previous isn't largest first"),
 ])
 def test_each_pattern_problem_is_reported(stats, fn, message):
     change(stats, contract.PATTERNS_FILE, fn)

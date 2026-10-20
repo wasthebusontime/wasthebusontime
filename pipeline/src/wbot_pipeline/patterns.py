@@ -23,6 +23,8 @@ Carry-over patterns, for a group (a route, direction and first stop):
   PATTERN_MIN_TRIPS trips with a late departure (or it has none at all).
 - Ranking within a route: general patterns first, then specific; within each, by matched
   late departures, then share.
+- Where the bus came from: for the matched trips, the previous trip's route and direction,
+  with the matched late departures behind each (`previous`, largest first).
 """
 
 from dataclasses import dataclass, field
@@ -72,6 +74,9 @@ class Cell(NamedTuple):
     late: int      # their late departures
     matched: int   # those on trips that left the first stop late right after a carry-over
     trips: int
+    # The previous trip's route and direction, on matched trips (None otherwise, or unknown).
+    prev_route: str | None = None
+    prev_direction_id: int | None = None
 
 
 @dataclass
@@ -87,6 +92,8 @@ class Pattern:
     late: int
     matched: int
     rank: int = 0
+    # {(route, direction_id): matched late departures} of the previous trips.
+    previous: dict = field(default_factory=dict)
 
     @property
     def share(self) -> Fraction:
@@ -106,7 +113,12 @@ class Pattern:
         return {"id": self.id, "kind": self.kind, "route": self.route, "direction_id": self.direction_id,
                 "stops": self.stops, "preset": self.preset, "rank": self.rank, "trips": self.trips,
                 "days": self.days, "late": self.late, "matched": self.matched,
-                "share": round(self.matched / self.late, 4)}
+                "share": round(self.matched / self.late, 4), "previous": self.previous_list()}
+
+    def previous_list(self) -> list[dict]:
+        """Where the bus came from, most matched late departures first, then by route and direction."""
+        ordered = sorted(self.previous.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [{"route": r, "direction_id": d, "matched": m} for (r, d), m in ordered]
 
 
 @dataclass
@@ -115,6 +127,7 @@ class _Slot:
     matched: int = 0
     trips: int = 0
     days: set = field(default_factory=set)
+    previous: dict = field(default_factory=dict)
 
     @property
     def share(self) -> Fraction:
@@ -143,6 +156,9 @@ def carry_over(cells: list[Cell], routes: list[str]) -> tuple[list[Pattern], lis
                 s.trips += c.trips
                 if c.matched:
                     s.days.add(c.date)
+                    if c.prev_route is not None:
+                        key = (c.prev_route, c.prev_direction_id)
+                        s.previous[key] = s.previous.get(key, 0) + c.matched
     found, enough = {}, set()
     for (route, direction, stop), slots in groups.items():
         general = slots[GENERAL]
@@ -159,7 +175,7 @@ def carry_over(cells: list[Cell], routes: list[str]) -> tuple[list[Pattern], lis
             keep[(dt, b)] = s
         for (dt, b), s in keep.items():
             found.setdefault(route, []).append(Pattern("carry_over", route, direction, [stop], dt, b, s.trips,
-                                                       len(s.days), s.late, s.matched))
+                                                       len(s.days), s.late, s.matched, previous=dict(s.previous)))
     out = []
     for route in [*routes, *sorted(set(found) - set(routes))]:
         ranked = sorted(found.get(route, []), key=lambda p: (
@@ -193,5 +209,7 @@ def document(patterns: list[Pattern], too_little_data: list[str], period) -> dic
 def csv_rows(patterns: list[Pattern]) -> list[list]:
     """patterns.csv rows (contract.PATTERNS_COLUMNS): general patterns have day type and band "all"."""
     return [[p.id, p.kind, p.route, p.direction_id, " ".join(p.stops), p.daytype, p.band, p.rank, p.trips, p.days,
-             p.late, p.matched, round(p.matched / p.late, 4)] for p in patterns]
+             p.late, p.matched, round(p.matched / p.late, 4),
+             " ".join(f"{x['route']}:{x['direction_id']}:{x['matched']}" for x in p.previous_list())]
+            for p in patterns]
 
