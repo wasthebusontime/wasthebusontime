@@ -152,13 +152,14 @@ def test_map_presets_and_route_lines(world):
     assert line[0] == [-122.9, 47.04] and len(line) == 2     # straight line: inner points simplified away
 
 
-EOL_KEYS = {"n", "p10", "p50", "p90", "early_share", "sources", "next"}
+EOL_KEYS = {"n", "p10", "p50", "p90", "early_share", "late", "sources", "next"}
 
 
 def check_eol(block):
     assert set(block) == EOL_KEYS
     assert set(block["next"]) == {"n", "in_time", "spare_p50"}
     assert 0 <= block["next"]["in_time"] <= block["next"]["n"] <= block["n"]
+    assert 0 <= block["late"] <= block["n"]
 
 
 def test_end_of_line_blocks_say_whether_buses_were_in_time_for_the_next_trip(world):

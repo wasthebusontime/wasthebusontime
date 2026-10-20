@@ -191,8 +191,9 @@ class Stage:
     # End-of-line arrivals.
 
     def end_of_line(self, keys: list[str]) -> dict[tuple, dict]:
-        """{key: {n, early, p10, p50, p90, n_block, n_gps, next_n, next_in_time, spare_p50}} per
-        group of `keys` (month, route, direction_id, stop); early is any time before the
+        """{key: {n, early, p10, p50, p90, n_block, n_gps, late, next_n, next_in_time, spare_p50}} per
+        group of `keys` (month, route, direction_id, stop); late is more than the headline window
+        after the scheduled arrival, as for departures; early is any time before the
         schedule; n_block and n_gps count arrivals by where they came from; next_n counts those
         followed by a trip on the same block with a known carry-over value, next_in_time those
         in time for it, and spare_p50 is their median time to spare (seconds, below 0 when late)."""
@@ -201,7 +202,7 @@ class Stage:
         for key, p in self._eol.get(keys, where=self._where()).items():
             q = nxt.get(key, {"n": 0, "in_time": 0, "p50": None})
             out[key] = {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-                        "n_block": p["from_block"], "n_gps": p["from_gps"],
+                        "n_block": p["from_block"], "n_gps": p["from_gps"], "late": p["late"],
                         "next_n": q["n"], "next_in_time": q["in_time"], "spare_p50": q["p50"]}
         return out
 

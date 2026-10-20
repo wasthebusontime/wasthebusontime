@@ -291,6 +291,8 @@ def last_stop(doc):
      r"system.json: end_of_line.next: n \d+ is more than the \d+ arrivals"),
     ("system.json", lambda d: d["end_of_line"]["next"].pop("spare_p50"), "end_of_line.next: missing spare_p50"),
     ("system.json", lambda d: d["end_of_line"].pop("sources"), "system.json: end_of_line: missing sources"),
+    ("system.json", lambda d: d["end_of_line"].update(late=d["end_of_line"]["n"] + 1),
+     r"system.json: end_of_line: late \d+ is more than the \d+ arrivals"),
     ("routes/905.json", lambda d: last_stop(d).update(arrivals=[]), r"stops\[0\].stops\[\d+\].arrivals: expected an object"),
     ("routes/905.json", lambda d: last_stop(d)["arrivals"]["next"].update(in_time=-1), r"arrivals.next: in_time is -1"),
     ("presets/weekday-am_peak/routes/905.json", lambda d: last_stop(d)["arrivals"].pop("n"), r"arrivals: missing n"),
@@ -305,6 +307,7 @@ def test_each_end_of_line_problem_is_reported(stats, name, fn, message):
 
 def strip_arrivals(doc):
     doc.get("end_of_line", {}) and doc["end_of_line"].pop("next", None)
+    doc.get("end_of_line", {}) and doc["end_of_line"].pop("late", None)
     for d in doc.get("stops", []):
         for s in d["stops"]:
             s.pop("arrivals", None)

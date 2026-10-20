@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import settings_bar, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table, terminal, end_of_line, trips_line, pattern_callouts, arrivals_line %}
+{% from "macros.html" import settings_bar, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table, terminal, end_of_line, trips_line, pattern_callouts, arrivals_rows %}
 {% block main %}
 <h1>{{ name }} <span class="subtitle">{{ route.route.long_name }}</span></h1>
 {{ notices_line(notices) }}
@@ -36,10 +36,8 @@
 {% set cols = 5 if windows.show_alt else 4 %}
 {% for st in stops if scope != "timepoints" or st.timepoint or st is sameas last %}
 {% if loop.last and st.get("arrivals") %}
-<tr class="arrivals">
-<th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a> <span class="def">Last stop</span></th>
-<td colspan="{{ cols }}">{{ arrivals_line(st.arrivals) }}</td>
-</tr>
+{% set head %}<a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a> <span class="def">Last stop: arrivals</span>{% endset %}
+{{ arrivals_rows(head, st.arrivals) }}
 {% else %}
 <tr>
 <th scope="row"><a href="/stops/{{ st.code }}/">{{ st.name | directions }}</a>{% if st.timepoint %} <span class="def">Timepoint</span>{% endif %}</th>
@@ -51,10 +49,8 @@
 </tr>
 {% if st.get("arrivals") %}
 {# Some trips end here, before the last stop listed (a loop, or a short trip). #}
-<tr class="arrivals">
-<th scope="row"><span class="def">Trips ending here</span></th>
-<td colspan="{{ cols }}">{{ arrivals_line(st.arrivals) }}</td>
-</tr>
+{% set head %}<span class="def">Trips ending here: arrivals</span>{% endset %}
+{{ arrivals_rows(head, st.arrivals) }}
 {% endif %}
 {% endif %}
 {% endfor %}

@@ -167,7 +167,7 @@ def stop_tables(html: str, scope: str) -> dict[str, list[str]]:
     """Each stop table in one scope's section of a route page: caption, then the stop codes."""
     section = html.split(f'<section class="scope scope-{scope}">')[1].split("</section>")[0]
     tables = re.findall(r"<caption>((?:Timepoints|Stops) to .*?)</caption>(.*?)</table>", section, re.S)
-    return {caption: re.findall(r'<th scope="row"><a href="/stops/(\w+)/">', body) for caption, body in tables}
+    return {caption: re.findall(r'<th scope="row"(?: rowspan="2")?><a href="/stops/(\w+)/">', body) for caption, body in tables}
 
 
 def test_timepoints_stop_tables_list_timepoints_and_the_last_stop(dev_site):

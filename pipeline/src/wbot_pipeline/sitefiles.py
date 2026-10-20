@@ -133,13 +133,13 @@ def end_of_line_by(stage: Stage, keys: list[str]) -> dict[tuple, dict]:
 def eol_block(p: dict) -> dict:
     return {
         "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-        "early_share": round(p["early"] / p["n"], 3),
+        "early_share": round(p["early"] / p["n"], 3), "late": p["late"],
         "sources": {"block": p["n_block"], "gps": p["n_gps"]},
         "next": {"n": p["next_n"], "in_time": p["next_in_time"], "spare_p50": p["spare_p50"]},
     }
 
 
-EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0, "sources": {"block": 0, "gps": 0},
+EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0, "late": 0, "sources": {"block": 0, "gps": 0},
              "next": {"n": 0, "in_time": 0, "spare_p50": None}}
 
 

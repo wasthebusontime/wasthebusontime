@@ -114,7 +114,15 @@ def test_end_of_line_early_is_any_time_before_the_schedule(tmp_path):
     stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, -1]), trip("t2", "901", A, [0, 0, 0, 0]),
                        trip("t3", "901", A, [0, 0, 0, -300]))
     assert stage.end_of_line([])[()] == {"n": 3, "early": 2, "p10": -300, "p50": -1, "p90": 0,
-                                         "n_block": 3, "n_gps": 0, "next_n": 0, "next_in_time": 0, "spare_p50": None}
+                                         "n_block": 3, "n_gps": 0, "late": 0, "next_n": 0, "next_in_time": 0,
+                                         "spare_p50": None}
+
+
+def test_end_of_line_late_is_the_site_window(tmp_path):
+    # Late: more than 5 minutes after the scheduled arrival, as for departures.
+    stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, 301]), trip("t2", "901", A, [0, 0, 0, 300]),
+                       trip("t3", "901", A, [0, 0, 0, -400]))
+    assert stage.end_of_line([])[()]["late"] == 1
 
 
 def test_end_of_line_counts_its_sources(tmp_path):

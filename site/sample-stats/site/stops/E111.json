@@ -681,6 +681,7 @@
   "p50": 251,
   "p90": 595,
   "early_share": 0.087,
+  "late": 253,
   "sources": {
    "block": 585,
    "gps": 4
@@ -699,6 +700,7 @@
     "p50": 251,
     "p90": 595,
     "early_share": 0.087,
+    "late": 253,
     "sources": {
      "block": 585,
      "gps": 4

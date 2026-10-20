@@ -148,7 +148,9 @@ main:focus { outline: none; }
 @media (forced-colors: active) { .pattern { border: 1px solid CanvasText; border-left-width: 4px; } .pattern .pattern-label { border: 1px solid CanvasText; } }
 .pattern-none { padding-left: 1.2rem; }
 tr.arrivals > * { background: var(--arrivals-bg); }
-tr.arrivals td { font-size: .95rem; }
+/* The two rows of one arrivals entry read as one: no rule between them. */
+table.data tr.arrivals-main > td { border-bottom: 0; }
+table.data tr.arrivals-more td { padding-top: 0; font-size: .95rem; }
 .arrivals-block { margin: 1.5rem 0; padding: .4rem .9rem .6rem; background: var(--arrivals-bg); border-radius: 4px; }
 .arrivals-block h3 { margin-top: .4rem; }
 .arrivals-note { font-size: .9rem; white-space: nowrap; }

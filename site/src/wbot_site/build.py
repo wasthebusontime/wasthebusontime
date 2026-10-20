@@ -144,7 +144,6 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         number=data.number,
         delay=data.delay_text,
         spare=data.spare_text,
-        spare_short=data.spare_short,
         date=data.date_text,
         month=data.month_text,
         hour=data.hour_text,

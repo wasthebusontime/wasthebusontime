@@ -456,7 +456,8 @@ def _preset_sums(totals: dict, entities: list) -> None:
 # End-of-line arrivals (end_of_line in system, route and preset files; arrivals on a route's
 # stops where trips end; end_of_line in a stop file, with by_route). next (optional): arrivals
 # followed by another trip on the same block with a known carry-over value, those in time for
-# it, and their median time to spare in seconds (below 0 when late, None without any).
+# it, and their median time to spare in seconds (below 0 when late, None without any). late
+# (optional): arrivals more than the headline window after the schedule.
 EOL_FIELDS = ("n", "p10", "p50", "p90", "early_share", "sources")
 EOL_NEXT_FIELDS = ("n", "in_time", "spare_p50")
 
@@ -464,6 +465,10 @@ EOL_NEXT_FIELDS = ("n", "in_time", "spare_p50")
 def _eol(block, where: str) -> None:
     _keys(block, EOL_FIELDS, where)
     _count(block["n"], f"{where}: n")
+    if "late" in block:
+        _count(block["late"], f"{where}: late")
+        if block["late"] > block["n"]:
+            raise ContractError(f"{where}: late {block['late']} is more than the {block['n']} arrivals")
     if "next" not in block:
         return
     nxt, at = block["next"], f"{where}.next"

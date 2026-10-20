@@ -48,12 +48,6 @@ def test_spare_words(seconds, words):
     assert data.spare_text(seconds) == words
 
 
-@pytest.mark.parametrize("seconds, words", [(589, "9 min 49 sec"), (0, "none"), (-76, "1 min 16 sec late"),
-                                            (None, "n/a")])
-def test_spare_words_for_a_table_column(seconds, words):
-    assert data.spare_short(seconds) == words
-
-
 # Route pages
 
 
@@ -62,25 +56,51 @@ def tables(html):
     return re.findall(r'<table class="data">\s*<caption>Timepoints to.*?</table>', main, re.S)
 
 
-def test_route_tables_show_arrivals_on_the_last_stop(dev_site):
+def double_row(rows):
+    """The two rows of one arrivals entry: the grid row and the row under it."""
+    main, more = rows
+    assert main.startswith(' class="arrivals arrivals-main"') and more.startswith(' class="arrivals arrivals-more"')
+    return main, more
+
+
+def check_grid(main, a, columns):
+    """Arrivals in the departures grid: the count, early not counted, on time or early, late."""
+    if a["n"] < sample("meta.json")["min_sample"]:
+        assert f'<td class="num" colspan="{columns}"><span class="nodata">Not enough data</span> ({a["n"]:,} arrivals)</td>' in main
+        return
+    cells = re.findall(r'<td class="num">(.*?)</td>', main)
+    assert len(cells) == columns
+    assert cells[0] == f"{a['n']:,}"
+    assert cells[1] == '<span class="nodata">not counted</span>'
+    assert cells[2] == f'{data.percent(a["n"] - a["late"], a["n"], 1)} <span class="def">or early</span>'
+    assert cells[3] == data.percent(a["late"], a["n"], 1)
+
+
+def columns(table):
+    return table.split("</thead>", 1)[0].count('<th scope="col" class="num">')
+
+
+def test_route_tables_end_with_a_double_row_for_arrivals(dev_site):
     route = sample("routes", "905.json")
     found = tables(read(dev_site, "routes/905"))
     assert len(found) == len(route["stops"])
     for table, direction in zip(found, route["stops"]):
         a = direction["stops"][-1]["arrivals"]
-        last = table.rsplit("<tr", 1)[1]
-        assert last.startswith(' class="arrivals"')
-        assert f"{a['n']:,} arrivals, median {data.delay_text(a['p50'])}" in last
-        assert f"{data.percent(a['next']['in_time'], a['next']['n'])} in time for the next trip" in last
-        assert f"(median {data.spare_text(a['next']['spare_p50'])})" in last
-        assert NOTE in last
-        assert "arrivals only" not in last
+        main, more = double_row(table.split("</tbody>", 1)[0].split("<tr")[-2:])
+        assert '<th scope="row" rowspan="2">' in main and '<span class="def">Last stop: arrivals</span>' in main
+        check_grid(main, a, columns(table))
+        nxt = a["next"]
+        assert (f'<td colspan="{columns(table)}">Median arrival {data.delay_text(a["p50"])}; '
+                f'{data.percent(nxt["in_time"], nxt["n"])} in time for the next trip '
+                f'(median {data.spare_text(nxt["spare_p50"])}). {NOTE}</td>') in more
+        assert "arrivals only" not in main + more
 
 
 def test_filtered_route_pages_show_their_arrivals(dev_site):
     a = sample("presets", "weekday-am_peak", "routes", "905.json")["stops"][0]["stops"][-1]["arrivals"]
     (first, *_) = tables(read(dev_site, "routes/905/weekdays/am-peak"))
-    assert f"{a['n']:,} arrivals" in first.rsplit("<tr", 1)[1]
+    main, _ = double_row(first.split("</tbody>", 1)[0].split("<tr")[-2:])
+    check_grid(main, a, columns(first))
 
 
 def test_end_of_line_paragraph_says_how_many_were_in_time(dev_site):
@@ -109,16 +129,27 @@ def arrivals_section(html):
 
 def test_stop_page_where_trips_end_has_an_arrivals_table(dev_site):
     eol = sample("stops", "E133.json")["end_of_line"]
-    block = arrivals_section(read(dev_site, "stops/E133"))
+    html = read(dev_site, "stops/E133")
+    block = arrivals_section(html)
     assert "<h3>Arrivals at the end of trips</h3>" in block
     assert "<caption>Arrivals here, by route</caption>" in block
-    rows = re.findall(r'<tr><th scope="row"><a href="/routes/([^/]+)/">', block)
-    assert rows == [r["slug"] for r in eol["by_route"]]
-    r = eol["by_route"][0]
-    assert f"<td class=\"num\">{r['n']:,}</td>" in block
-    assert data.percent(r["next"]["in_time"], r["next"]["n"]) in block
-    assert f'<td class="num">{data.spare_short(r["next"]["spare_p50"])}</td>' in block
     assert NOTE in block
+    rows = re.findall(r'<tr class="arrivals arrivals-main">\s*<th scope="row" rowspan="2"><a href="/routes/([^/]+)/">', block)
+    assert rows == [r["slug"] for r in eol["by_route"]]
+    # The same grid as the departures table above it.
+    departures = main_of(html).split("<caption>By route</caption>", 1)[1]
+    assert columns(block.split("<caption>", 1)[1]) == columns(departures)
+    body = block.split("<tbody>", 1)[1].split("<tr")[1:]
+    for r, pair in zip(eol["by_route"], zip(body[::2], body[1::2])):
+        main, more = double_row(pair)
+        check_grid(main, r, columns(departures))
+        nxt = r["next"]
+        if nxt["n"] >= sample("meta.json")["min_sample"]:
+            assert (f"Median arrival {data.delay_text(r['p50'])}; {data.percent(nxt['in_time'], nxt['n'])} of "
+                    f"{nxt['n']:,} in time for the next trip (median {data.spare_text(nxt['spare_p50'])}).") in more
+        elif r["n"] >= sample("meta.json")["min_sample"]:
+            assert f"<td colspan=\"{columns(departures)}\">Median arrival {data.delay_text(r['p50'])}.</td>" in more
+    assert any(r["next"]["n"] >= sample("meta.json")["min_sample"] for r in eol["by_route"])
 
 
 def test_arrivals_come_after_the_departures_table(dev_site):

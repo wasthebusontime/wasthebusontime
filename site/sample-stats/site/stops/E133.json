@@ -904,6 +904,7 @@
   "p50": 75,
   "p90": 419,
   "early_share": 0.372,
+  "late": 624,
   "sources": {
    "block": 3214,
    "gps": 183
@@ -922,6 +923,7 @@
     "p50": 23,
     "p90": 354,
     "early_share": 0.455,
+    "late": 108,
     "sources": {
      "block": 762,
      "gps": 5
@@ -940,6 +942,7 @@
     "p50": 132,
     "p90": 522,
     "early_share": 0.299,
+    "late": 167,
     "sources": {
      "block": 658,
      "gps": 25
@@ -958,6 +961,7 @@
     "p50": -22,
     "p90": 250,
     "early_share": 0.535,
+    "late": 47,
     "sources": {
      "block": 616,
      "gps": 91
@@ -976,6 +980,7 @@
     "p50": 21,
     "p90": 219,
     "early_share": 0.436,
+    "late": 23,
     "sources": {
      "block": 588,
      "gps": 45
@@ -994,6 +999,7 @@
     "p50": 276,
     "p90": 665,
     "early_share": 0.091,
+    "late": 278,
     "sources": {
      "block": 586,
      "gps": 17
@@ -1012,6 +1018,7 @@
     "p50": 16,
     "p90": 480,
     "early_share": 0.25,
+    "late": 1,
     "sources": {
      "block": 4,
      "gps": 0

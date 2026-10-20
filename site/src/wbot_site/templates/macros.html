@@ -74,8 +74,8 @@
 {% endmacro %}
 
 {# Table cells: departures, early, on time, late (headline window), on time (alt window, if shown). #}
-{% macro perf_header() %}
-<th scope="col" class="num">Departures</th>
+{% macro perf_header(count="Departures") %}
+<th scope="col" class="num">{{ count }}</th>
 <th scope="col" class="num">Early</th>
 <th scope="col" class="num">On time <span class="def">({{ windows.headline.span }})</span></th>
 <th scope="col" class="num">Late</th>
@@ -225,14 +225,38 @@
    pages), always with the note linking how they are measured. #}
 {% macro arrivals_note() %}<a class="arrivals-note" href="/methodology/#arrivals">How arrivals are measured</a>{% endmacro %}
 
-{# One line for a route's stop table: "1,234 arrivals, median 1 min late; 91% in time for the
-   next trip (median 8 min to spare)." #}
-{% macro arrivals_line(a) %}
-{% if a.n >= min_sample %}{{ a.n | number }} arrivals, median {{ a.p50 | delay }}{% if a.get("next") and a.next.n >= min_sample %}; {{ percent(a.next.in_time, a.next.n) }} in time for the next trip (median {{ a.next.spare_p50 | spare }}){% endif %}.{% else %}<span class="nodata">Not enough data</span> ({{ a.n | number }} arrivals).{% endif %} {{ arrivals_note() }}
+{# Arrivals as a double row in a departures grid (a route's stop tables, a stop page's arrivals
+   by route), shaded together: the count in the departures column, early not counted (early
+   arrivals at the end of a line are normal), on time or early, and late (more than the
+   headline window after the schedule); then the row under it with the median arrival and
+   whether buses were in time for their next trip. head: the row's heading (rowspan 2). #}
+{% macro arrivals_rows(head, a, note=true, counted=false) %}
+{% set cols = 5 if windows.show_alt else 4 %}
+<tr class="arrivals arrivals-main">
+<th scope="row" rowspan="2">{{ head }}</th>
+{% if a.n >= min_sample %}
+<td class="num">{{ a.n | number }}</td>
+<td class="num"><span class="nodata">not counted</span></td>
+{% if a.get("late") is not none %}
+<td class="num">{{ percent(a.n - a.late, a.n, 1) }} <span class="def">or early</span></td>
+<td class="num">{{ percent(a.late, a.n, 1) }}</td>
+{% else %}
+<td class="num"><span class="nodata">n/a</span></td>
+<td class="num"><span class="nodata">n/a</span></td>
+{% endif %}
+{% if windows.show_alt %}
+<td class="num"><span class="nodata">not counted</span></td>
+{% endif %}
+{% else %}
+<td class="num" colspan="{{ cols }}"><span class="nodata">Not enough data</span> ({{ a.n | number }} arrivals)</td>
+{% endif %}
+</tr>
+<tr class="arrivals arrivals-more">
+<td colspan="{{ cols }}">{% if a.n >= min_sample %}Median arrival {{ a.p50 | delay }}{% if a.get("next") and a.next.n >= min_sample %}; {{ percent(a.next.in_time, a.next.n) }}{% if counted %} of {{ a.next.n | number }}{% endif %} in time for the next trip (median {{ a.next.spare_p50 | spare }}){% endif %}.{% endif %}{% if note %} {{ arrivals_note() }}{% endif %}</td>
+</tr>
 {% endmacro %}
 
-{# A stop page's arrivals of trips ending there, by route. No early column: early arrivals at
-   the end of a line are normal, and five columns fit a phone. #}
+{# A stop page's arrivals of trips ending there, by route, in the same grid as its departures. #}
 {% macro arrivals_block(eol, route_names) %}
 <div class="arrivals-block">
 <h3>Arrivals at the end of trips</h3>
@@ -240,21 +264,11 @@
 <div class="table-wrap">
 <table class="data">
 <caption>Arrivals here, by route</caption>
-<thead><tr><th scope="col">Route</th><th scope="col" class="num">Arrivals</th><th scope="col" class="num">Median arrival</th><th scope="col" class="num">In time for the next trip</th><th scope="col" class="num">Median time to spare</th></tr></thead>
+<thead><tr><th scope="col">Route</th>{{ perf_header("Arrivals") }}</tr></thead>
 <tbody>
 {% for r in eol.by_route %}
-<tr><th scope="row"><a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a></th>
-{% if r.n >= min_sample %}
-<td class="num">{{ r.n | number }}</td><td class="num">{{ r.p50 | delay }}</td>
-{% if r.get("next") and r.next.n >= min_sample %}
-<td class="num">{{ percent(r.next.in_time, r.next.n) }} <span class="def">of {{ r.next.n | number }}</span></td><td class="num">{{ r.next.spare_p50 | spare_short }}</td>
-{% else %}
-<td class="num" colspan="2"><span class="nodata">Not enough data</span></td>
-{% endif %}
-{% else %}
-<td class="num" colspan="4"><span class="nodata">Not enough data</span> ({{ r.n | number }} arrivals)</td>
-{% endif %}
-</tr>
+{% set head %}<a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a>{% endset %}
+{{ arrivals_rows(head, r, note=false, counted=true) }}
 {% endfor %}
 </tbody>
 </table>

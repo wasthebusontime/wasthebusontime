@@ -170,16 +170,6 @@ def spare_text(seconds: int | None) -> str:
     return f"{amount} to spare" if seconds > 0 else f"{amount} after the next trip was due to leave"
 
 
-def spare_short(seconds: int | None) -> str:
-    """spare_text for a table column headed "Median time to spare": "9 min 49 sec", "1 min 16 sec late"."""
-    if seconds is None:
-        return "n/a"
-    if seconds == 0:
-        return "none"
-    m, s = divmod(abs(seconds), 60)
-    amount = f"{m} min {s} sec" if m and s else f"{m} min" if m else f"{s} sec"
-    return amount if seconds > 0 else f"{amount} late"
-
 
 # Stop names carry the agency's direction codes ("Example St & 1st Ave [sb]"). Pages show
 # them as written, with the word for screen readers.
