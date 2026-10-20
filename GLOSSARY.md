@@ -83,6 +83,26 @@ _Avoid_: stats, metrics
 **Minimum sample**:
 The fewest departures a percentage needs before it is shown.
 
+## Patterns
+
+**Block**:
+The chain of trips one bus is scheduled to run in a day, from the static GTFS `block_id`.
+
+**Layover**:
+The scheduled time between a trip's end and the next trip on its block leaving the same stop.
+
+**Carry-over**:
+A trip whose bus, coming off the previous trip on its block, reached the first stop after the trip's scheduled departure, so it could not leave on time.
+_Avoid_: knock-on delay, late because
+
+**Segment**:
+The stretch of one route and direction between two consecutive timepoints (or a timepoint and the trip's last stop), measured by the delay gained over it.
+_Avoid_: link, leg
+
+**Pattern**:
+A condition that many late departures share, found by a published rule and shown as an interpretation, not a measurement: general, or for one day type and band. Patterns name conditions, never people or decisions, and never suggest fixes.
+_Avoid_: cause, reason, "why late", finding (in public text)
+
 ## Data quality
 
 **Completeness**:
