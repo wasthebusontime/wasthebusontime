@@ -2,7 +2,7 @@ Title: Data
 
 # Data
 
-The statistics on this site can be downloaded as CSV files below. They contain aggregate counts only (for example, how many departures were early, on time or late on a route in a month), not individual bus trips.
+The statistics on this site can be downloaded as CSV files below. They contain aggregate counts only (for example, how many departures were early, on time or late on a route in a month). One row per bus trip is in the per-trip files described below.
 
 ## What's in the files
 
@@ -28,6 +28,19 @@ Columns:
 - `under`, `m_10` to `m_1`, `m0` to `m19` and `over` count departures by how many minutes late they left: `m0` is 0 to 1 minute late, `m_1` is up to 1 minute early, `under` is more than 10 minutes early and `over` is 20 or more minutes late.
 - In `routes_daily.csv`, `detour_trips` counts the trips that ran during a posted detour that day. Their departures are included in the other columns.
 - In `end_of_line_monthly.csv`, `early` counts buses that arrived early, and `p10`, `p50` and `p90` are how late (in seconds; negative is early) the 10%, 50% and 90% marks of those arrivals were. `n_block` and `n_gps` count how many arrivals came from the next trip in the block and how many from GPS (see the [methodology](/methodology/)).
+
+<!-- patterns-files -->
+
+## Per-trip files
+
+`trips/trips_YYYY-MM.csv` has one row per scheduled trip, for one month. A file is written once for each finished month, so the current month isn't there yet. These files are in the `trips` folder of the [stats repository on GitHub](https://github.com/wasthebusontime/stats), not on this site.
+
+- `date` is the service date, `route` and `direction_id` as above, `trip_id` the trip in Intercity Transit's schedule data, and `sched_start` the scheduled time it leaves its first stop (24:00 and later are after midnight).
+- `start_delay_s` and `end_delay_s` are how late (in seconds; negative is early) the trip left its first stop and arrived at its last stop, blank when not recorded.
+- `block_id` is the chain of trips the bus was scheduled to run, `prev_trip_id` the trip before this one on it, and `sched_layover_s` the scheduled time between the two. `prev_end_delay_s` is how late the previous trip arrived at its last stop.
+- `carry_over` is `yes` when the bus, coming off the previous trip, reached the first stop after this trip's scheduled departure, `no` when it didn't (or there was no previous trip on the block), and blank when we can't tell.
+
+They leave out bus numbers and the raw times from Intercity Transit's real-time data.
 
 ## License and credit
 

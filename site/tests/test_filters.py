@@ -166,7 +166,7 @@ def test_stats_without_presets_build_without_filters(real_looking_stats, tmp_pat
     shutil.rmtree(real_looking_stats / "site" / "presets")
     out = tmp_path / "out"
     make_build(real_looking_stats, out, "prod")
-    assert len(html_pages(out)) == 49
+    assert len(html_pages(out)) == 50  # with the Patterns page
     for path in ("", "routes/901"):
         html = page(out, path)
         assert 'class="settings-bar"' in html and 'class="dropdown"' not in html

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import pattern_panel %}
+{# The Patterns page: what a pattern is, every pattern by route, then how they are found.
+   The thresholds come from patterns.json, so the page always prints the rules in use. #}
+{% block main %}
+{% set co = doc.thresholds.get("carry_over") %}
+<h1>Patterns in late buses</h1>
+<div class="prose">
+<p class="lede">A pattern is something many late departures had in common, found in past trips by a fixed rule. It is an interpretation of the numbers, not a measurement: it says what late buses tended to share, not what made any one bus late.</p>
+<p>Patterns describe conditions, such as a bus starting a trip late after its previous trip ran late. They don&rsquo;t point at people or decisions, and they don&rsquo;t suggest changes. Each one sits in a panel labeled &ldquo;Pattern&rdquo;, apart from the measured numbers.</p>
+<p>{% if count %}We found {{ count | number }} pattern{{ "s" if count != 1 }} on {{ with_patterns | length }} route{{ "s" if with_patterns | length != 1 }}{% else %}No patterns found yet{% endif %}, in departures {{ pattern_period }}. The rules are new and may change as we look at more data; see <a href="#how-we-find-patterns">How we find patterns</a>.</p>
+</div>
+
+<h2 id="by-route">Patterns by route</h2>
+{% for route, items in with_patterns %}
+<section class="pattern-route" id="route-{{ route.slug }}">
+<h3><a href="/routes/{{ route.slug }}/">Route {{ route.short_name }}</a> <span class="subtitle">{{ route.long_name }}</span></h3>
+{% for item in items %}
+{{ pattern_panel(item) }}
+{% endfor %}
+</section>
+{% endfor %}
+{% if without %}
+<h3 id="other-routes">Other routes</h3>
+<ul class="pattern-none">
+{% for route, little in without %}
+  <li id="route-{{ route.slug }}"><a href="/routes/{{ route.slug }}/">Route {{ route.short_name }} {{ route.long_name }}</a>: {{ "Not enough data yet" if little else "No patterns found yet" }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<div class="prose">
+<h2 id="how-we-find-patterns">How we find patterns</h2>
+<p>Every pattern comes from the same published rules, applied every night to the departures {{ pattern_period }}. The site writes each sentence from a fixed template, filled in with the counts. Rules version {{ doc.rules_version }}.</p>
+
+<h3>Words we use</h3>
+<dl class="terms">
+<dt>Pattern</dt>
+<dd>A condition that many late departures share, found by a published rule. It is shown as an interpretation, not a measurement, for the whole period or for one day type and time of day.</dd>
+<dt>Block</dt>
+<dd>The chain of trips one bus is scheduled to run in a day, one after another.</dd>
+<dt>Layover</dt>
+<dd>The scheduled time between the end of one trip and the start of the next trip on its block, at the same stop.</dd>
+<dt>Carry-over</dt>
+<dd>A trip whose bus, coming off the previous trip on its block, reached the first stop after the trip&rsquo;s scheduled departure time, so it could not leave on time.</dd>
+<dt>Segment</dt>
+<dd>The stretch of a route, in one direction, between two timepoints in a row. Patterns about segments aren&rsquo;t shown yet.</dd>
+</dl>
+
+{% if co %}
+<h3>Carry-over patterns</h3>
+<p>A departure counts as late when it left more than {{ minutes(co.late_after_s) }} late, as everywhere on this site. For each route, direction and first stop, we take the late departures at every stop (the first stop included) on trips where we know whether there was a carry-over, and count how many were on trips that left the first stop late right after a carry-over.</p>
+<ul>
+<li><strong>Carry-over:</strong> after a layover of less than {{ minutes(co.long_layover_s) }}, we use the time the bus was recorded arriving at the first stop. After a layover of {{ minutes(co.long_layover_s) }} or more, buses often wait somewhere else, so we use the bus&rsquo;s GPS arrival at the end of the previous trip, which must be more than {{ minutes(co.long_layover_margin_s) }} after the departure time (GPS arrivals are recorded about 25 seconds before the bus stops). Both times must come from the same bus at the same stop. The first trip on a block is never a carry-over.</li>
+<li><strong>A pattern</strong> is shown when at least {{ ratio(co.min_share) }} of those late departures were on such trips, with at least {{ co.min_trips | number }} trips with a late departure behind the figure, and matched trips on at least {{ co.min_days | number }} different days.</li>
+<li><strong>A day type or time of day</strong> gets its own pattern only when it meets the same rules there and its share is at least {{ (co.specific_margin * 100) | round | int }} percentage points above the share for all days and times. When a broader choice (all days in that time of day, or that day type all day) also qualifies, only the broader one is shown, unless the narrower one is another {{ (co.specific_margin * 100) | round | int }} points higher.</li>
+<li><strong>Order:</strong> within a route, patterns for all days and times come first, then those for a day type or time of day; within each, the ones covering more late departures come first.</li>
+<li>A route shows &ldquo;Not enough data yet&rdquo; when none of its directions and first stops has {{ co.min_trips | number }} trips with a late departure.</li>
+</ul>
+{% endif %}
+
+<h3>Limits</h3>
+<ul>
+<li>A pattern is something late departures had in common, not a measured cause. A trip that left late after a carry-over may also have met traffic, crowds or a detour along the way.</li>
+<li>Patterns cover many trips. They say nothing about any single trip.</li>
+<li>Only recorded departures count, with the same rules and limits as the rest of the site (see the <a href="/methodology/">methodology</a>). Recorded departures from a trip&rsquo;s first stop tend to come about 20 seconds before the bus is clear of the stop.</li>
+<li>Patterns use the whole period {{ pattern_period }}. With little history, many routes have too few late departures for a pattern.</li>
+</ul>
+
+<h3>Check them yourself</h3>
+<p>Every pattern and the counts behind it are in <code>patterns.csv</code> on the <a href="/data/">Data</a> page. The per-trip files described there have each trip&rsquo;s start and end delay, its block, the previous trip and whether there was a carry-over, so anyone can recount a pattern trip by trip.</p>
+</div>
+{% endblock %}

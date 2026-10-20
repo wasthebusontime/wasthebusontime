@@ -278,3 +278,34 @@
 {% endif %}
 {{ chart(charts.histogram_chart(s.summary, subject, min_sample, windows), "How late buses left") }}
 {% endmacro %}
+
+{# A pattern (patterns.py writes the sentence and the counts). Tinted and labeled, so it reads
+   as an interpretation, not a measurement; the label is text, never color alone. #}
+{% macro pattern_panel(item) %}
+<div class="pattern">
+<p class="pattern-label">Pattern</p>
+<p class="pattern-note">A pattern in past trips, not a measured cause.</p>
+<p class="pattern-text">{{ item.sentence | directions }}</p>
+<p class="pattern-detail">{{ item.detail }}</p>
+<p class="pattern-how"><a href="/patterns/#how-we-find-patterns">How we find patterns</a></p>
+</div>
+{% endmacro %}
+
+{# The methodology's section on patterns, when the stats have them. #}
+{% macro patterns_method(doc) %}
+{% set co = doc.thresholds.carry_over %}
+<h2 id="patterns">Patterns</h2>
+<p>Besides measuring how late buses were, the site shows <a href="/patterns/">patterns</a>: conditions that many late departures had in common, found in past trips by fixed rules. A pattern is an interpretation of the numbers, not a measurement, and is always shown in a panel labeled &ldquo;Pattern&rdquo;. The rules, their thresholds and their limits are under <a href="/patterns/#how-we-find-patterns">How we find patterns</a>.</p>
+<p>A carry-over pattern uses the previous trip on the same bus&rsquo;s block. After a layover of less than {{ co.long_layover_s // 60 }} minutes, the bus&rsquo;s arrival at the first stop is the time it was recorded arriving there, as for end-of-line arrivals. After a longer layover, it comes from the bus&rsquo;s GPS positions at the end of the previous trip.</p>
+{% endmacro %}
+
+{# The data page's description of patterns.csv, when the stats have patterns. #}
+{% macro patterns_files(doc) %}
+<h3 id="patterns-file">Patterns</h3>
+<p><code>patterns.csv</code> has one row for each pattern on the <a href="/patterns/">Patterns</a> page, with the counts behind it. It is rewritten every night, so a pattern can appear or go away as data comes in.</p>
+<ul>
+<li><code>id</code> stays the same from night to night. <code>kind</code> is <code>carry_over</code>. <code>stops</code> is the trip&rsquo;s first stop. <code>daytype</code> and <code>band</code> are <code>all</code> for a general pattern, otherwise the day type and time of day it is for. <code>rank</code> is its place in the route&rsquo;s list.</li>
+<li><code>late</code> counts the late departures behind it, <code>matched</code> those on trips that left their first stop late right after a carry-over, and <code>share</code> is <code>matched</code> divided by <code>late</code>. <code>trips</code> counts the trips with a late departure, and <code>days</code> the days with a matched trip.</li>
+</ul>
+<p>The rules are under <a href="/patterns/#how-we-find-patterns">How we find patterns</a>.</p>
+{% endmacro %}

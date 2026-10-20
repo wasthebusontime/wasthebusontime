@@ -20,6 +20,11 @@
   --sunday: #e9e5dc;
   /* The chosen band or day type in a filtered page's charts: a light tint of the link violet. */
   --chosen: #e4daf2;
+  /* Pattern panels (interpretations, not measurements): a plum tint, OKLCH hue 336, apart
+     from the violet links, the gold notices and the chart colors. */
+  --pattern-bg: #f8eef5;
+  --pattern-edge: #8b3378;
+  --pattern-label-text: #ffffff;
   /* Header band and footer */
   --head-bg: #4e2281;
   --head-text: #ffffff;
@@ -58,6 +63,9 @@
     --saturday: #1d1b18;
     --sunday: #25231f;
     --chosen: #32284a;
+    --pattern-bg: #2a1926;
+    --pattern-edge: #e9a8d8;
+    --pattern-label-text: #1d1a15;
     --head-bg: #2d1b47;
     --head-text: #eae7e2;
     --head-muted: #c1b8d4;
@@ -125,6 +133,21 @@ main:focus { outline: none; }
 /* One small line under the intro or title, marked with the caution color. */
 .alert-text { white-space: pre-line; }
 .notices-line { margin: .25rem 0 .75rem; padding-left: .6rem; border-left: 3px solid var(--early); font-size: .9rem; color: var(--muted); }
+
+/* Pattern panels: tinted, with a left edge and a "Pattern" label in text, so they never read as
+   measured numbers (and never rely on color alone). */
+.pattern { margin: 1rem 0; padding: .6rem .9rem .7rem; max-width: 68ch; background: var(--pattern-bg); border-left: 4px solid var(--pattern-edge); border-radius: 0 4px 4px 0; }
+.pattern p { margin: .3rem 0; }
+.pattern .pattern-label { display: inline-block; margin: 0 .5rem 0 0; padding: .05rem .5rem; background: var(--pattern-edge); color: var(--pattern-label-text); border-radius: 3px; font-size: .8rem; font-weight: 700; letter-spacing: .04em; }
+.pattern .pattern-note { display: inline; color: var(--muted); font-size: .9rem; }
+.pattern .pattern-text { font-size: 1.05rem; }
+.pattern .pattern-detail { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.pattern .pattern-how { font-size: .9rem; }
+@media (forced-colors: active) { .pattern { border: 1px solid CanvasText; border-left-width: 4px; } .pattern .pattern-label { border: 1px solid CanvasText; } }
+.pattern-none { padding-left: 1.2rem; }
+.pattern-route h3 .subtitle { font-weight: 400; color: var(--muted); }
+.terms dt { font-weight: 700; margin-top: .6rem; }
+.terms dd { margin: .1rem 0 0 1.2rem; }
 
 /* Settings bar under the title. The controls float left so the "What do these mean?" summary
    sits on the same row, and the open panel clears below them at full width; on a narrow

@@ -42,7 +42,7 @@ def test_sample_builds_every_page(dev_site):
     stats_pages = 1 + 6 + 1 + 33 + 1  # home, routes, stop index, stops, data quality
     text_pages = 6  # about (with AI use), terms, privacy, methodology, data, unavailable
     filtered = 18 + 87  # one per page preset file: 18 system, 87 route
-    assert len(html_pages(dev_site)) == stats_pages + text_pages + 1 + filtered  # + 404
+    assert len(html_pages(dev_site)) == stats_pages + text_pages + 1 + 1 + filtered  # + 404, patterns
     for path in ["routes/901/index.html", "stops/E101/index.html", "data/routes_daily.csv",
                  "static/site.css", "sitemap.xml", "robots.txt", "404.html"]:
         assert (dev_site / path).is_file(), path

@@ -24,7 +24,7 @@ from pathlib import Path
 import markdown
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from wbot_site import agency, charts, contract, data, filters, windows
+from wbot_site import agency, charts, contract, data, filters, patterns, windows
 from wbot_site.data import Stats, StatsError
 
 log = logging.getLogger("wbot_site")
@@ -54,6 +54,9 @@ MAX_FILES = 15_000
 # Markers in content pages replaced by a macro (macros.html) over the system's numbers: the
 # numbers on the agency's own window, and where end-of-line arrivals came from.
 STATS_BLOCKS = {"<!-- agency-comparison -->": "agency_comparison", "<!-- end-of-line-sources -->": "end_of_line_sources"}
+# Markers replaced by a macro only when the stats have patterns.json, and removed otherwise.
+PATTERN_BLOCKS = {"<!-- patterns-method -->": "patterns_method", "<!-- patterns-files -->": "patterns_files"}
+PATTERNS_PATH = "patterns/"
 
 
 @dataclass
@@ -120,6 +123,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         synthetic=stats.synthetic,
         banner=banner,
         inline_icon=inline_icon,
+        has_patterns=stats.patterns is not None,
         min_sample=stats.meta["min_sample"],
         period=data.period_text(stats.meta),
         scopes=contract.SCOPES,
@@ -233,6 +237,10 @@ def render_markdown_pages(b: Build) -> None:
             if marker in body:
                 body = body.replace(marker, b.jinja.from_string(
                     f'{{% from "macros.html" import {macro} %}}{{{{ {macro}(system) }}}}').render(system=b.stats.system))
+        for marker, macro in PATTERN_BLOCKS.items():
+            if marker in body:
+                body = body.replace(marker, "" if b.stats.patterns is None else b.jinja.from_string(
+                    f'{{% from "macros.html" import {macro} %}}{{{{ {macro}(doc) }}}}').render(doc=b.stats.patterns))
         title = md.Meta["title"][0]
         template = "unavailable.html" if name == "unavailable" else "page.html"
         extra = {"csv_files": csv_downloads(b)} if name == "data" else {}
@@ -265,6 +273,28 @@ def render_stats_pages(b: Build) -> None:
             notices=data.known_notices(stop["notices"], f"stops/{code}.json"),
         )
     b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=stats.system["completeness"])
+    if stats.patterns is not None:
+        render_patterns(b)
+
+
+def render_patterns(b: Build) -> None:
+    """The Patterns page: every pattern grouped by route in the site's route order, the routes
+    with none, then how patterns are found (the rules and thresholds from patterns.json)."""
+    stats, doc = b.stats, b.stats.patterns
+    names = patterns.Names.from_stats(stats)
+    by_route: dict[str, list[dict]] = {}
+    for p in sorted(patterns.shown(doc), key=lambda p: p["rank"]):
+        by_route.setdefault(p["route"], []).append(
+            {"sentence": patterns.sentence(p, names), "detail": patterns.detail(p)})
+    too_little = set(doc["too_little_data"])
+    routes = [(r, by_route.get(r["slug"], []), r["slug"] in too_little) for r in stats.system["routes"]]
+    b.render(
+        "patterns.html", PATTERNS_PATH, title="Patterns in late buses", doc=doc,
+        with_patterns=[(r, ps) for r, ps, _ in routes if ps],
+        without=[(r, little) for r, ps, little in routes if not ps],
+        count=sum(len(ps) for ps in by_route.values()),
+        pattern_period=data.period_text(doc), ratio=patterns.ratio_words, minutes=patterns.minutes_words,
+    )
 
 
 def page_presets(stats: Stats, slug: str | None = None) -> list[tuple[str, str]]:

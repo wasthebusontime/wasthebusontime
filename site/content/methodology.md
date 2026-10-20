@@ -71,6 +71,8 @@ Each departure is compared with the schedule that was in effect on that day, inc
 - Short interruptions in our recording (up to about 13 minutes) lose almost nothing, because the data keeps recent departures for a while. The exception is the last few stops of a trip that ends during the interruption. Longer gaps lose data; they are listed on the [Data quality](/data-quality/) page and noted on affected pages.
 - A percentage is shown only when at least 30 departures are behind it. Otherwise the page says "Not enough data".
 
+<!-- patterns-method -->
+
 ## Rounding
 
 Percentages are computed from counts and rounded to whole percent in headlines and to one decimal place in tables, so the parts of a headline may not add up to exactly 100%.

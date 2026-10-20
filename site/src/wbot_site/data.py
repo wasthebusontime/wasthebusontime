@@ -48,6 +48,8 @@ class Stats:
     # Page presets with a file: preset name -> the route slugs with one (the system file
     # exists for every name listed). Empty when the stats have no presets.
     presets: dict[str, set[str]] = field(default_factory=dict)
+    # patterns.json, or None when the stats have none (then no Patterns page and no callouts).
+    patterns: dict | None = None
 
     @property
     def windows(self) -> Windows:
@@ -108,6 +110,8 @@ def load_stats(stats_dir: Path) -> Stats:
         stats.routes[route["slug"]] = load_json(site / "routes" / f"{route['slug']}.json")
     for stop in stats.index["stops"]:
         stats.stops[stop["code"]] = load_json(site / "stops" / f"{stop['code']}.json")
+    if (site / contract.PATTERNS_FILE).is_file():
+        stats.patterns = load_json(site / contract.PATTERNS_FILE)
     for name in contract.PRESETS:
         folder = site / "presets" / name
         if folder.is_dir():
