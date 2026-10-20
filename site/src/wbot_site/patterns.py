@@ -14,6 +14,7 @@ from fractions import Fraction
 from markupsafe import Markup, escape
 
 from wbot_site import filters
+from wbot_site.contract import pattern_filters, preset_name
 from wbot_site.data import directions_html, percent
 
 log = logging.getLogger("wbot_site")
@@ -107,20 +108,21 @@ class Linked(Plain):
     """The same names as links (stop and route pages), as markers that sentence_html swaps
     for the links once the rest of the sentence is escaped."""
 
-    def __init__(self, names: Names):
+    def __init__(self, names: Names, here: str | None = None):
         super().__init__(names)
+        self.here = here  # the page's own path ("/stops/E111/"), never linked
         self.links: dict[str, str] = {}
 
-    def _mark(self, html: str) -> str:
+    def _mark(self, href: str, html: str) -> str:
         mark = f"~~link{len(self.links)}~~"
-        self.links[mark] = html
+        self.links[mark] = html if href == self.here else f'<a href="{escape(href)}">{html}</a>'
         return mark
 
     def stop(self, code: str) -> str:
-        return self._mark(f'<a href="/stops/{escape(code)}/">{directions_html(self.names.stops[code])}</a>')
+        return self._mark(f"/stops/{code}/", directions_html(self.names.stops[code]))
 
     def route(self, slug: str) -> str:
-        return self._mark(f'<a href="/routes/{escape(slug)}/">{escape(self.names.routes[slug])}</a>')
+        return self._mark(f"/routes/{slug}/", escape(self.names.routes[slug]))
 
 
 def came_from(p: dict, link: Plain) -> str:
@@ -155,11 +157,12 @@ def sentence(p: dict, names: Names) -> str:
     return TEMPLATES[p["kind"]](p, names, Plain(names))
 
 
-def sentence_html(p: dict, names: Names) -> Markup:
+def sentence_html(p: dict, names: Names, here: str | None = None) -> Markup:
     """The sentence for a page: escaped, stop names and the route the bus came from as links
     to their pages (so a stop reads as a name, not part of the sentence), direction codes read
-    out. The pattern's own route isn't a link: the page around it is about that route."""
-    link = Linked(names)
+    out. The pattern's own route isn't a link: the page around it is about that route. Nor is
+    the page itself (`here`, its path), on a route or stop page."""
+    link = Linked(names, here)
     html = str(escape(TEMPLATES[p["kind"]](p, names, link)))
     for mark, a in link.links.items():
         html = html.replace(mark, a)
@@ -175,6 +178,97 @@ def shown(doc: dict) -> list[dict]:
         else:
             log.warning("%s: no sentence for pattern kind %r yet; skipping %s", "patterns.json", p["kind"], p["id"])
     return known
+
+
+# Callouts: the pattern panels on a route or stop page, and the line under them that links to
+# the Patterns page (spec decision 8). Measured numbers come first, so a page shows few.
+MAX_CALLOUTS = 2
+PAGE = "/patterns/"
+
+
+@dataclass
+class Callouts:
+    """What a route or stop page shows: the patterns chosen (best first), their panels, and the
+    link line, which is there even when no pattern is."""
+    patterns: list[dict]
+    panels: list[dict]
+    line: Markup
+
+
+def general_and_strongest_specific(ps: list[dict]) -> list[dict]:
+    """For a page without a filter: the general patterns, then the first specific one, in the
+    order given, up to MAX_CALLOUTS."""
+    specific = [p for p in ps if p["preset"] is not None][:1]
+    return [p for p in ps if p["preset"] is None or p in specific][:MAX_CALLOUTS]
+
+
+def counted(n: int, what: str) -> str:
+    """counted(1, "more pattern") -> "1 more pattern"; 3 -> "3 more patterns"."""
+    return f"{n} {what}{'s' if n != 1 else ''}"
+
+
+def section_link(slug: str, words: str) -> str:
+    return f'<a href="{PAGE}#route-{escape(slug)}">{escape(words)}</a>'
+
+
+ABOUT = f'<a href="{PAGE}">About patterns</a>'
+ALL_FIT = f'<a href="{PAGE}">About patterns, and patterns on other routes</a>'
+
+
+def route_callouts(doc: dict, slug: str, daytype: str, band: str, names: Names) -> Callouts:
+    """A route page's callouts under its filter (all, all: none). Unfiltered: the general
+    patterns plus the strongest specific one; filtered: the general patterns plus those for a
+    slot that covers the filter (contract.pattern_filters), by rank either way. The link line
+    counts the patterns left out, for that filter on a filtered page."""
+    ps = sorted((p for p in shown(doc) if p["route"] == slug), key=lambda p: p["rank"])
+    route = names.routes[slug]
+    if (daytype, band) == ("all", "all"):
+        slot, candidates = "", ps
+        chosen = general_and_strongest_specific(ps)
+    else:
+        slot = slot_words({"daytype": daytype, "band": band})
+        candidates = [p for p in ps if preset_name(daytype, band) in pattern_filters(p["preset"])]
+        chosen = candidates[:MAX_CALLOUTS]
+    if not ps:
+        lead = ("Not enough data for patterns on this route yet." if slug in doc["too_little_data"]
+                else "No patterns found for this route yet.")
+        line = f"{lead} {ABOUT}"
+    elif not candidates:
+        line = (f"No patterns found for this route {escape(slot)}. "
+                f"{section_link(slug, counted(len(ps), 'pattern') + ' for ' + route)} on the Patterns page")
+    elif len(candidates) > len(chosen):
+        words = f"{counted(len(candidates) - len(chosen), 'more pattern')} for {route}" + (f" {slot}" if slot else "")
+        line = f"{section_link(slug, words)} on the Patterns page"
+    else:
+        line = ALL_FIT
+    return Callouts(chosen, panels(chosen, names, f"/routes/{slug}/"), Markup(line))
+
+
+def stop_callouts(doc: dict, code: str, names: Names) -> Callouts:
+    """A stop page's callouts: the patterns at the stop (for a carry-over, the trip's first
+    stop) on every route, general ones first, then by late departures covered, chosen like an
+    unfiltered route page's. The link line has one link per route with a pattern here, in the
+    site's route order, counting the ones left out."""
+    order = {slug: i for i, slug in enumerate(names.routes)}
+    ps = sorted((p for p in shown(doc) if code in p["stops"] and p["route"] in order),
+                key=lambda p: (p["preset"] is not None, -p["matched"], order[p["route"]], p["rank"]))
+    chosen = general_and_strongest_specific(ps)
+    if not ps:
+        line = f"No patterns found at this stop yet. {ABOUT}"
+    else:
+        links = []
+        for slug in sorted({p["route"] for p in ps}, key=order.get):
+            more = sum(1 for p in ps if p["route"] == slug and p not in chosen)
+            what = f"{counted(more, 'more pattern')} for" if more else "patterns for"
+            links.append(section_link(slug, f"{what} {names.routes[slug]}"))
+        joined = links[0] if len(links) == 1 else ", ".join(links[:-1]) + " and " + links[-1]
+        line = f"On the Patterns page: {joined}"
+    return Callouts(chosen, panels(chosen, names, f"/stops/{code}/"), Markup(line))
+
+
+def panels(ps: list[dict], names: Names, here: str) -> list[dict]:
+    """What pattern_panel takes, for each pattern on a page at `here`."""
+    return [{"sentence": sentence_html(p, names, here)} for p in ps]
 
 
 def ratio_words(share: float) -> str:

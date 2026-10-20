@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import settings_bar, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table, terminal, end_of_line, trips_line %}
+{% from "macros.html" import settings_bar, scoped, headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table, terminal, end_of_line, trips_line, pattern_callouts %}
 {% block main %}
 <h1>{{ name }} <span class="subtitle">{{ route.route.long_name }}</span></h1>
 {{ notices_line(notices) }}
@@ -9,6 +9,8 @@
 {% set s = route.scopes[scope] %}
 {{ headline(s.summary, name, scope, lead) }}
 {{ chart(charts.headline_chart(s.summary, name, min_sample, windows), "Early, on time and late") }}
+{# Patterns count late departures at every stop, so both scopes show the same callouts. #}
+{{ pattern_callouts(callouts) }}
 <div class="table-wrap">
 <table class="data">
 <caption>By direction</caption>

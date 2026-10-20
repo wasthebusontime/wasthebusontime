@@ -290,6 +290,19 @@
 </div>
 {% endmacro %}
 
+{# A route or stop page's pattern callouts (patterns.Callouts): up to two panels, then the
+   line linking the Patterns page, which is always there. Nothing without patterns.json. #}
+{% macro pattern_callouts(c) %}
+{% if c %}
+<div class="pattern-callouts">
+{% for item in c.panels %}
+{{ pattern_panel(item) }}
+{% endfor %}
+<p class="pattern-more">{{ c.line }}</p>
+</div>
+{% endif %}
+{% endmacro %}
+
 {# The methodology's section on patterns, when the stats have them. #}
 {% macro patterns_method(doc) %}
 {% set co = doc.thresholds.carry_over %}

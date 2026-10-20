@@ -144,6 +144,10 @@ main:focus { outline: none; }
 .pattern .pattern-how { font-size: .9rem; }
 @media (forced-colors: active) { .pattern { border: 1px solid CanvasText; border-left-width: 4px; } .pattern .pattern-label { border: 1px solid CanvasText; } }
 .pattern-none { padding-left: 1.2rem; }
+/* Callouts on route and stop pages: the panels, then the line linking the Patterns page. */
+.pattern-callouts { margin: 1.25rem 0 1.5rem; }
+.pattern-callouts .pattern { margin: .75rem 0; }
+.pattern-more { margin: .5rem 0 0; font-size: .95rem; }
 .pattern-route h3 .subtitle { font-weight: 400; color: var(--muted); }
 .terms dt { font-weight: 700; margin-top: .6rem; }
 .terms dd { margin: .1rem 0 0 1.2rem; }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table %}
+{% from "macros.html" import headline, notices as notice_list, notices_line, perf_header, perf_cells, chart, scope_charts, monthly_table, pattern_callouts %}
 {# "Route 13", "Routes 13 and 41", "Routes 13, 21 and 41" #}
 {% macro route_list(names) -%}
 {{ "Route" if names | length == 1 else "Routes" }} {% if names | length <= 2 %}{{ names | join(" and ") }}{% else %}{{ names[:-1] | join(", ") }} and {{ names[-1] }}{% endif %}
@@ -26,6 +26,7 @@
 <h2>Summary</h2>
 {{ headline(s.summary, "this stop", "stop") }}
 {{ chart(charts.headline_chart(s.summary, stop.stop.name, min_sample, windows), "Early, on time and late") }}
+{{ pattern_callouts(callouts) }}
 <h2>Details</h2>
 <div class="table-wrap">
 <table class="data">

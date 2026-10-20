@@ -259,18 +259,21 @@ def csv_downloads(b: Build) -> list[dict]:
 
 def render_stats_pages(b: Build) -> None:
     stats = b.stats
+    names = patterns.Names.from_stats(stats) if stats.patterns is not None else None
     notices = data.known_notices(stats.system["notices"], "system.json")
     for daytype, band in page_presets(stats):
         render_home(b, daytype, band, notices)
     for slug, route in stats.routes.items():
         notices = data.known_notices(route["notices"], f"routes/{slug}.json")
         for daytype, band in page_presets(stats, slug):
-            render_route(b, slug, daytype, band, notices)
+            callouts = names and patterns.route_callouts(stats.patterns, slug, daytype, band, names)
+            render_route(b, slug, daytype, band, notices, callouts)
     b.render("stops.html", "stops/", title="Stops", stops=stats.index["stops"], route_names=route_names(stats))
     for code, stop in stats.stops.items():
         b.render(
             "stop.html", f"stops/{code}/", title=f"{data.directions_text(stop['stop']['name'])}, stop {code}", stop=stop, route_names=route_names(stats),
             notices=data.known_notices(stop["notices"], f"stops/{code}.json"),
+            callouts=names and patterns.stop_callouts(stats.patterns, code, names),
         )
     b.render("quality.html", "data-quality/", title="Data quality", quality=stats.quality, completeness=stats.system["completeness"])
     if stats.patterns is not None:
@@ -331,7 +334,9 @@ def render_home(b: Build, daytype: str, band: str, notices: list[dict]) -> None:
     )
 
 
-def render_route(b: Build, slug: str, daytype: str, band: str, notices: list[dict]) -> None:
+def render_route(b: Build, slug: str, daytype: str, band: str, notices: list[dict],
+                 callouts: patterns.Callouts | None = None) -> None:
+    """A route page under one filter, with its pattern callouts (None without patterns.json)."""
     stats = b.stats
     route = stats.routes[slug]
     path = f"routes/{slug}/"
@@ -345,7 +350,7 @@ def render_route(b: Build, slug: str, daytype: str, band: str, notices: list[dic
         title = " ".join(filter(None, [name, route["route"].get("long_name")]))
     b.render(
         "route.html", path + filters.path(daytype, band), filtered=active, title=title,
-        name=name, route=route, notices=notices, filter=flt,
+        name=name, route=route, notices=notices, filter=flt, callouts=callouts,
     )
 
 
