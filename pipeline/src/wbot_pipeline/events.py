@@ -23,7 +23,7 @@ import pyarrow.parquet as pq
 from wbot_collector import layout
 
 from . import alerts, archive, dateplan, gaps, gps, rules, static, timeutil
-from .config import EVENTS_VERSION, MAX_BLOCK_LAYOVER_S, MIN_SEEN_AFTER_DEP_S, Settings
+from .config import CARRY_OVER_MARGIN_S, EVENTS_VERSION, MAX_BLOCK_LAYOVER_S, MIN_SEEN_AFTER_DEP_S, Settings
 from .db import connect, quote
 from .rt import Reduced
 
@@ -126,8 +126,9 @@ def _write_manifest(target: Path, doc: dict) -> None:
 
 def block_pairs(con) -> None:
     """Table block_pairs: each scheduled trip with a block and the trip before it on that block
-    (by scheduled start, within the service), whether the pair passes the pairing rules (same
-    bus, the next trip starts where the previous one ends, a scheduled layover under
+    (by scheduled start, within the service), whether the next trip starts where the previous
+    one ends (same_stop) and the same bus ran both (same_bus, null when either bus is
+    unknown), whether the pair passes the pairing rules (both, and a scheduled layover under
     MAX_BLOCK_LAYOVER_S) and the next trip's recorded arrival at its first stop: the bus's
     arrival from the previous trip. One row per trip that has a previous trip."""
     con.execute(f"""
@@ -142,6 +143,8 @@ def block_pairs(con) -> None:
                                                        ORDER BY start_ts, trip_id) AS b FROM tb)
         SELECT p.b AS trip_id, p.a AS prev_trip_id,
                CAST(fb.sched_dep_ts - la.sched_arr_ts AS INTEGER) AS sched_layover_s,
+               la.stop_id = fb.stop_id AS same_stop,
+               ra.last_vehicle_id = rb.first_vehicle_id AS same_bus,
                coalesce(la.stop_id = fb.stop_id AND ra.last_vehicle_id = rb.first_vehicle_id
                         AND fb.sched_dep_ts - la.sched_arr_ts < {MAX_BLOCK_LAYOVER_S}, false) AS paired,
                CASE WHEN fb.observed_arr THEN fb.act_arr_ts END AS first_arr_ts,
@@ -153,6 +156,22 @@ def block_pairs(con) -> None:
         LEFT JOIN rt_trips rb ON rb.trip_id = p.b
         WHERE p.b IS NOT NULL
     """)
+
+
+# Carry-over (GLOSSARY.md), per trip, over the trips query in process_date (t: the trip's
+# schedule, bp: block_pairs, pe: the previous trip's counted end-of-line arrival). The first
+# trip on its block is not a carry-over; a trip without a block is unknown. A pair that passes
+# the pairing rules uses the bus's recorded arrival at the first stop. On a layover of
+# MAX_BLOCK_LAYOVER_S or more, where the bus often waits elsewhere, it uses the previous trip's
+# end-of-line arrival (from GPS) at the same stop with the same bus, which must be more than
+# CARRY_OVER_MARGIN_S after the scheduled departure. Anything else is unknown.
+CARRY_OVER = f"""(CASE
+    WHEN nullif(t.block_id, '') IS NULL THEN NULL
+    WHEN bp.trip_id IS NULL THEN false
+    WHEN bp.paired AND bp.first_arr_ts IS NOT NULL THEN bp.first_arr_ts > bp.first_dep_ts
+    WHEN bp.sched_layover_s >= {MAX_BLOCK_LAYOVER_S} AND bp.same_stop AND bp.same_bus AND pe.act_arr_ts IS NOT NULL
+        THEN pe.act_arr_ts > bp.first_dep_ts + {CARRY_OVER_MARGIN_S}
+    END)"""
 
 
 def end_of_line(con, positions: gps.Positions) -> None:
@@ -318,15 +337,14 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
         -- Delays that count in the published numbers: the first-stop departure, and the
         -- end-of-line arrival (from TripUpdates, the block or GPS).
         dep AS (SELECT trip_id, delay_dep_s FROM e WHERE is_first AND {rules.DEPARTURE}),
-        eol AS (SELECT trip_id, delay_arr_s FROM e WHERE {rules.END_OF_LINE})
+        eol AS (SELECT trip_id, act_arr_ts, delay_arr_s FROM e WHERE {rules.END_OF_LINE})
         SELECT DATE '{d.isoformat()}' AS service_date, a.trip_id, a.route_id, a.route_slug, a.direction_id,
                a.scheduled, rt.trip_id IS NOT NULL AS seen, coalesce(rt.vehicle_seen, false) AS seen_with_vehicle,
                rt.trip_sr, a.eligible_timepoints, a.observed_timepoints, a.skipped_stops, a.no_data_stops,
                a.start_ts, a.end_ts,
                nullif(t.block_id, '') AS block_id, bp.prev_trip_id, bp.sched_layover_s,
                pe.delay_arr_s AS prev_end_delay_s, dep.delay_dep_s AS start_delay_s, eol.delay_arr_s AS end_delay_s,
-               CASE WHEN bp.paired AND bp.first_arr_ts IS NOT NULL THEN bp.first_arr_ts > bp.first_dep_ts END
-                   AS carry_over
+               {CARRY_OVER} AS carry_over
         FROM a LEFT JOIN rt_trips rt USING (trip_id)
         LEFT JOIN trips t ON t.trip_id = a.trip_id AND a.scheduled
         LEFT JOIN block_pairs bp ON bp.trip_id = a.trip_id

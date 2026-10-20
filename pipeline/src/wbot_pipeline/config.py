@@ -9,13 +9,14 @@ bands) are the site's, in wbot_site.contract.
 import os
 from dataclasses import dataclass
 from datetime import date
+from fractions import Fraction
 from pathlib import Path
 
 from wbot_collector import layout
 
 # Bump when the way stop events are derived from the archive changes. Every
 # service date whose events were made by another version is reprocessed.
-EVENTS_VERSION = 3
+EVENTS_VERSION = 4
 
 # On-time windows in seconds late, inclusive. The headline is the common industry
 # window (1 min early to 5 min late); the alt is Intercity Transit's own (0 to 5).
@@ -33,6 +34,26 @@ MIN_SEEN_AFTER_DEP_S = 180
 # only when the scheduled layover between them is shorter than this. On longer layovers the
 # bus often waits elsewhere and pulls in just before its next trip (re-validation, 2026-10).
 MAX_BLOCK_LAYOVER_S = 600
+
+# Patterns (patterns.py). Bump PATTERNS_RULES_VERSION whenever a rule or threshold below
+# changes; it goes into patterns.json, and the methodology names it. Thresholds from the
+# carry-over prototype on 16 days of real data (Patterns ticket 03, 2026-10-20), agreed
+# provisionally: the owner may change them after seeing them on the preview site.
+PATTERNS_RULES_VERSION = 1
+# On a layover of MAX_BLOCK_LAYOVER_S or more, a trip is a carry-over when the previous
+# trip's end-of-line arrival (from GPS) is more than this after the trip's scheduled
+# departure (GPS arrivals run about 25 s late).
+CARRY_OVER_MARGIN_S = 60
+# A pattern needs at least this many trips with a late departure behind it (in its route,
+# direction and first stop, or in that and its day type and band for a specific one) ...
+PATTERN_MIN_TRIPS = 30
+# ... trips it covers on at least this many service days ...
+PATTERN_MIN_DAYS = 5
+# ... and to cover at least this share of those late departures.
+PATTERN_MIN_SHARE = Fraction(1, 3)
+# A specific pattern (one day type and band) also needs a share at least this much above
+# its general share, and above that of a broader specific slot that contains it.
+PATTERN_SPECIFIC_MARGIN = Fraction(1, 10)
 # The collector polls TripUpdates every 30 s.
 POLL_S = 30
 # A TripUpdates fetch counts as stale (a feed-side problem) when its newest

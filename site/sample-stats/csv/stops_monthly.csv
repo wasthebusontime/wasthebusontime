@@ -1,98 +1,98 @@
 month,stop_code,stop_name,route,scope,n,early,on_time,late,early_alt,on_time_alt,late_alt
-2026-10,E101,Example Hospital,902,all_stops,641,8,633,0,50,591,0
-2026-10,E101,Example Hospital,902,timepoints,641,8,633,0,50,591,0
-2026-10,E102,Example Park & Ride,901,all_stops,741,7,734,0,58,683,0
-2026-10,E102,Example Park & Ride,901,timepoints,741,7,734,0,58,683,0
-2026-10,E102,Example Park & Ride,906,all_stops,11,4,7,0,8,3,0
-2026-10,E103,Example St & 1st Ave,901,all_stops,1496,252,1042,202,552,742,202
-2026-10,E104,Example St & 2nd Ave,901,all_stops,1494,231,1109,154,494,846,154
-2026-10,E105,Example St & 3rd Ave,901,all_stops,1503,16,1305,182,39,1282,182
-2026-10,E105,Example St & 3rd Ave,901,timepoints,1503,16,1305,182,39,1282,182
-2026-10,E105,Example St & 3rd Ave,904,all_stops,599,6,593,0,45,554,0
-2026-10,E105,Example St & 3rd Ave,904,timepoints,599,6,593,0,45,554,0
-2026-10,E106,Example St & 4th Ave,901,all_stops,1476,212,1155,109,429,938,109
-2026-10,E107,Example St & 5th Ave,901,all_stops,1504,210,1192,102,445,957,102
+2026-10,E101,Example Hospital,902,all_stops,646,7,600,39,50,557,39
+2026-10,E101,Example Hospital,902,timepoints,646,7,600,39,50,557,39
+2026-10,E102,Example Park & Ride,901,all_stops,744,7,734,3,57,684,3
+2026-10,E102,Example Park & Ride,901,timepoints,744,7,734,3,57,684,3
+2026-10,E102,Example Park & Ride,906,all_stops,11,2,5,4,4,3,4
+2026-10,E103,Example St & 1st Ave,901,all_stops,1486,249,1031,206,548,732,206
+2026-10,E104,Example St & 2nd Ave,901,all_stops,1489,232,1102,155,493,841,155
+2026-10,E105,Example St & 3rd Ave,901,all_stops,1500,16,1299,185,39,1276,185
+2026-10,E105,Example St & 3rd Ave,901,timepoints,1500,16,1299,185,39,1276,185
+2026-10,E105,Example St & 3rd Ave,904,all_stops,602,6,594,2,44,556,2
+2026-10,E105,Example St & 3rd Ave,904,timepoints,602,6,594,2,44,556,2
+2026-10,E106,Example St & 4th Ave,901,all_stops,1483,214,1157,112,430,941,112
+2026-10,E107,Example St & 5th Ave,901,all_stops,1506,211,1192,103,444,959,103
 2026-10,E108,Example St & 6th Ave,901,all_stops,1509,15,1299,195,32,1282,195
 2026-10,E108,Example St & 6th Ave,901,timepoints,1509,15,1299,195,32,1282,195
-2026-10,E109,Example St & 7th Ave,901,all_stops,1496,221,1125,150,471,875,150
-2026-10,E110,Example St & 8th Ave,901,all_stops,1492,234,1076,182,530,780,182
-2026-10,E111,Fictional Blvd & 1st Ave,905,all_stops,577,2,575,0,45,532,0
-2026-10,E111,Fictional Blvd & 1st Ave,905,timepoints,577,2,575,0,45,532,0
-2026-10,E112,Fictional Blvd & 2nd Ave,905,all_stops,1117,25,758,334,106,677,334
-2026-10,E113,Fictional Blvd & 3rd Ave,904,all_stops,1190,54,1034,102,184,904,102
-2026-10,E113,Fictional Blvd & 3rd Ave,904,timepoints,598,1,496,101,2,495,101
-2026-10,E113,Fictional Blvd & 3rd Ave,905,all_stops,1130,11,831,288,53,789,288
-2026-10,E114,Fictional Blvd & 4th Ave,905,all_stops,1147,0,721,426,1,720,426
-2026-10,E114,Fictional Blvd & 4th Ave,905,timepoints,1147,0,721,426,1,720,426
-2026-10,E115,Fictional Blvd & 5th Ave,905,all_stops,1123,11,828,284,48,791,284
-2026-10,E116,Fictional Blvd & 6th Ave,905,all_stops,1132,23,745,364,112,656,364
-2026-10,E117,Placeholder Rd & 1st Ave,903,all_stops,1292,231,961,100,510,682,100
-2026-10,E118,Placeholder Rd & 2nd Ave,903,all_stops,1304,152,1041,111,301,892,111
-2026-10,E118,Placeholder Rd & 2nd Ave,903,timepoints,664,11,542,111,15,538,111
-2026-10,E119,Placeholder Rd & 3rd Ave,903,all_stops,1302,123,1122,57,238,1007,57
-2026-10,E119,Placeholder Rd & 3rd Ave,903,timepoints,634,6,615,13,16,605,13
-2026-10,E119,Placeholder Rd & 3rd Ave,904,all_stops,1186,82,1088,16,242,928,16
-2026-10,E120,Placeholder Rd & 4th Ave,903,all_stops,1293,203,1046,44,465,784,44
-2026-10,E121,Placeholder Rd & 5th Ave,903,all_stops,1301,135,1103,63,252,986,63
-2026-10,E121,Placeholder Rd & 5th Ave,903,timepoints,670,10,645,15,21,634,15
-2026-10,E122,Placeholder Rd & 6th Ave,903,all_stops,1298,140,1048,110,293,895,110
-2026-10,E122,Placeholder Rd & 6th Ave,903,timepoints,636,6,521,109,14,513,109
-2026-10,E123,Placeholder Rd & 7th Ave,903,all_stops,1312,220,990,102,555,655,102
-2026-10,E124,Placeholder Rd & 8th Ave,903,all_stops,660,7,653,0,49,611,0
-2026-10,E124,Placeholder Rd & 8th Ave,903,timepoints,660,7,653,0,49,611,0
-2026-10,E125,Sample Ave & 1st Ave,902,all_stops,1281,95,940,246,301,734,246
-2026-10,E126,Sample Ave & 2nd Ave,902,all_stops,1274,63,941,270,153,851,270
-2026-10,E126,Sample Ave & 2nd Ave,902,timepoints,632,0,370,262,2,368,262
-2026-10,E127,Sample Ave & 3rd Ave,902,all_stops,1292,44,1060,188,103,1001,188
-2026-10,E127,Sample Ave & 3rd Ave,902,timepoints,654,3,599,52,8,594,52
-2026-10,E127,Sample Ave & 3rd Ave,904,all_stops,1189,46,1041,102,177,910,102
-2026-10,E127,Sample Ave & 3rd Ave,904,timepoints,593,2,489,102,5,486,102
-2026-10,E128,Sample Ave & 4th Ave,902,all_stops,1277,75,1041,161,201,915,161
-2026-10,E129,Sample Ave & 5th Ave,902,all_stops,1269,44,1013,212,103,954,212
-2026-10,E129,Sample Ave & 5th Ave,902,timepoints,633,3,566,64,8,561,64
-2026-10,E130,Sample Ave & 6th Ave,902,all_stops,1285,56,952,277,163,845,277
-2026-10,E130,Sample Ave & 6th Ave,902,timepoints,645,2,371,272,5,368,272
-2026-10,E131,Sample Ave & 7th Ave,902,all_stops,1275,85,935,255,294,726,255
-2026-10,E132,Sample Fairgrounds,906,all_stops,4,0,4,0,1,3,0
-2026-10,E132,Sample Fairgrounds,906,timepoints,4,0,4,0,1,3,0
-2026-10,E133,Sample Transit Center,901,all_stops,772,9,763,0,70,702,0
-2026-10,E133,Sample Transit Center,901,timepoints,772,9,763,0,70,702,0
-2026-10,E133,Sample Transit Center,902,all_stops,650,3,647,0,46,604,0
-2026-10,E133,Sample Transit Center,902,timepoints,650,3,647,0,46,604,0
-2026-10,E133,Sample Transit Center,903,all_stops,634,9,625,0,60,574,0
-2026-10,E133,Sample Transit Center,903,timepoints,634,9,625,0,60,574,0
-2026-10,E133,Sample Transit Center,904,all_stops,590,4,586,0,49,541,0
-2026-10,E133,Sample Transit Center,904,timepoints,590,4,586,0,49,541,0
-2026-10,E133,Sample Transit Center,905,all_stops,560,10,550,0,48,512,0
-2026-10,E133,Sample Transit Center,905,timepoints,560,10,550,0,48,512,0
-2026-10,E133,Sample Transit Center,906,all_stops,7,0,7,0,1,6,0
-2026-10,E133,Sample Transit Center,906,timepoints,7,0,7,0,1,6,0
-2026-11,E101,Example Hospital,902,all_stops,39,0,39,0,3,36,0
-2026-11,E101,Example Hospital,902,timepoints,39,0,39,0,3,36,0
+2026-10,E109,Example St & 7th Ave,901,all_stops,1490,225,1112,153,474,863,153
+2026-10,E110,Example St & 8th Ave,901,all_stops,1494,237,1073,184,535,775,184
+2026-10,E111,Fictional Blvd & 1st Ave,905,all_stops,576,2,497,77,43,456,77
+2026-10,E111,Fictional Blvd & 1st Ave,905,timepoints,576,2,497,77,43,456,77
+2026-10,E112,Fictional Blvd & 2nd Ave,905,all_stops,1131,23,671,437,94,600,437
+2026-10,E113,Fictional Blvd & 3rd Ave,904,all_stops,1190,53,1028,109,182,899,109
+2026-10,E113,Fictional Blvd & 3rd Ave,904,timepoints,592,1,487,104,2,486,104
+2026-10,E113,Fictional Blvd & 3rd Ave,905,all_stops,1126,12,721,393,48,685,393
+2026-10,E114,Fictional Blvd & 4th Ave,905,all_stops,1143,0,631,512,1,630,512
+2026-10,E114,Fictional Blvd & 4th Ave,905,timepoints,1143,0,631,512,1,630,512
+2026-10,E115,Fictional Blvd & 5th Ave,905,all_stops,1123,11,735,377,44,702,377
+2026-10,E116,Fictional Blvd & 6th Ave,905,all_stops,1125,20,657,448,97,580,448
+2026-10,E117,Placeholder Rd & 1st Ave,903,all_stops,1289,235,957,97,509,683,97
+2026-10,E118,Placeholder Rd & 2nd Ave,903,all_stops,1311,158,1039,114,304,893,114
+2026-10,E118,Placeholder Rd & 2nd Ave,903,timepoints,674,14,546,114,19,541,114
+2026-10,E119,Placeholder Rd & 3rd Ave,903,all_stops,1305,125,1125,55,240,1010,55
+2026-10,E119,Placeholder Rd & 3rd Ave,903,timepoints,633,6,614,13,15,605,13
+2026-10,E119,Placeholder Rd & 3rd Ave,904,all_stops,1184,82,1081,21,243,920,21
+2026-10,E120,Placeholder Rd & 4th Ave,903,all_stops,1297,207,1047,43,474,780,43
+2026-10,E121,Placeholder Rd & 5th Ave,903,all_stops,1293,137,1092,64,252,977,64
+2026-10,E121,Placeholder Rd & 5th Ave,903,timepoints,665,11,640,14,20,631,14
+2026-10,E122,Placeholder Rd & 6th Ave,903,all_stops,1296,144,1043,109,299,888,109
+2026-10,E122,Placeholder Rd & 6th Ave,903,timepoints,634,6,520,108,14,512,108
+2026-10,E123,Placeholder Rd & 7th Ave,903,all_stops,1303,226,975,102,559,642,102
+2026-10,E124,Placeholder Rd & 8th Ave,903,all_stops,660,7,653,0,54,606,0
+2026-10,E124,Placeholder Rd & 8th Ave,903,timepoints,660,7,653,0,54,606,0
+2026-10,E125,Sample Ave & 1st Ave,902,all_stops,1286,89,899,298,280,708,298
+2026-10,E126,Sample Ave & 2nd Ave,902,all_stops,1279,62,901,316,150,813,316
+2026-10,E126,Sample Ave & 2nd Ave,902,timepoints,637,0,360,277,2,358,277
+2026-10,E127,Sample Ave & 3rd Ave,902,all_stops,1291,45,1010,236,104,951,236
+2026-10,E127,Sample Ave & 3rd Ave,902,timepoints,649,3,569,77,8,564,77
+2026-10,E127,Sample Ave & 3rd Ave,904,all_stops,1189,48,1034,107,180,902,107
+2026-10,E127,Sample Ave & 3rd Ave,904,timepoints,590,2,483,105,5,480,105
+2026-10,E128,Sample Ave & 4th Ave,902,all_stops,1270,75,987,208,192,870,208
+2026-10,E129,Sample Ave & 5th Ave,902,all_stops,1272,45,979,248,102,922,248
+2026-10,E129,Sample Ave & 5th Ave,902,timepoints,633,4,538,91,9,533,91
+2026-10,E130,Sample Ave & 6th Ave,902,all_stops,1283,53,910,320,159,804,320
+2026-10,E130,Sample Ave & 6th Ave,902,timepoints,644,2,361,281,6,357,281
+2026-10,E131,Sample Ave & 7th Ave,902,all_stops,1283,83,899,301,289,693,301
+2026-10,E132,Sample Fairgrounds,906,all_stops,4,0,2,2,1,1,2
+2026-10,E132,Sample Fairgrounds,906,timepoints,4,0,2,2,1,1,2
+2026-10,E133,Sample Transit Center,901,all_stops,769,9,757,3,71,695,3
+2026-10,E133,Sample Transit Center,901,timepoints,769,9,757,3,71,695,3
+2026-10,E133,Sample Transit Center,902,all_stops,650,3,613,34,44,572,34
+2026-10,E133,Sample Transit Center,902,timepoints,650,3,613,34,44,572,34
+2026-10,E133,Sample Transit Center,903,all_stops,641,9,632,0,61,580,0
+2026-10,E133,Sample Transit Center,903,timepoints,641,9,632,0,61,580,0
+2026-10,E133,Sample Transit Center,904,all_stops,594,4,586,4,48,542,4
+2026-10,E133,Sample Transit Center,904,timepoints,594,4,586,4,48,542,4
+2026-10,E133,Sample Transit Center,905,all_stops,560,9,488,63,43,454,63
+2026-10,E133,Sample Transit Center,905,timepoints,560,9,488,63,43,454,63
+2026-10,E133,Sample Transit Center,906,all_stops,7,0,4,3,1,3,3
+2026-10,E133,Sample Transit Center,906,timepoints,7,0,4,3,1,3,3
+2026-11,E101,Example Hospital,902,all_stops,39,0,36,3,3,33,3
+2026-11,E101,Example Hospital,902,timepoints,39,0,36,3,3,33,3
 2026-11,E102,Example Park & Ride,901,all_stops,44,1,43,0,9,35,0
 2026-11,E102,Example Park & Ride,901,timepoints,44,1,43,0,9,35,0
-2026-11,E103,Example St & 1st Ave,901,all_stops,90,11,68,11,32,47,11
-2026-11,E104,Example St & 2nd Ave,901,all_stops,90,13,70,7,25,58,7
-2026-11,E105,Example St & 3rd Ave,901,all_stops,90,2,79,9,2,79,9
-2026-11,E105,Example St & 3rd Ave,901,timepoints,90,2,79,9,2,79,9
+2026-11,E103,Example St & 1st Ave,901,all_stops,90,11,67,12,32,46,12
+2026-11,E104,Example St & 2nd Ave,901,all_stops,90,13,69,8,25,57,8
+2026-11,E105,Example St & 3rd Ave,901,all_stops,90,2,78,10,2,78,10
+2026-11,E105,Example St & 3rd Ave,901,timepoints,90,2,78,10,2,78,10
 2026-11,E105,Example St & 3rd Ave,904,all_stops,36,0,36,0,1,35,0
 2026-11,E105,Example St & 3rd Ave,904,timepoints,36,0,36,0,1,35,0
-2026-11,E106,Example St & 4th Ave,901,all_stops,89,11,73,5,24,60,5
-2026-11,E107,Example St & 5th Ave,901,all_stops,90,16,71,3,29,58,3
-2026-11,E108,Example St & 6th Ave,901,all_stops,86,1,76,9,2,75,9
-2026-11,E108,Example St & 6th Ave,901,timepoints,86,1,76,9,2,75,9
-2026-11,E109,Example St & 7th Ave,901,all_stops,90,19,63,8,31,51,8
-2026-11,E110,Example St & 8th Ave,901,all_stops,86,15,59,12,33,41,12
-2026-11,E111,Fictional Blvd & 1st Ave,905,all_stops,26,0,26,0,3,23,0
-2026-11,E111,Fictional Blvd & 1st Ave,905,timepoints,26,0,26,0,3,23,0
-2026-11,E112,Fictional Blvd & 2nd Ave,905,all_stops,55,0,38,17,6,32,17
+2026-11,E106,Example St & 4th Ave,901,all_stops,89,11,72,6,24,59,6
+2026-11,E107,Example St & 5th Ave,901,all_stops,90,16,70,4,29,57,4
+2026-11,E108,Example St & 6th Ave,901,all_stops,86,1,75,10,2,74,10
+2026-11,E108,Example St & 6th Ave,901,timepoints,86,1,75,10,2,74,10
+2026-11,E109,Example St & 7th Ave,901,all_stops,90,19,62,9,31,50,9
+2026-11,E110,Example St & 8th Ave,901,all_stops,86,15,58,13,33,40,13
+2026-11,E111,Fictional Blvd & 1st Ave,905,all_stops,26,0,21,5,2,19,5
+2026-11,E111,Fictional Blvd & 1st Ave,905,timepoints,26,0,21,5,2,19,5
+2026-11,E112,Fictional Blvd & 2nd Ave,905,all_stops,55,0,30,25,6,24,25
 2026-11,E113,Fictional Blvd & 3rd Ave,904,all_stops,70,5,54,11,17,42,11
 2026-11,E113,Fictional Blvd & 3rd Ave,904,timepoints,36,0,25,11,0,25,11
-2026-11,E113,Fictional Blvd & 3rd Ave,905,all_stops,56,0,46,10,3,43,10
-2026-11,E114,Fictional Blvd & 4th Ave,905,all_stops,55,0,38,17,0,38,17
-2026-11,E114,Fictional Blvd & 4th Ave,905,timepoints,55,0,38,17,0,38,17
-2026-11,E115,Fictional Blvd & 5th Ave,905,all_stops,56,0,46,10,2,44,10
-2026-11,E116,Fictional Blvd & 6th Ave,905,all_stops,56,0,41,15,7,34,15
+2026-11,E113,Fictional Blvd & 3rd Ave,905,all_stops,56,0,37,19,3,34,19
+2026-11,E114,Fictional Blvd & 4th Ave,905,all_stops,55,0,30,25,0,30,25
+2026-11,E114,Fictional Blvd & 4th Ave,905,timepoints,55,0,30,25,0,30,25
+2026-11,E115,Fictional Blvd & 5th Ave,905,all_stops,56,0,38,18,2,36,18
+2026-11,E116,Fictional Blvd & 6th Ave,905,all_stops,56,0,34,22,5,29,22
 2026-11,E117,Placeholder Rd & 1st Ave,903,all_stops,78,13,60,5,41,32,5
 2026-11,E118,Placeholder Rd & 2nd Ave,903,all_stops,76,9,62,5,25,46,5
 2026-11,E118,Placeholder Rd & 2nd Ave,903,timepoints,40,1,34,5,1,34,5
@@ -107,7 +107,7 @@ month,stop_code,stop_name,route,scope,n,early,on_time,late,early_alt,on_time_alt
 2026-11,E123,Placeholder Rd & 7th Ave,903,all_stops,75,8,62,5,31,39,5
 2026-11,E124,Placeholder Rd & 8th Ave,903,all_stops,39,1,38,0,2,37,0
 2026-11,E124,Placeholder Rd & 8th Ave,903,timepoints,39,1,38,0,2,37,0
-2026-11,E125,Sample Ave & 1st Ave,902,all_stops,78,8,57,13,20,45,13
+2026-11,E125,Sample Ave & 1st Ave,902,all_stops,78,8,56,14,20,44,14
 2026-11,E126,Sample Ave & 2nd Ave,902,all_stops,75,3,56,16,8,51,16
 2026-11,E126,Sample Ave & 2nd Ave,902,timepoints,36,0,21,15,0,21,15
 2026-11,E127,Sample Ave & 3rd Ave,902,all_stops,77,5,64,8,9,60,8
@@ -115,18 +115,18 @@ month,stop_code,stop_name,route,scope,n,early,on_time,late,early_alt,on_time_alt
 2026-11,E127,Sample Ave & 3rd Ave,904,all_stops,70,4,61,5,11,54,5
 2026-11,E127,Sample Ave & 3rd Ave,904,timepoints,35,0,30,5,0,30,5
 2026-11,E128,Sample Ave & 4th Ave,902,all_stops,77,6,61,10,14,53,10
-2026-11,E129,Sample Ave & 5th Ave,902,all_stops,79,3,63,13,8,58,13
-2026-11,E129,Sample Ave & 5th Ave,902,timepoints,39,1,34,4,1,34,4
-2026-11,E130,Sample Ave & 6th Ave,902,all_stops,76,4,56,16,9,51,16
+2026-11,E129,Sample Ave & 5th Ave,902,all_stops,79,3,62,14,8,57,14
+2026-11,E129,Sample Ave & 5th Ave,902,timepoints,39,1,33,5,1,33,5
+2026-11,E130,Sample Ave & 6th Ave,902,all_stops,76,4,53,19,9,48,19
 2026-11,E130,Sample Ave & 6th Ave,902,timepoints,38,0,22,16,0,22,16
-2026-11,E131,Sample Ave & 7th Ave,902,all_stops,78,8,54,16,22,40,16
-2026-11,E133,Sample Transit Center,901,all_stops,47,1,46,0,7,40,0
-2026-11,E133,Sample Transit Center,901,timepoints,47,1,46,0,7,40,0
-2026-11,E133,Sample Transit Center,902,all_stops,36,1,35,0,4,32,0
-2026-11,E133,Sample Transit Center,902,timepoints,36,1,35,0,4,32,0
+2026-11,E131,Sample Ave & 7th Ave,902,all_stops,78,8,51,19,22,37,19
+2026-11,E133,Sample Transit Center,901,all_stops,47,1,45,1,7,39,1
+2026-11,E133,Sample Transit Center,901,timepoints,47,1,45,1,7,39,1
+2026-11,E133,Sample Transit Center,902,all_stops,36,1,34,1,4,31,1
+2026-11,E133,Sample Transit Center,902,timepoints,36,1,34,1,4,31,1
 2026-11,E133,Sample Transit Center,903,all_stops,39,0,39,0,5,34,0
 2026-11,E133,Sample Transit Center,903,timepoints,39,0,39,0,5,34,0
 2026-11,E133,Sample Transit Center,904,all_stops,34,1,33,0,3,31,0
 2026-11,E133,Sample Transit Center,904,timepoints,34,1,33,0,3,31,0
-2026-11,E133,Sample Transit Center,905,all_stops,28,0,28,0,0,28,0
-2026-11,E133,Sample Transit Center,905,timepoints,28,0,28,0,0,28,0
+2026-11,E133,Sample Transit Center,905,all_stops,28,0,24,4,0,24,4
+2026-11,E133,Sample Transit Center,905,timepoints,28,0,24,4,0,24,4

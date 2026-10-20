@@ -1,0 +1,210 @@
+{
+ "schema": 1,
+ "rules_version": 1,
+ "period": {
+  "key": "all",
+  "start": "2026-10-04",
+  "end": "2026-11-02"
+ },
+ "thresholds": {
+  "carry_over": {
+   "late_after_s": 300,
+   "min_trips": 30,
+   "min_days": 5,
+   "min_share": 0.3333,
+   "specific_margin": 0.1,
+   "long_layover_s": 600,
+   "long_layover_margin_s": 60
+  }
+ },
+ "patterns": [
+  {
+   "id": "carry_over.902.1.E101.all-pm_peak",
+   "kind": "carry_over",
+   "route": "902",
+   "direction_id": 1,
+   "stops": [
+    "E101"
+   ],
+   "preset": {
+    "daytype": "all",
+    "band": "pm_peak"
+   },
+   "rank": 1,
+   "trips": 107,
+   "days": 19,
+   "late": 520,
+   "matched": 317,
+   "share": 0.6096
+  },
+  {
+   "id": "carry_over.902.0.E133.all-pm_peak",
+   "kind": "carry_over",
+   "route": "902",
+   "direction_id": 0,
+   "stops": [
+    "E133"
+   ],
+   "preset": {
+    "daytype": "all",
+    "band": "pm_peak"
+   },
+   "rank": 2,
+   "trips": 100,
+   "days": 18,
+   "late": 476,
+   "matched": 270,
+   "share": 0.5672
+  },
+  {
+   "id": "carry_over.905.0.E111.all-all",
+   "kind": "carry_over",
+   "route": "905",
+   "direction_id": 0,
+   "stops": [
+    "E111"
+   ],
+   "preset": null,
+   "rank": 1,
+   "trips": 416,
+   "days": 24,
+   "late": 1238,
+   "matched": 472,
+   "share": 0.3813
+  },
+  {
+   "id": "carry_over.905.1.E133.all-all",
+   "kind": "carry_over",
+   "route": "905",
+   "direction_id": 1,
+   "stops": [
+    "E133"
+   ],
+   "preset": null,
+   "rank": 2,
+   "trips": 384,
+   "days": 22,
+   "late": 1113,
+   "matched": 391,
+   "share": 0.3513
+  },
+  {
+   "id": "carry_over.905.0.E111.all-am_peak",
+   "kind": "carry_over",
+   "route": "905",
+   "direction_id": 0,
+   "stops": [
+    "E111"
+   ],
+   "preset": {
+    "daytype": "all",
+    "band": "am_peak"
+   },
+   "rank": 3,
+   "trips": 69,
+   "days": 15,
+   "late": 220,
+   "matched": 114,
+   "share": 0.5182
+  }
+ ],
+ "routes": {
+  "902": {
+   "all-all": 2,
+   "all-pm_peak": 2,
+   "weekday-pm_peak": 2,
+   "saturday-pm_peak": 2,
+   "sunday-pm_peak": 2
+  },
+  "905": {
+   "all-all": 3,
+   "all-early": 2,
+   "all-am_peak": 3,
+   "all-midday": 2,
+   "all-pm_peak": 2,
+   "all-evening": 2,
+   "weekday-all": 2,
+   "weekday-early": 2,
+   "weekday-am_peak": 3,
+   "weekday-midday": 2,
+   "weekday-pm_peak": 2,
+   "weekday-evening": 2,
+   "saturday-all": 2,
+   "saturday-early": 2,
+   "saturday-am_peak": 3,
+   "saturday-midday": 2,
+   "saturday-pm_peak": 2,
+   "saturday-evening": 2,
+   "sunday-all": 2,
+   "sunday-early": 2,
+   "sunday-am_peak": 3,
+   "sunday-midday": 2,
+   "sunday-pm_peak": 2,
+   "sunday-evening": 2
+  }
+ },
+ "stops": {
+  "E101": {
+   "all-all": 1,
+   "all-pm_peak": 1,
+   "weekday-pm_peak": 1,
+   "saturday-pm_peak": 1,
+   "sunday-pm_peak": 1
+  },
+  "E111": {
+   "all-all": 2,
+   "all-early": 1,
+   "all-am_peak": 2,
+   "all-midday": 1,
+   "all-pm_peak": 1,
+   "all-evening": 1,
+   "weekday-all": 1,
+   "weekday-early": 1,
+   "weekday-am_peak": 2,
+   "weekday-midday": 1,
+   "weekday-pm_peak": 1,
+   "weekday-evening": 1,
+   "saturday-all": 1,
+   "saturday-early": 1,
+   "saturday-am_peak": 2,
+   "saturday-midday": 1,
+   "saturday-pm_peak": 1,
+   "saturday-evening": 1,
+   "sunday-all": 1,
+   "sunday-early": 1,
+   "sunday-am_peak": 2,
+   "sunday-midday": 1,
+   "sunday-pm_peak": 1,
+   "sunday-evening": 1
+  },
+  "E133": {
+   "all-all": 2,
+   "all-pm_peak": 2,
+   "weekday-pm_peak": 2,
+   "saturday-pm_peak": 2,
+   "sunday-pm_peak": 2,
+   "all-early": 1,
+   "all-am_peak": 1,
+   "all-midday": 1,
+   "all-evening": 1,
+   "weekday-all": 1,
+   "weekday-early": 1,
+   "weekday-am_peak": 1,
+   "weekday-midday": 1,
+   "weekday-evening": 1,
+   "saturday-all": 1,
+   "saturday-early": 1,
+   "saturday-am_peak": 1,
+   "saturday-midday": 1,
+   "saturday-evening": 1,
+   "sunday-all": 1,
+   "sunday-early": 1,
+   "sunday-am_peak": 1,
+   "sunday-midday": 1,
+   "sunday-evening": 1
+  }
+ },
+ "too_little_data": [
+  "906"
+ ]
+}

@@ -196,7 +196,7 @@ def test_csv_columns(world):
     names = sorted(p.name for p in csv_dir.glob("*.csv"))
     assert names == sorted(f"{n}.csv" for n in (
         "system_daily", "routes_daily", "routes_monthly", "routes_hourly_monthly", "stops_monthly",
-        "terminal_monthly", "end_of_line_monthly", "quality_daily", "data_loss", "detours"))
+        "terminal_monthly", "end_of_line_monthly", "quality_daily", "data_loss", "detours", "patterns"))
     with open(csv_dir / "system_daily.csv", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert list(rows[0])[:9] == ["date", "scope", "n", "early", "on_time", "late", "early_alt", "on_time_alt",

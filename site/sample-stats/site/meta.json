@@ -25,6 +25,6 @@
   "start": "2026-10-04",
   "end": "2026-11-02"
  },
- "events_version": 3,
+ "events_version": 4,
  "inputs_sha256": "66588e198cbdcc82ee72e10bcebe7d2a8ada942d5a9d08433f4d09e6001adc92"
 }

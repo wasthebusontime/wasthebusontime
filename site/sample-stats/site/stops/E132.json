@@ -14,14 +14,14 @@
    "summary": {
     "n": 4,
     "early": 0,
-    "on_time": 4,
-    "late": 0,
+    "on_time": 2,
+    "late": 2,
     "early_alt": 1,
-    "on_time_alt": 3,
-    "late_alt": 0,
+    "on_time_alt": 1,
+    "late_alt": 2,
     "p10": -8,
     "p50": 7,
-    "p90": 122,
+    "p90": 678,
     "hist": {
      "start_min": -10,
      "under": 0,
@@ -36,7 +36,10 @@
       0,
       0,
       1,
-      2,
+      1,
+      0,
+      0,
+      0,
       0,
       1,
       0,
@@ -44,10 +47,7 @@
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
+      1,
       0,
       0,
       0,
@@ -65,14 +65,14 @@
      "hour": 10,
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ],
    "by_daytype": {
@@ -91,14 +91,14 @@
     "saturday": {
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     },
     "sunday": {
      "n": 0,
@@ -119,14 +119,14 @@
      "partial": true,
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ],
    "by_route": [
@@ -135,14 +135,14 @@
      "short_name": "906",
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ]
   },
@@ -150,14 +150,14 @@
    "summary": {
     "n": 4,
     "early": 0,
-    "on_time": 4,
-    "late": 0,
+    "on_time": 2,
+    "late": 2,
     "early_alt": 1,
-    "on_time_alt": 3,
-    "late_alt": 0,
+    "on_time_alt": 1,
+    "late_alt": 2,
     "p10": -8,
     "p50": 7,
-    "p90": 122,
+    "p90": 678,
     "hist": {
      "start_min": -10,
      "under": 0,
@@ -172,7 +172,10 @@
       0,
       0,
       1,
-      2,
+      1,
+      0,
+      0,
+      0,
       0,
       1,
       0,
@@ -180,10 +183,7 @@
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
+      1,
       0,
       0,
       0,
@@ -201,14 +201,14 @@
      "hour": 10,
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ],
    "by_daytype": {
@@ -227,14 +227,14 @@
     "saturday": {
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     },
     "sunday": {
      "n": 0,
@@ -255,14 +255,14 @@
      "partial": true,
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ],
    "by_route": [
@@ -271,14 +271,14 @@
      "short_name": "906",
      "n": 4,
      "early": 0,
-     "on_time": 4,
-     "late": 0,
+     "on_time": 2,
+     "late": 2,
      "early_alt": 1,
-     "on_time_alt": 3,
-     "late_alt": 0,
+     "on_time_alt": 1,
+     "late_alt": 2,
      "p10": -8,
      "p50": 7,
-     "p90": 122
+     "p90": 678
     }
    ]
   }

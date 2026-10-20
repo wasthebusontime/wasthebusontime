@@ -7,8 +7,9 @@ come from a Stage (stage.py); this module lays them out as files.
 Output layout (written to a fresh directory, then swapped in):
   site/meta.json, system.json, stops.json, quality.json, routes/{slug}.json,
   stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
-  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
-  csv/*.csv (see opendata.py)
+  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json,
+  patterns.json (patterns.py)
+  csv/*.csv (see opendata.py), csv/patterns.csv
   trips/trips_YYYY-MM.csv, per trip, finished months only (opendata.write_trips)
 """
 
@@ -23,7 +24,7 @@ from pathlib import Path
 from wbot_site import contract
 from wbot_site.contract import MAP_BANDS, MAP_CELL, MAP_DAYTYPES, PRESETS, SCHEMA, SCOPES, preset_name
 
-from . import alerts, events, opendata, rules, shapes, static, timeutil
+from . import alerts, events, opendata, patterns, rules, shapes, static, timeutil
 from .config import ALT, EVENTS_VERSION, HEADLINE, Settings
 from .db import connect, quote
 from .perf import empty
@@ -237,6 +238,7 @@ def write_all(stage: Stage, names: Names, versions: list[static.Version], out: P
 
     write_routes(stage, names, site, routes, loss, detours)
     write_presets(stage, names, site, slugs, order)
+    write_patterns(stage, site, out / "csv", slugs)
     index = write_stops(stage, names, site, detours)
     write_map(stage, site, index)
     write_geojson(stage, names, versions, site, slugs)
@@ -352,6 +354,13 @@ def write_presets(stage: Stage, names: Names, site: Path, slugs: list[str], orde
                 write(folder / "routes" / f"{slug}.json", {
                     "schema": SCHEMA, "preset": preset, "route": route_info(names, slug),
                     "scheduled": scheduled[slug], **numbers}, compact=True)
+
+
+def write_patterns(stage: Stage, site: Path, csv_dir: Path, slugs: list[str]) -> None:
+    """patterns.json and csv/patterns.csv: the carry-over patterns (patterns.py)."""
+    found, too_little = patterns.carry_over(stage.carry_over_cells(), slugs)
+    write(site / contract.PATTERNS_FILE, patterns.document(found, too_little, stage.period))
+    opendata.write_patterns(patterns.csv_rows(found), csv_dir)
 
 
 def headsign(names: Names, slug: str, direction: int, order) -> str:

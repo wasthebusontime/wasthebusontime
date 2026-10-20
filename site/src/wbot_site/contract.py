@@ -7,13 +7,21 @@ the site's own dependencies.
 A stats directory has the same layout as the stats repo:
   site/meta.json, system.json, stops.json, quality.json, routes/{slug}.json,
   stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
-  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
-  csv/*.csv
+  presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json,
+  patterns.json
+  csv/*.csv (patterns.csv with patterns.json)
   trips/trips_YYYY-MM.csv
 
 Per-trip downloads (trips/, optional, TRIPS_COLUMNS): one row per scheduled trip, one file
 per finished month, written once. They are published in the stats repo only; the site
 doesn't copy them.
+
+Patterns (site/patterns.json, optional: stats without it are valid, and the site then has no
+Patterns page and no callouts) are conditions many late departures share, found by published
+rules (PATTERN_FIELDS and the notes above it). The file has the rules version, the period,
+the thresholds in use, the patterns, per route and per stop how many count under each page
+filter (pattern_counts), and the routes with too little data for any pattern yet. Every
+pattern also has a row in csv/patterns.csv (PATTERNS_COLUMNS).
 
 Page presets (presets/, optional: stats without them are valid) are the route and system
 numbers for one day type and band, for every name in PRESETS. A preset file has the shapes
@@ -93,6 +101,42 @@ def trips_file(month: str) -> str:
     return f"trips_{month}.csv"
 
 
+# Patterns (site/patterns.json, optional; csv/patterns.csv beside it). Numbers only: the site
+# writes the sentences. A pattern is general (preset null) or tied to one day type and band
+# (a page preset's names). trips: trips with a late departure behind it; days: service days
+# with a matched trip; late: late departures; matched: those the pattern covers; share:
+# matched / late, rounded to 4 places; rank: 1 to n within its route.
+PATTERNS_FILE = "patterns.json"
+PATTERNS_CSV = "patterns.csv"
+PATTERN_KINDS = ("carry_over", "slow_segment", "i5_traffic")
+PATTERN_FIELDS = ("id", "kind", "route", "direction_id", "stops", "preset", "rank", "trips", "days", "late",
+                  "matched", "share")
+PATTERN_COUNTS = ("trips", "days", "late", "matched")
+PATTERNS_COLUMNS = ("id", "kind", "route", "direction_id", "stops", "daytype", "band", "rank", "trips", "days",
+                    "late", "matched", "share")
+
+
+def pattern_filters(preset: dict | None) -> list[str]:
+    """The page filters a pattern counts under: "all-all" (an unfiltered page counts every
+    pattern), then each page preset it matches. A general pattern (preset None) matches every
+    preset; a specific one matches the presets whose day type and band it equals or covers
+    ("all"), so "all days, PM peak" matches "weekday, PM peak"."""
+    if preset is None:
+        return ["all-all", *PRESETS]
+    dt, b = preset["daytype"], preset["band"]
+    return ["all-all", *(preset_name(fdt, fb) for fdt in MAP_DAYTYPES for fb in MAP_BANDS
+                         if (fdt, fb) != ("all", "all") and dt in ("all", fdt) and b in ("all", fb))]
+
+
+def pattern_counts(patterns: list[dict]) -> dict[str, int]:
+    """How many of these patterns count under each filter (pattern_filters); filters with none are left out."""
+    counts = {}
+    for p in patterns:
+        for name in pattern_filters(p["preset"]):
+            counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
 class ContractError(ValueError):
     """A stats directory doesn't follow the format."""
 
@@ -156,6 +200,10 @@ def validate(stats_dir: Path) -> None:
 
     if (site / "presets").is_dir():
         _presets(site, system)
+
+    if (site / PATTERNS_FILE).is_file():
+        _patterns(Path(stats_dir), meta, slugs={row["slug"] for row in system["routes"]},
+                  codes={stop["code"] for stop in index["stops"]})
 
     if (Path(stats_dir) / TRIPS_DIR).is_dir():
         validate_trips(Path(stats_dir) / TRIPS_DIR)
@@ -384,6 +432,74 @@ def _preset_sums(totals: dict, entities: list) -> None:
                 if total != want:
                     raise ContractError(f"{file(*whole, e)}: {key} is {want}, but {file(*label, e)} "
                                         f"add up to {total}")
+
+
+def _count(value, where: str) -> None:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ContractError(f"{where} is {value!r}, expected a count")
+
+
+def _patterns(stats_dir: Path, meta: dict, slugs: set, codes: set) -> None:
+    """patterns.json: every pattern well formed, on a known route and stops, its share its
+    counts' and ranks 1 to n within each route; the per-route and per-stop counts are the
+    patterns' (pattern_counts); routes with too little data have no pattern; and
+    csv/patterns.csv has a row for each pattern."""
+    where = PATTERNS_FILE
+    doc = _load(stats_dir / "site", where)
+    _keys(doc, ("rules_version", "period", "thresholds", "patterns", "routes", "stops", "too_little_data"), where)
+    if doc["period"] != meta["period"]:
+        raise ContractError(f"{where}: period {doc['period']!r} isn't meta.json's {meta['period']!r}")
+    ids, by_route, by_stop = set(), {}, {}
+    for i, p in enumerate(_list(doc, "patterns", where)):
+        at = f"{where}: patterns[{i}]"
+        _keys(p, PATTERN_FIELDS, at)
+        if p["kind"] not in PATTERN_KINDS:
+            raise ContractError(f"{at}: kind {p['kind']!r} isn't one of {', '.join(PATTERN_KINDS)}")
+        if p["id"] in ids:
+            raise ContractError(f"{at}: id {p['id']!r} appears twice")
+        ids.add(p["id"])
+        if p["route"] not in slugs:
+            raise ContractError(f"{at}: route {p['route']!r} is not in system.json")
+        if not isinstance(p["stops"], list) or not p["stops"] or any(c not in codes for c in p["stops"]):
+            raise ContractError(f"{at}: stops {p['stops']!r} aren't stops in stops.json")
+        preset = p["preset"]
+        if preset is not None:
+            _keys(preset, ("daytype", "band"), f"{at}.preset")
+            if preset_name(preset["daytype"], preset["band"]) not in PRESETS:
+                raise ContractError(f"{at}: preset {preset!r} isn't a page preset (null for a general pattern)")
+        for k in ("rank", *PATTERN_COUNTS):
+            _count(p[k], f"{at}: {k}")
+        if p["matched"] > p["late"] or p["late"] == 0:
+            raise ContractError(f"{at}: matched {p['matched']} of late {p['late']}")
+        if p["share"] != round(p["matched"] / p["late"], 4):
+            raise ContractError(f"{at}: share {p['share']!r} isn't matched / late "
+                                f"({round(p['matched'] / p['late'], 4)})")
+        by_route.setdefault(p["route"], []).append(p)
+        for code in set(p["stops"]):
+            by_stop.setdefault(code, []).append(p)
+    for slug, patterns in by_route.items():
+        ranks = sorted(p["rank"] for p in patterns)
+        if ranks != list(range(1, len(patterns) + 1)):
+            raise ContractError(f"{where}: route {slug!r} has ranks {ranks}, expected 1 to {len(patterns)}")
+    for key, groups in (("routes", by_route), ("stops", by_stop)):
+        found = {k: pattern_counts(v) for k, v in groups.items()}
+        if doc[key] != found:
+            wrong = sorted(set(doc[key]) ^ set(found) | {k for k in found if doc[key].get(k) != found[k]})
+            raise ContractError(f"{where}: {key}.{wrong[0]} counts {doc[key].get(wrong[0])!r}, "
+                                f"the patterns give {found.get(wrong[0])!r}")
+    for slug in _list(doc, "too_little_data", where):
+        if slug not in slugs or slug in by_route:
+            raise ContractError(f"{where}: too_little_data lists {slug!r}, which isn't a route without patterns")
+    path = stats_dir / "csv" / PATTERNS_CSV
+    if not path.is_file():
+        raise ContractError(f"missing csv/{PATTERNS_CSV} (site/{PATTERNS_FILE} has the same patterns)")
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = csv.reader(f)
+        if tuple(next(rows, ())) != PATTERNS_COLUMNS:
+            raise ContractError(f"csv/{PATTERNS_CSV}: columns aren't {', '.join(PATTERNS_COLUMNS)}")
+        csv_ids = [row[0] for row in rows if row]
+    if sorted(csv_ids) != sorted(ids):
+        raise ContractError(f"csv/{PATTERNS_CSV}: rows don't match the patterns in site/{PATTERNS_FILE}")
 
 
 def validate_trips(folder: Path) -> None:

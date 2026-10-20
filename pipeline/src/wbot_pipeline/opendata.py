@@ -9,6 +9,9 @@ whose percentiles are per row and say so in the column names.
   H = under, m_10 ... m_1, m0 ... m19, over (departures per 1-minute delay bucket;
       m_3 is 3 to 2 minutes early, m4 is 4 to 5 minutes late)
 
+patterns.csv (write_patterns) has one row per current pattern with the counts behind it
+(patterns.py), rewritten nightly.
+
 The per-trip downloads (trips/trips_YYYY-MM.csv, write_trips) are the exception to
 "aggregates only": one row per scheduled trip, delays we computed, no vehicle IDs and no
 raw feed timestamps. One file per finished month, so each is written once.
@@ -21,7 +24,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from wbot_site.contract import CARRY_OVER, COUNTS, TRIPS_COLUMNS, trips_file
+from wbot_site.contract import CARRY_OVER, COUNTS, PATTERNS_COLUMNS, PATTERNS_CSV, TRIPS_COLUMNS, trips_file
 
 from . import timeutil
 from .config import HIST_BUCKETS, HIST_START_MIN
@@ -102,6 +105,14 @@ def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
         columns = {h: [r[i] for r in rows] for i, h in enumerate(header)}
         pq.write_table(pa.table(columns) if rows else pa.table({h: pa.array([], pa.string()) for h in header}),
                        agg_dir / f"{name}.parquet")
+
+
+def write_patterns(rows: list[list], csv_dir: Path) -> None:
+    csv_dir.mkdir(parents=True, exist_ok=True)
+    with open(csv_dir / PATTERNS_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(PATTERNS_COLUMNS)
+        w.writerows(rows)
 
 
 def finished_months(start: date, end: date, trailing_days: int) -> list[str]:

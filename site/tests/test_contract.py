@@ -191,3 +191,78 @@ def test_trips_downloads_are_checked_when_present(stats, name, text, message):
     else:
         with pytest.raises(ContractError, match=message):
             contract.validate(stats)
+
+
+# Patterns (site/patterns.json and csv/patterns.csv).
+
+def patterns_doc(stats):
+    return json.loads((stats / "site" / contract.PATTERNS_FILE).read_text(encoding="utf-8"))
+
+
+def general(doc):
+    return next(p for p in doc["patterns"] if p["preset"] is None)
+
+
+def test_the_sample_has_patterns():
+    doc = patterns_doc(SAMPLE_DIR)
+    kinds = {(p["route"], p["preset"] is None) for p in doc["patterns"]}
+    assert any(g for _, g in kinds) and any(not g for _, g in kinds)
+    assert doc["too_little_data"] and set(doc["routes"]) | set(doc["too_little_data"]) < \
+        {row["slug"] for row in json.loads((SAMPLE_DIR / "site" / "system.json").read_text())["routes"]}
+
+
+def test_pattern_filters():
+    assert contract.pattern_filters(None) == ["all-all", *contract.PRESETS]
+    assert contract.pattern_filters({"daytype": "all", "band": "pm_peak"}) == [
+        "all-all", "all-pm_peak", "weekday-pm_peak", "saturday-pm_peak", "sunday-pm_peak"]
+    assert contract.pattern_filters({"daytype": "weekday", "band": "pm_peak"}) == ["all-all", "weekday-pm_peak"]
+    assert contract.pattern_filters({"daytype": "saturday", "band": "all"}) == [
+        "all-all", *(f"saturday-{b}" for b in contract.MAP_BANDS)]
+
+
+def set_share(doc, share):
+    general(doc).update(share=share)
+
+
+@pytest.mark.parametrize("fn, message", [
+    (lambda d: d.pop("thresholds"), "patterns.json: missing thresholds"),
+    (lambda d: d["period"].update(start="2026-10-05"), "patterns.json: period"),
+    (lambda d: general(d).pop("rank"), r"patterns.json: patterns\[\d+\]: missing rank"),
+    (lambda d: general(d).update(kind="weather"), "kind 'weather' isn't one of"),
+    (lambda d: d["patterns"].append(dict(general(d))), "appears twice"),
+    (lambda d: general(d).update(route="nope"), "route 'nope' is not in system.json"),
+    (lambda d: general(d).update(stops=["nope"]), "aren't stops in stops.json"),
+    (lambda d: general(d).update(preset={"daytype": "all", "band": "all"}), "isn't a page preset"),
+    (lambda d: general(d).update(preset={"daytype": "weekday", "band": "rush"}), "isn't a page preset"),
+    (lambda d: general(d).update(trips=-1), "trips is -1, expected a count"),
+    (lambda d: general(d).update(matched=general(d)["late"] + 1), "matched .* of late"),
+    (lambda d: set_share(d, 0.99), "share 0.99 isn't matched / late"),
+    (lambda d: general(d).update(rank=7), "has ranks"),
+    (lambda d: d["routes"][general(d)["route"]].update({"all-all": 99}), "patterns.json: routes."),
+    (lambda d: d["stops"].pop(general(d)["stops"][0]), "patterns.json: stops."),
+    (lambda d: d["too_little_data"].append(general(d)["route"]), "too_little_data lists"),
+])
+def test_each_pattern_problem_is_reported(stats, fn, message):
+    change(stats, contract.PATTERNS_FILE, fn)
+    with pytest.raises(ContractError, match=message):
+        contract.validate(stats)
+
+
+def test_patterns_csv_matches_the_json(stats):
+    path = stats / "csv" / contract.PATTERNS_CSV
+    lines = path.read_text(encoding="utf-8").splitlines()
+    path.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
+    with pytest.raises(ContractError, match="rows don't match"):
+        contract.validate(stats)
+    path.write_text("id,kind\n", encoding="utf-8")
+    with pytest.raises(ContractError, match="columns aren't"):
+        contract.validate(stats)
+    path.unlink()
+    with pytest.raises(ContractError, match="missing csv/patterns.csv"):
+        contract.validate(stats)
+
+
+def test_patterns_are_optional(stats):
+    (stats / "site" / contract.PATTERNS_FILE).unlink()
+    (stats / "csv" / contract.PATTERNS_CSV).unlink()
+    contract.validate(stats)

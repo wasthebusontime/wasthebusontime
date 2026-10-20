@@ -10,6 +10,7 @@ from synth import Feed, Trip, TripPlan, write_gtfs
 from wbot_site import contract
 
 from wbot_pipeline import events, opendata, sitefiles, static
+from wbot_pipeline.config import CARRY_OVER_MARGIN_S
 from wbot_pipeline.stage import Period
 
 LINE = ["S1", "S2", "S3", "S4", "S5"]   # 4 minutes apart: a trip takes 16 minutes
@@ -30,6 +31,10 @@ TRIPS = [
     t("p6", 0, 12 * 60, "B6"), t("n6", 1, 12 * 60 + 20, "B6"),       # no data at n6's first stop
     t("q1", 0, 13 * 60, "B7"), t("q2", 1, 13 * 60 + 20, "B7"), t("q3", 0, 13 * 60 + 40, "B7"),
     t("x1", 0, 14 * 60, ""),                                         # no block
+    # 12 min layovers, judged from the previous trip's GPS arrival at the shared stop.
+    t("p7", 0, 15 * 60, "B8"), t("n7", 1, 15 * 60 + 28, "B8"),       # arrived 160 s after n7 was due
+    t("p8", 0, 16 * 60, "B9"), t("n8", 1, 16 * 60 + 28, "B9"),       # just after: inside the margin
+    t("p9", 0, 17 * 60, "B10"), t("n9", 1, 17 * 60 + 28, "B10"),     # another bus on n9
 ]
 
 
@@ -42,6 +47,16 @@ def trips(settings):
     feed.plans["n4"] = TripPlan(vehicle_id="VX4")
     feed.plans["n5"] = TripPlan(vehicle=False)
     feed.plans["n6"] = TripPlan(no_data={0})
+    # p7 runs 900 s late: it reaches the shared stop 16 + 15 min - 20 s after its start, 160 s
+    # after n7's scheduled departure. p8 runs 800 s late: 60 s after, which GPS puts a little
+    # earlier. The next trips leave late too, so their buses don't report them before the
+    # previous trip ends.
+    feed.plans["p7"] = TripPlan(delays=[900] * 5)
+    feed.plans["n7"] = TripPlan(delays=[900] * 5)
+    feed.plans["p8"] = TripPlan(delays=[800] * 5)
+    feed.plans["n8"] = TripPlan(delays=[850] * 5)
+    feed.plans["p9"] = TripPlan(delays=[900] * 5)
+    feed.plans["n9"] = TripPlan(delays=[900] * 5, vehicle_id="VX9")
     feed.write()
     events.process_date(settings, static.list_versions(settings.static_dir), DAY, "test")
     path = events.paths(settings, DAY).trips.as_posix()
@@ -71,19 +86,41 @@ def test_chains_along_the_block(trips):
     assert trips["q3"]["carry_over"] is True
 
 
-@pytest.mark.parametrize("trip_id", ["n3", "n4", "n5", "n6"])
+@pytest.mark.parametrize("trip_id", ["n4", "n5", "n6"])
 def test_unknown_when_the_pair_fails_the_rules_or_the_arrival_is_missing(trips, trip_id):
-    # n3: 14 min layover; n4: another bus; n5: never tracked; n6: no arrival at its first stop.
+    # n4: another bus; n5: never tracked; n6: no arrival at its first stop.
     row = trips[trip_id]
     assert row["prev_trip_id"] == "p" + trip_id[1] and row["carry_over"] is None
-    assert row["sched_layover_s"] == (14 if trip_id == "n3" else 4) * 60
+    assert row["sched_layover_s"] == 4 * 60
 
 
-@pytest.mark.parametrize("trip_id", ["p1", "q1", "x1"])
-def test_unknown_without_a_previous_trip(trips, trip_id):
+def test_long_layover_from_the_previous_trips_gps_arrival(trips):
+    # p3 ended on time, 14 minutes before n3 was due: not a carry-over.
+    assert (trips["n3"]["sched_layover_s"], trips["n3"]["carry_over"]) == (14 * 60, False)
+    # p7 reached the stop 160 s after n7 was due (GPS, good to about 15 s): a carry-over.
+    assert (trips["n7"]["sched_layover_s"], trips["n7"]["carry_over"]) == (12 * 60, True)
+    assert trips["n7"]["prev_end_delay_s"] == pytest.approx(12 * 60 + 160, abs=30)
+
+
+def test_long_layover_inside_the_margin_is_not_a_carry_over(trips):
+    # p8 reached the stop after n8 was due, but within CARRY_OVER_MARGIN_S of it.
+    assert 0 < trips["n8"]["prev_end_delay_s"] - trips["n8"]["sched_layover_s"] <= CARRY_OVER_MARGIN_S
+    assert trips["n8"]["carry_over"] is False
+
+
+def test_long_layover_needs_the_same_bus(trips):
+    assert trips["n9"]["prev_end_delay_s"] is not None and trips["n9"]["carry_over"] is None
+
+
+@pytest.mark.parametrize("trip_id", ["p1", "q1"])
+def test_first_trip_on_its_block_is_not_a_carry_over(trips, trip_id):
     row = trips[trip_id]
-    assert (row["prev_trip_id"], row["sched_layover_s"], row["prev_end_delay_s"], row["carry_over"]) == \
-        (None, None, None, None)
+    assert (row["prev_trip_id"], row["sched_layover_s"], row["prev_end_delay_s"], row["carry_over"]) ==         (None, None, None, False)
+
+
+def test_unknown_without_a_block(trips):
+    row = trips["x1"]
+    assert (row["prev_trip_id"], row["sched_layover_s"], row["prev_end_delay_s"], row["carry_over"]) ==         (None, None, None, None)
 
 
 def test_block_from_the_schedule(trips):
@@ -129,7 +166,7 @@ def test_download_has_a_row_per_scheduled_trip(settings, trips, tmp_path):
                           "sched_start": "07:20:00", "start_delay_s": "0", "end_delay_s": rows["n1"]["end_delay_s"],
                           "block_id": "B1", "prev_trip_id": "p1", "sched_layover_s": "240",
                           "prev_end_delay_s": "220", "carry_over": "no"}
-    assert (rows["n2"]["carry_over"], rows["n3"]["carry_over"], rows["x1"]["block_id"]) == ("yes", "", "")
+    assert (rows["n2"]["carry_over"], rows["n3"]["carry_over"], rows["n4"]["carry_over"], rows["x1"]["block_id"]) ==         ("yes", "no", "", "")
     # Rewritten byte for byte by the next night's run, so the stats repo sees no change.
     before = path.read_bytes()
     write_trips(settings, date(2026, 11, 4), tmp_path / "trips")

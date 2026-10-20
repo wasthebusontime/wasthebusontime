@@ -92,7 +92,7 @@ The chain of trips one bus is scheduled to run in a day, from the static GTFS `b
 The scheduled time between a trip's end and the next trip on its block leaving the same stop.
 
 **Carry-over**:
-A trip whose bus, coming off the previous trip on its block, reached the first stop after the trip's scheduled departure, so it could not leave on time.
+A trip whose bus, coming off the previous trip on its block, reached the first stop after the trip's scheduled departure, so it could not leave on time. On a layover of 10 minutes or more, judged from the bus's GPS arrival at the end of the previous trip, which must be more than a minute after the departure. The first trip on a block is never a carry-over.
 _Avoid_: knock-on delay, late because
 
 **Segment**:
@@ -100,7 +100,7 @@ The stretch of one route and direction between two consecutive timepoints (or a 
 _Avoid_: link, leg
 
 **Pattern**:
-A condition that many late departures share, found by a published rule and shown as an interpretation, not a measurement: general, or for one day type and band. Patterns name conditions, never people or decisions, and never suggest fixes.
+A condition that many late departures share, found by a published rule and shown as an interpretation, not a measurement: general, or for one day type and band. Patterns name conditions, never people or decisions, and never suggest fixes. A carry-over pattern is the share of a route's late departures (by direction and first stop) that were on trips which left their first stop late right after a carry-over.
 _Avoid_: cause, reason, "why late", finding (in public text)
 
 ## Data quality

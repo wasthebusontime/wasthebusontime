@@ -77,6 +77,14 @@ ROUTES = [
 ]
 SERVICE_IDS = {"weekday": "WK", "saturday": "SAT", "sunday": "SUN"}
 
+# Carry-overs (the previous trip on the block reached the first stop after this trip was due):
+# a chance per trip by route, and on route 902 only on weekday PM peaks. A trip that starts
+# after one leaves 5 to 12 minutes late. The sample has no blocks otherwise: block and
+# previous trip stay blank. With these, the sample has general patterns (905), a specific one
+# (902, PM peak), routes with none (901, 903, 904) and one with too little data (906).
+CARRY_OVER = {"901": 0.005, "902": 0.0, "903": 0.0, "904": 0.005, "905": 0.12, "906": 0.5}
+CARRY_OVER_PM_PEAK = {"902": 0.3}
+
 
 # Invented coordinates: the grid streets above laid out as a regular grid inside the
 # tile area, with the named places off the grid. They match no real street.
@@ -151,6 +159,11 @@ def simulate_trip(rng: random.Random, d: date, t: Trip, bias: int) -> tuple[list
     drift = rng.gauss((bias + peak) * 3 / n, 25)
     tracked = rng.random() > 0.015
     drop = LOW_COMPLETENESS.get(d, 0.0)
+    # Drawn from the trip's own generator, so the draws above and below don't change.
+    own = random.Random(f"{d.isoformat()} {t.trip_id}")
+    pm_peak = daytype == "weekday" and 15 <= t.start_min // 60 < 18
+    chance = CARRY_OVER_PM_PEAK.get(slug, CARRY_OVER[slug]) if pm_peak else CARRY_OVER[slug]
+    carry_over = own.random() < chance
     rows = []
     delay = 0.0
     for i, (seq, stop_id, arr, dep, timepoint) in enumerate(t.schedule()):
@@ -174,6 +187,8 @@ def simulate_trip(rng: random.Random, d: date, t: Trip, bias: int) -> tuple[list
             delay = rng.gauss(30, 50)
             if delay < 0 and rng.random() < 0.7:
                 delay = rng.uniform(0, 25)
+            if carry_over:
+                delay = own.uniform(300, 720)
         else:
             delay = delay + drift + rng.gauss(0, 40)
             if timepoint and delay < 0 and rng.random() < 0.9:
@@ -191,6 +206,10 @@ def simulate_trip(rng: random.Random, d: date, t: Trip, bias: int) -> tuple[list
         "eligible_timepoints": len(timed), "observed_timepoints": sum(r["observed"] for r in timed),
         "skipped_stops": sum(r["stop_sr"] == "SKIPPED" for r in rows), "no_data_stops": 0,
         "start_ts": rows[0]["sched_dep_ts"], "end_ts": rows[-1]["sched_arr_ts"],
+        "block_id": None, "prev_trip_id": None, "sched_layover_s": None, "prev_end_delay_s": None,
+        "start_delay_s": rows[0]["delay_dep_s"] if tracked else None,
+        "end_delay_s": rows[-1]["delay_arr_s"] if tracked else None,
+        "carry_over": carry_over if tracked else None,
     }
     return rows, trip
 
@@ -208,6 +227,8 @@ TRIP_TYPES = {
     "direction_id": pa.int32(), "scheduled": pa.bool_(), "seen": pa.bool_(), "trip_sr": pa.string(),
     "eligible_timepoints": pa.int64(), "observed_timepoints": pa.int64(), "skipped_stops": pa.int64(),
     "no_data_stops": pa.int64(), "start_ts": pa.int64(), "end_ts": pa.int64(),
+    "block_id": pa.string(), "prev_trip_id": pa.string(), "sched_layover_s": pa.int32(),
+    "prev_end_delay_s": pa.int32(), "start_delay_s": pa.int32(), "end_delay_s": pa.int32(), "carry_over": pa.bool_(),
 }
 
 
