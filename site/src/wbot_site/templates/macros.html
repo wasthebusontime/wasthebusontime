@@ -42,7 +42,7 @@
 {% macro dropdown(label, choices) %}
 {% set current = choices | selectattr("current") | first %}
 <details class="dropdown">
-<summary><span class="dropdown-label">{{ label }}</span> <span class="dropdown-value">{{ current.label }}</span></summary>
+<summary><span class="dropdown-label">{{ label }}</span> <span class="dropdown-value">{{ current.short }}</span></summary>
 <ul class="dropdown-list" aria-label="{{ label }}">
 {% for c in choices %}
 {% if c.current %}

@@ -94,6 +94,10 @@ def test_menus_mark_the_current_choice_and_gray_out_choices_with_no_service(dev_
         ("Sunday (no service)", None, False),
     ]
     assert ("All day", "/routes/905/weekdays/all-day/", False) in menu(html, "Time of day")
+    # The closed menu's button shows the band's name only, so the settings bar fits on one row.
+    html = page(dev_site, "routes/905/weekdays/midday")
+    assert '<span class="dropdown-label">Time of day</span> <span class="dropdown-value">Midday</span>' in html
+    assert ("Midday (9 am to 3 pm)", "/routes/905/weekdays/midday/", True) in menu(html, "Time of day")
     # Every page of the home page and the routes has both menus; stop pages have none.
     for p in html_pages(dev_site):
         if p.name != "index.html":

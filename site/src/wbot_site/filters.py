@@ -53,6 +53,7 @@ class Choice:
     label: str
     href: str | None  # None: no service in that preset, so no page
     current: bool
+    short: str  # the closed menu's button: "Midday", so the settings bar fits on one row
 
 
 @dataclass
@@ -88,11 +89,11 @@ class Filter:
 def make(base: str, daytype: str, band: str, exists) -> Filter:
     """The filter for the page at `base` ("/" or "/routes/13/"); exists(daytype, band) says
     whether that preset has a page here. A menu choice keeps the other menu's choice."""
-    def choice(dt: str, b: str, label: str, current: bool) -> Choice:
-        return Choice(label, base + path(dt, b) if exists(dt, b) else None, current)
+    def choice(dt: str, b: str, label: str, current: bool, short: str) -> Choice:
+        return Choice(label, base + path(dt, b) if exists(dt, b) else None, current, short)
 
     return Filter(
         daytype, band,
-        [choice(dt, band, DAYTYPE_MENU[dt], dt == daytype) for dt in contract.MAP_DAYTYPES],
-        [choice(daytype, b, band_label(b), b == band) for b in contract.MAP_BANDS],
+        [choice(dt, band, DAYTYPE_MENU[dt], dt == daytype, DAYTYPE_MENU[dt]) for dt in contract.MAP_DAYTYPES],
+        [choice(daytype, b, band_label(b), b == band, BAND_NAMES.get(b, "All day")) for b in contract.MAP_BANDS],
     )
