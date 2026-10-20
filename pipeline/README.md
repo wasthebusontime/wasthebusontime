@@ -10,13 +10,15 @@ The archive is only ever read. Everything the pipeline writes can be rebuilt fro
 |---|---|---|
 | Static cache | `static/*.zip` | `static/{version}/*.parquet`, once per GTFS version |
 | Stop events, per service date | the date's hourly packs, the GTFS version in effect, the fetch log | `events/YYYY/DATE.parquet`, `trips/YYYY/DATE.parquet`, `days/DATE.json` |
-| Aggregates and site files | every processed date | `agg/*.parquet`, `out/site/*.json`, `out/csv/*.csv` |
+| Aggregates and site files | every processed date | `agg/*.parquet`, `out/site/*.json`, `out/csv/*.csv`, `out/trips/trips_YYYY-MM.csv` (finished months) |
 | Publish (off by default) | `out/` | a commit to the stats repo |
 
 - **Actual times** come from TripUpdates: the feed keeps each passed stop about 15 minutes, with times that stop changing once the bus has left. For each (service date, trip, stop sequence) the pipeline keeps the last times seen. A departure counts as recorded only if the stop was seen after its departure while the trip had a vehicle, and the trip's last update is at or after the departure. Nothing missing is ever guessed.
 - **Schedule:** each service date uses the static GTFS version in effect that day: the newest one fetched before the day ended, among those whose dates cover it. Scheduled times are noon minus 12 hours, local time, plus the GTFS time, so DST change days and trips after midnight come out right.
 - **Gaps** come from the fetch log, only while trips are scheduled to run. Gaps longer than `gap_tolerance_s` become data-loss windows. `src/wbot_pipeline/gap_causes.toml` records causes and notes for known gaps.
 - **Day manifests** (`days/DATE.json`) list every pack read with its sha256, the GTFS version, the pipeline commit and the events version. `meta.json` carries one sha256 over all of them.
+- **Blocks:** each trip keeps its block, the previous trip on the block, the scheduled layover, the previous trip's end-of-line delay and whether it was a **carry-over** (the bus, coming off the previous trip, reached the first stop after the scheduled departure). Same pairing rules as end-of-line arrivals: same bus, same stop, a layover under 10 minutes; otherwise unknown.
+- **Per-trip downloads** (`out/trips/`): one CSV per month, written only once the month's last day is behind the trailing window, and the same bytes on every later run. Publishing adds them to the stats repo and never removes one; the site doesn't copy them.
 - **The on-time rules** (windows, scopes, last stop excluded, thresholds) are applied when the site files are written (the stop events keep every column they need), so a threshold change takes seconds, not a rebuild.
 
 ### Which dates run
@@ -34,7 +36,7 @@ A date waits until all of its hours are packed. The site files are then rewritte
 
 ### Settings
 
-Environment variables; see [deploy/pipeline.env.example](deploy/pipeline.env.example). The methodology's provisional thresholds are all settings: `WBOT_PIPELINE_TRIP_COVERAGE_MIN` (0.5), `WBOT_PIPELINE_MIN_SAMPLE` (30), `WBOT_PIPELINE_GAP_TOLERANCE_S` (780), `WBOT_PIPELINE_LOW_COMPLETENESS_BELOW` (0.8), plus `WBOT_PIPELINE_PROVISIONAL` and `WBOT_PIPELINE_METHODOLOGY_VERSION`. The on-time windows (-60 to 300 s as the headline, and 0 to 300 s, Intercity Transit's own) are fixed: the site's labels describe exactly those.
+Environment variables; see [deploy/pipeline.env.example](deploy/pipeline.env.example). The methodology's provisional thresholds are all settings: `WBOT_PIPELINE_TRIP_COVERAGE_MIN` (0.5), `WBOT_PIPELINE_MIN_SAMPLE` (30), `WBOT_PIPELINE_GAP_TOLERANCE_S` (780), `WBOT_PIPELINE_LOW_COMPLETENESS_BELOW` (0.8), plus `WBOT_PIPELINE_PROVISIONAL` and `WBOT_PIPELINE_METHODOLOGY_VERSION`. `WBOT_PIPELINE_PREVIEW=1` marks a preview run (a branch's code on real data beside the main run): it never publishes, whatever `WBOT_PIPELINE_PUBLISH` says. The on-time windows (-60 to 300 s as the headline, and 0 to 300 s, Intercity Transit's own) are fixed: the site's labels describe exactly those.
 
 ## Development
 
@@ -102,6 +104,8 @@ sudo systemctl enable --now wbot-pipeline.timer
 
 The collector's hourly backup copies `derived/` (except `tmp/` and `out/`) to B2 next to the archive.
 
+A second, preview run of another branch (now `patterns`) can run beside this one with its own checkout, settings and derived folder, never publishing: [deploy/patterns/README.md](deploy/patterns/README.md).
+
 ### Publishing to the stats repo
 
 1. Create a deploy key on the VM. Only the public key is printed:
@@ -116,7 +120,7 @@ The collector's hourly backup copies `derived/` (except `tmp/` and `out/`) to B2
    sudo -u wbot -H env GIT_SSH_COMMAND='ssh -i /var/lib/wbot/.ssh/stats_deploy -o IdentitiesOnly=yes' \
        git clone git@github.com:wasthebusontime/stats.git /var/lib/wbot/stats
    ```
-4. Set `WBOT_PIPELINE_PUBLISH=1` in the env file. The next run commits `site/` and `csv/` if anything changed and pushes. Commits use the project's GitHub noreply address.
+4. Set `WBOT_PIPELINE_PUBLISH=1` in the env file. The next run commits `site/`, `csv/` and any new `trips/` file if anything changed and pushes. Commits use the project's GitHub noreply address.
 5. Remove the evaluation-phase dev copy: steps in [deploy/devcopy/README.md](deploy/devcopy/README.md).
 
 ### Monitoring
