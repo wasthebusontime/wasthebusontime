@@ -107,6 +107,10 @@ _Avoid_: knock-on delay, late because
 The stretch of one route and direction between two consecutive timepoints (or a timepoint and the trip's last stop), measured by the delay gained over it.
 _Avoid_: link, leg
 
+**Delay gained**:
+Over one segment of one trip, the arrival delay at its far end minus the departure delay at its near end: the time the bus took between them less the time scheduled. A scheduled wait at a timepoint is in neither segment. Negative when the bus made up time. Only when both ends were recorded; at the last stop the arrival is the end-of-line arrival (from the next trip on the block, or GPS).
+_Avoid_: delay added, time lost (in public text, unless qualified)
+
 **Pattern**:
 A condition that many late departures share, found by a published rule and shown as an interpretation, not a measurement: general, or for one day type and band. Patterns name conditions, never people or decisions, and never suggest fixes. A carry-over pattern is the share of a route's late departures (by direction and first stop) that were on trips which left their first stop late right after a carry-over.
 _Avoid_: cause, reason, "why late", finding (in public text)

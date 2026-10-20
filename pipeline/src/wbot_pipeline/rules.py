@@ -47,6 +47,11 @@ END_OF_LINE = """(is_last AND scheduled AND observed_arr
                  AND (stop_sr = 'SCHEDULED' OR (stop_sr IS NULL AND method IN ('block', 'gps')))
                  AND trip_sr = 'SCHEDULED' AND delay_arr_s IS NOT NULL)"""
 
+# An arrival that counts at the far end of a segment: the end-of-line arrival at the last stop;
+# elsewhere a recorded arrival at a stop whose departure is observed too (its times are final).
+SEGMENT_ARRIVAL = f"""({END_OF_LINE} OR (NOT is_last AND observed AND observed_arr AND scheduled
+                     AND stop_sr = 'SCHEDULED' AND trip_sr = 'SCHEDULED' AND delay_arr_s IS NOT NULL))"""
+
 
 def band(hour: str) -> str:
     """The band of a service hour column, from the contract's BANDS; the last band takes every later hour."""

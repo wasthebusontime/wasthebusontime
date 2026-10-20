@@ -5,6 +5,7 @@ Writes, under derived/:
                                   any stop the feed reported that the schedule doesn't have
   trips/YYYY/YYYY-MM-DD.parquet   one row per trip, with its block, the previous trip on the
                                   block, the layover and whether it was a carry-over
+  segments/YYYY/YYYY-MM-DD.parquet  one row per segment of every scheduled trip (segments())
   days/YYYY-MM-DD.json            what was read (packs and their sha256, static version),
                                   versions, gaps in collection, and a few counts
   alerts/YYYY/YYYY-MM-DD.parquet  every service alert seen in the same hours (alerts.py)
@@ -42,6 +43,7 @@ READ_AFTER_S = 3600
 class Paths:
     events: Path
     trips: Path
+    segments: Path
     manifest: Path
 
 
@@ -50,6 +52,7 @@ def paths(settings: Settings, d: date) -> Paths:
     return Paths(
         events=root / "events" / f"{d:%Y}" / f"{d.isoformat()}.parquet",
         trips=root / "trips" / f"{d:%Y}" / f"{d.isoformat()}.parquet",
+        segments=root / "segments" / f"{d:%Y}" / f"{d.isoformat()}.parquet",
         manifest=root / "days" / f"{d.isoformat()}.json",
     )
 
@@ -219,6 +222,46 @@ def end_of_line(con, positions: gps.Positions) -> None:
         """)
 
 
+def segments(con, target: Path) -> None:
+    """Write the segments (GLOSSARY.md) of every scheduled trip: each pair of consecutive ends,
+    A to B, where the ends are the trip's timepoints and its last stop. Delays at A are its
+    counted departure (rules.DEPARTURE), at B its arrival (rules.SEGMENT_ARRIVAL: at the last
+    stop the end-of-line arrival, from TripUpdates, the block or GPS). Delay gained is B's
+    arrival delay minus A's departure delay, so a scheduled hold at a timepoint is in neither
+    segment; it is null unless both ends count. The scheduled time and the day type and hour
+    are A's departure's."""
+    con.execute(f"""
+        COPY (
+        WITH s AS (
+            SELECT *, row_number() OVER (PARTITION BY trip_id ORDER BY stop_sequence) AS idx,
+                   CASE WHEN {rules.DEPARTURE} THEN delay_dep_s END AS dep_s,
+                   CASE WHEN {rules.SEGMENT_ARRIVAL} THEN delay_arr_s END AS arr_s
+            FROM ev WHERE scheduled
+        ),
+        e AS (
+            SELECT *, row_number() OVER (PARTITION BY trip_id ORDER BY stop_sequence) - 1 AS segment,
+                   lead(stop_id) OVER w AS to_stop_id, lead(stop_code) OVER w AS to_stop_code,
+                   lead(stop_sequence) OVER w AS to_seq, lead(is_last) OVER w AS to_last,
+                   lead(idx) OVER w AS to_idx, lead(sched_arr_ts) OVER w AS to_sched_arr_ts,
+                   lead(arr_s) OVER w AS to_arr_s, lead(method) OVER w AS to_method_any
+            FROM s WHERE is_timepoint OR is_last
+            WINDOW w AS (PARTITION BY trip_id ORDER BY stop_sequence)
+        )
+        SELECT service_date, trip_id, route_id, route_slug, direction_id, CAST(segment AS INTEGER) AS segment,
+               stop_id AS from_stop_id, stop_code AS from_stop_code, stop_sequence AS from_seq,
+               to_stop_id, to_stop_code, to_seq, to_last, CAST(to_idx - idx - 1 AS INTEGER) AS stops_between,
+               day_type, service_hour, sched_dep_ts, to_sched_arr_ts AS sched_arr_ts,
+               CAST(to_sched_arr_ts - sched_dep_ts AS INTEGER) AS sched_run_s,
+               dep_s AS from_delay_dep_s, to_arr_s AS to_delay_arr_s,
+               CASE WHEN to_arr_s IS NOT NULL THEN to_method_any END AS to_method,
+               CAST(to_arr_s - dep_s AS INTEGER) AS gain_s,
+               {EVENTS_VERSION} AS events_version
+        FROM e WHERE to_stop_id IS NOT NULL
+        ORDER BY trip_id, segment
+        ) TO '{quote(target)}' (FORMAT parquet, COMPRESSION zstd)
+    """)
+
+
 def process_date(settings: Settings, versions: list[static.Version], d: date, pipeline_version: str) -> str:
     """Process one service date (one the date plan says is ready). Returns 'ok', 'no_static'
     or 'no_service'."""
@@ -277,7 +320,7 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
                   stop_sequence = max(stop_sequence) OVER (PARTITION BY trip_id) AS is_last
         FROM sched
     """)
-    for p in (out.events, out.trips):
+    for p in (out.events, out.trips, out.segments):
         p.parent.mkdir(parents=True, exist_ok=True)
     events_tmp = out.events.with_name(out.events.name + ".tmp")
     con.execute(f"""
@@ -318,6 +361,8 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
     """)
     end_of_line(con, positions)
     con.execute(f"COPY (SELECT * FROM ev ORDER BY 2, 6) TO '{quote(events_tmp)}' (FORMAT parquet, COMPRESSION zstd)")
+    segments_tmp = out.segments.with_name(out.segments.name + ".tmp")
+    segments(con, segments_tmp)
     trips_tmp = out.trips.with_name(out.trips.name + ".tmp")
     con.execute(f"""
         COPY (
@@ -373,6 +418,7 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
     con.close()
     os.replace(events_tmp, out.events)
     os.replace(trips_tmp, out.trips)
+    os.replace(segments_tmp, out.segments)
     alerts_path = alerts.path(settings, d)
     alerts_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(seen_alerts.table(), alerts_path.with_name(alerts_path.name + ".tmp"))
