@@ -9,6 +9,7 @@ Output layout (written to a fresh directory, then swapped in):
   stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
   presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
   csv/*.csv (see opendata.py)
+  trips/trips_YYYY-MM.csv, per trip, finished months only (opendata.write_trips)
 """
 
 import hashlib
@@ -167,6 +168,7 @@ def build(settings: Settings, out: Path, *, pipeline_version: str, generated_at:
         shutil.rmtree(staging, ignore_errors=True)
         write_all(stage, names, versions, staging, pipeline_version, generated_at, synthetic)
         opendata.write(stage, names, staging / "csv", settings.derived_dir / "agg")
+        opendata.write_trips(stage, staging / "trips")
     finally:
         stage.close()
         db_path.unlink(missing_ok=True)

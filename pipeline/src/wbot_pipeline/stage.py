@@ -295,6 +295,16 @@ class Stage:
                          "_cancelled": cancelled, "_added": added, "_skipped": int(skipped)})
         return days
 
+    def trip_rows(self, month: str) -> list[tuple]:
+        """Scheduled trips of one month (YYYY-MM) for the per-trip download, by date and start:
+        (date, route, direction_id, trip_id, start_ts, then the rest of contract.TRIPS_COLUMNS)."""
+        return self._con.execute("""
+            SELECT strftime(service_date, '%Y-%m-%d'), route_slug, coalesce(direction_id, 0), trip_id, start_ts,
+                   start_delay_s, end_delay_s, block_id, prev_trip_id, sched_layover_s, prev_end_delay_s, carry_over
+            FROM tr WHERE scheduled AND strftime(service_date, '%Y-%m') = ?
+            ORDER BY service_date, start_ts, trip_id
+        """, [month]).fetchall()
+
     def route_spans(self) -> dict[str, list[tuple[int, int]]]:
         """Per route, the (first departure, last arrival) of its scheduled trips on each service date."""
         out = {}

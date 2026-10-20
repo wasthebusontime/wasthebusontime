@@ -9,6 +9,11 @@ A stats directory has the same layout as the stats repo:
   stops/{code}.json, routes.geojson, map/{period}/{daytype}-{band}.json,
   presets/{daytype}-{band}/system.json, presets/{daytype}-{band}/routes/{slug}.json
   csv/*.csv
+  trips/trips_YYYY-MM.csv
+
+Per-trip downloads (trips/, optional, TRIPS_COLUMNS): one row per scheduled trip, one file
+per finished month, written once. They are published in the stats repo only; the site
+doesn't copy them.
 
 Page presets (presets/, optional: stats without them are valid) are the route and system
 numbers for one day type and band, for every name in PRESETS. A preset file has the shapes
@@ -24,7 +29,9 @@ no scheduled departures in a preset has no file there: a preset file always has
 scheduled.all_stops above 0, and a preset's routes table lists exactly its route files.
 """
 
+import csv
 import json
+import re
 from pathlib import Path
 
 SCHEMA = 1
@@ -71,6 +78,19 @@ MAP_CELL = ("n", "early", "on_time", "late", "on_time_alt")
 def count_key(part: str, window: str = "headline") -> str:
     """The name of a perf count: count_key("on_time", "alt") -> "on_time_alt"."""
     return part + SUFFIX[window]
+
+
+# Per-trip download columns. Delays are in seconds, blank when not recorded; carry_over is
+# yes, no or blank (unknown). sched_start is the scheduled first departure as a GTFS time.
+TRIPS_DIR = "trips"
+TRIPS_COLUMNS = ("date", "route", "direction_id", "trip_id", "sched_start", "start_delay_s", "end_delay_s",
+                 "block_id", "prev_trip_id", "sched_layover_s", "prev_end_delay_s", "carry_over")
+CARRY_OVER = {True: "yes", False: "no", None: ""}
+
+
+def trips_file(month: str) -> str:
+    """The per-trip download for a month: trips_file("2026-10") -> "trips_2026-10.csv"."""
+    return f"trips_{month}.csv"
 
 
 class ContractError(ValueError):
@@ -136,6 +156,9 @@ def validate(stats_dir: Path) -> None:
 
     if (site / "presets").is_dir():
         _presets(site, system)
+
+    if (Path(stats_dir) / TRIPS_DIR).is_dir():
+        validate_trips(Path(stats_dir) / TRIPS_DIR)
 
 
 # The checks. `where` names the file and the place in it, for the error message.
@@ -361,3 +384,19 @@ def _preset_sums(totals: dict, entities: list) -> None:
                 if total != want:
                     raise ContractError(f"{file(*whole, e)}: {key} is {want}, but {file(*label, e)} "
                                         f"add up to {total}")
+
+
+def validate_trips(folder: Path) -> None:
+    """Per-trip downloads: named by month, with TRIPS_COLUMNS, every row in that month."""
+    for path in sorted(folder.iterdir()):
+        month = path.name[len("trips_"):-len(".csv")]
+        if not re.fullmatch(r"\d{4}-\d{2}", month) or path.name != trips_file(month):
+            raise ContractError(f"trips/{path.name}: expected trips_YYYY-MM.csv")
+        with open(path, newline="", encoding="utf-8") as f:
+            rows = csv.reader(f)
+            if tuple(next(rows, ())) != TRIPS_COLUMNS:
+                raise ContractError(f"trips/{path.name}: columns aren't {', '.join(TRIPS_COLUMNS)}")
+            for i, row in enumerate(rows, start=2):
+                if (len(row) != len(TRIPS_COLUMNS) or not row[0].startswith(month + "-")
+                        or row[-1] not in CARRY_OVER.values()):
+                    raise ContractError(f"trips/{path.name}: line {i} is malformed")

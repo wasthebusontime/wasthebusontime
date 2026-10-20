@@ -28,6 +28,11 @@ def gtfs_seconds(hms: str) -> int | None:
     return h * 3600 + m * 60 + s
 
 
+def hms(seconds: int) -> str:
+    """90600 -> '25:10:00' (a GTFS time, past 24 h after midnight)."""
+    return f"{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}"
+
+
 def daytype(d: date) -> str:
     return {5: "saturday", 6: "sunday"}.get(d.weekday(), "weekday")
 

@@ -170,3 +170,24 @@ def test_page_presets_are_optional(stats):
     # A preset with no service has no folder, and that is valid: the sample has no early service.
     assert not (SAMPLE_DIR / "site" / "presets" / "weekday-early").exists()
     contract.validate(SAMPLE_DIR)
+
+
+TRIPS_HEADER = ",".join(contract.TRIPS_COLUMNS)
+
+
+@pytest.mark.parametrize(("name", "text", "message"), [
+    ("trips_2026-10.csv", TRIPS_HEADER + "\n2026-10-06,13,0,t1,07:00:00,30,250,B1,t0,240,220,yes\n", None),
+    ("trips_2026-10.csv", TRIPS_HEADER + "\n2026-10-06,13,0,t1,07:00:00,,,,,,,\n", None),
+    ("trips-2026-10.csv", TRIPS_HEADER + "\n", "expected trips_YYYY-MM.csv"),
+    ("trips_2026-10.csv", "date,route\n", "columns aren't"),
+    ("trips_2026-10.csv", TRIPS_HEADER + "\n2026-11-01,13,0,t1,07:00:00,,,,,,,\n", "line 2 is malformed"),
+    ("trips_2026-10.csv", TRIPS_HEADER + "\n2026-10-06,13,0,t1,07:00:00,,,,,,,maybe\n", "line 2 is malformed"),
+])
+def test_trips_downloads_are_checked_when_present(stats, name, text, message):
+    (stats / "trips").mkdir()
+    (stats / "trips" / name).write_text(text, encoding="utf-8")
+    if message is None:
+        contract.validate(stats)
+    else:
+        with pytest.raises(ContractError, match=message):
+            contract.validate(stats)

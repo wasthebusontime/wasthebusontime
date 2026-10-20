@@ -8,16 +8,22 @@ whose percentiles are per row and say so in the column names.
       (headline window -60 to 300 s; alt window 0 to 300 s)
   H = under, m_10 ... m_1, m0 ... m19, over (departures per 1-minute delay bucket;
       m_3 is 3 to 2 minutes early, m4 is 4 to 5 minutes late)
+
+The per-trip downloads (trips/trips_YYYY-MM.csv, write_trips) are the exception to
+"aggregates only": one row per scheduled trip, delays we computed, no vehicle IDs and no
+raw feed timestamps. One file per finished month, so each is written once.
 """
 
 import csv
+from datetime import date, timedelta
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from wbot_site.contract import COUNTS
+from wbot_site.contract import CARRY_OVER, COUNTS, TRIPS_COLUMNS, trips_file
 
+from . import timeutil
 from .config import HIST_BUCKETS, HIST_START_MIN
 from .quality import data_loss
 
@@ -96,3 +102,34 @@ def write(stage, names, csv_dir: Path, agg_dir: Path) -> None:
         columns = {h: [r[i] for r in rows] for i, h in enumerate(header)}
         pq.write_table(pa.table(columns) if rows else pa.table({h: pa.array([], pa.string()) for h in header}),
                        agg_dir / f"{name}.parquet")
+
+
+def finished_months(start: date, end: date, trailing_days: int) -> list[str]:
+    """Months (YYYY-MM) of the period from start to end whose last day is behind the trailing
+    window, so no nightly run redoes any of their dates (only a late pack or a reprocess can)."""
+    months, d = [], start.replace(day=1)
+    while True:
+        last = (d + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        if last > end - timedelta(days=trailing_days):
+            return months
+        months.append(f"{d:%Y-%m}")
+        d = last + timedelta(days=1)
+
+
+def write_trips(stage, trips_dir: Path) -> list[str]:
+    """One CSV per finished month of the period. Returns the months written."""
+    period = stage.period
+    months = finished_months(period.start, period.end, stage.settings.trailing_days)
+    origins = {}
+    for month in months:
+        trips_dir.mkdir(parents=True, exist_ok=True)
+        with open(trips_dir / trips_file(month), "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f, lineterminator="\n")
+            w.writerow(TRIPS_COLUMNS)
+            for day, route, direction, trip_id, start_ts, *rest, carry_over in stage.trip_rows(month):
+                if day not in origins:
+                    origins[day] = timeutil.origin(date.fromisoformat(day))
+                start = "" if start_ts is None else timeutil.hms(start_ts - origins[day])
+                w.writerow([day, route, direction, trip_id, start,
+                            *("" if v is None else v for v in rest), CARRY_OVER[carry_over]])
+    return months

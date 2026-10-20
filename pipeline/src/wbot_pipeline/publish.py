@@ -1,5 +1,5 @@
 """Publish the site files to the public stats repo: replace site/ and csv/ in a local
-clone, commit if anything changed, push.
+clone, add the per-trip files in trips/, commit if anything changed, push.
 
 Off unless WBOT_PIPELINE_PUBLISH=1, and always off in a preview run
 (WBOT_PIPELINE_PREVIEW=1), whatever WBOT_PIPELINE_PUBLISH says. The clone belongs to the pipeline: it is reset to
@@ -19,6 +19,9 @@ from .config import COMMIT_EMAIL, COMMIT_NAME, Settings
 log = logging.getLogger(__name__)
 
 PUBLISHED = ("site", "csv")
+# Added to, never replaced: each month's file is written once, when the month is finished,
+# and stays even if a later output leaves it out.
+ADDED = ("trips",)
 BRANCH = "main"
 
 
@@ -63,8 +66,12 @@ def publish(settings: Settings, out: Path, *, message: str) -> str:
         target = repo / name
         shutil.rmtree(target, ignore_errors=True)
         shutil.copytree(out / name, target)
-    _git(repo, "add", "--all", "--", *PUBLISHED)
-    if not _git(repo, "status", "--porcelain", "--", *PUBLISHED).strip():
+    for name in ADDED:
+        if (out / name).is_dir():
+            shutil.copytree(out / name, repo / name, dirs_exist_ok=True)
+    paths = (*PUBLISHED, *(name for name in ADDED if (repo / name).exists()))
+    _git(repo, "add", "--all", "--", *paths)
+    if not _git(repo, "status", "--porcelain", "--", *paths).strip():
         log.info("stats unchanged; nothing to publish")
         return "unchanged"
     _git(repo, "-c", f"user.name={COMMIT_NAME}", "-c", f"user.email={COMMIT_EMAIL}",

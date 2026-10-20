@@ -3,7 +3,8 @@
 Writes, under derived/:
   events/YYYY/YYYY-MM-DD.parquet  one row per scheduled stop of every active trip, plus
                                   any stop the feed reported that the schedule doesn't have
-  trips/YYYY/YYYY-MM-DD.parquet   one row per trip
+  trips/YYYY/YYYY-MM-DD.parquet   one row per trip, with its block, the previous trip on the
+                                  block, the layover and whether it was a carry-over
   days/YYYY-MM-DD.json            what was read (packs and their sha256, static version),
                                   versions, gaps in collection, and a few counts
   alerts/YYYY/YYYY-MM-DD.parquet  every service alert seen in the same hours (alerts.py)
@@ -123,34 +124,49 @@ def _write_manifest(target: Path, doc: dict) -> None:
     os.replace(tmp, target)
 
 
+def block_pairs(con) -> None:
+    """Table block_pairs: each scheduled trip with a block and the trip before it on that block
+    (by scheduled start, within the service), whether the pair passes the pairing rules (same
+    bus, the next trip starts where the previous one ends, a scheduled layover under
+    MAX_BLOCK_LAYOVER_S) and the next trip's recorded arrival at its first stop: the bus's
+    arrival from the previous trip. One row per trip that has a previous trip."""
+    con.execute(f"""
+        CREATE TEMP TABLE block_pairs AS
+        WITH tb AS (
+            SELECT e.trip_id, t.block_id, t.service_id, min(e.sched_dep_ts) AS start_ts
+            FROM ev e JOIN trips t ON t.trip_id = e.trip_id
+            WHERE e.scheduled AND coalesce(t.block_id, '') <> ''
+            GROUP BY ALL
+        ),
+        p AS (SELECT trip_id AS a, lead(trip_id) OVER (PARTITION BY block_id, service_id
+                                                       ORDER BY start_ts, trip_id) AS b FROM tb)
+        SELECT p.b AS trip_id, p.a AS prev_trip_id,
+               CAST(fb.sched_dep_ts - la.sched_arr_ts AS INTEGER) AS sched_layover_s,
+               coalesce(la.stop_id = fb.stop_id AND ra.last_vehicle_id = rb.first_vehicle_id
+                        AND fb.sched_dep_ts - la.sched_arr_ts < {MAX_BLOCK_LAYOVER_S}, false) AS paired,
+               CASE WHEN fb.observed_arr THEN fb.act_arr_ts END AS first_arr_ts,
+               fb.sched_dep_ts AS first_dep_ts
+        FROM p
+        JOIN ev la ON la.trip_id = p.a AND la.is_last
+        JOIN ev fb ON fb.trip_id = p.b AND fb.is_first
+        LEFT JOIN rt_trips ra ON ra.trip_id = p.a
+        LEFT JOIN rt_trips rb ON rb.trip_id = p.b
+        WHERE p.b IS NOT NULL
+    """)
+
+
 def end_of_line(con, positions: gps.Positions) -> None:
     """Fill in arrivals at each trip's last stop, which TripUpdates never lists: from the next
-    trip in the same block, when the same bus runs it, it starts at that stop, its arrival
-    there was recorded and the scheduled layover is short (method 'block'); otherwise from
-    the bus's GPS (method 'gps'); otherwise they stay not recorded."""
-    con.execute(f"""
-        UPDATE ev SET act_arr_ts = n.arr, delay_arr_s = CAST(n.arr - ev.sched_arr_ts AS INTEGER),
+    trip in the same block, when the pair passes the pairing rules (block_pairs) and the next
+    trip's arrival at its first stop was recorded (method 'block'); otherwise from the bus's
+    GPS (method 'gps'); otherwise they stay not recorded."""
+    block_pairs(con)
+    con.execute("""
+        UPDATE ev SET act_arr_ts = n.first_arr_ts, delay_arr_s = CAST(n.first_arr_ts - ev.sched_arr_ts AS INTEGER),
                       observed_arr = true, method = 'block'
-        FROM (
-            WITH tb AS (
-                SELECT e.trip_id, t.block_id, t.service_id, min(e.sched_dep_ts) AS start_ts
-                FROM ev e JOIN trips t ON t.trip_id = e.trip_id
-                WHERE e.scheduled AND coalesce(t.block_id, '') <> ''
-                GROUP BY ALL
-            ),
-            p AS (SELECT trip_id AS a, lead(trip_id) OVER (PARTITION BY block_id, service_id
-                                                           ORDER BY start_ts, trip_id) AS b FROM tb)
-            SELECT p.a, fb.act_arr_ts AS arr
-            FROM p
-            JOIN ev la ON la.trip_id = p.a AND la.is_last
-            JOIN ev fb ON fb.trip_id = p.b AND fb.is_first
-            JOIN rt_trips ra ON ra.trip_id = p.a
-            JOIN rt_trips rb ON rb.trip_id = p.b
-            WHERE la.stop_id = fb.stop_id AND ra.last_vehicle_id = rb.first_vehicle_id
-              AND fb.observed_arr AND fb.act_arr_ts IS NOT NULL
-              AND fb.sched_dep_ts - la.sched_arr_ts < {MAX_BLOCK_LAYOVER_S}
-        ) n
-        WHERE ev.trip_id = n.a AND ev.is_last AND NOT ev.observed_arr
+        FROM block_pairs n
+        WHERE n.paired AND n.first_arr_ts IS NOT NULL
+          AND ev.trip_id = n.prev_trip_id AND ev.is_last AND NOT ev.observed_arr
     """)
     need = con.execute("""
         WITH prev AS (
@@ -298,16 +314,29 @@ def process_date(settings: Settings, versions: list[static.Version], d: date, pi
                    count(*) FILTER (WHERE stop_sr = 'NO_DATA') AS no_data_stops,
                    min(sched_dep_ts) AS start_ts, max(sched_arr_ts) AS end_ts
             FROM e GROUP BY trip_id
-        )
+        ),
+        -- Delays that count in the published numbers: the first-stop departure, and the
+        -- end-of-line arrival (from TripUpdates, the block or GPS).
+        dep AS (SELECT trip_id, delay_dep_s FROM e WHERE is_first AND {rules.DEPARTURE}),
+        eol AS (SELECT trip_id, delay_arr_s FROM e WHERE {rules.END_OF_LINE})
         SELECT DATE '{d.isoformat()}' AS service_date, a.trip_id, a.route_id, a.route_slug, a.direction_id,
                a.scheduled, rt.trip_id IS NOT NULL AS seen, coalesce(rt.vehicle_seen, false) AS seen_with_vehicle,
                rt.trip_sr, a.eligible_timepoints, a.observed_timepoints, a.skipped_stops, a.no_data_stops,
-               a.start_ts, a.end_ts
+               a.start_ts, a.end_ts,
+               nullif(t.block_id, '') AS block_id, bp.prev_trip_id, bp.sched_layover_s,
+               pe.delay_arr_s AS prev_end_delay_s, dep.delay_dep_s AS start_delay_s, eol.delay_arr_s AS end_delay_s,
+               CASE WHEN bp.paired AND bp.first_arr_ts IS NOT NULL THEN bp.first_arr_ts > bp.first_dep_ts END
+                   AS carry_over
         FROM a LEFT JOIN rt_trips rt USING (trip_id)
+        LEFT JOIN trips t ON t.trip_id = a.trip_id AND a.scheduled
+        LEFT JOIN block_pairs bp ON bp.trip_id = a.trip_id
+        LEFT JOIN eol pe ON pe.trip_id = bp.prev_trip_id
+        LEFT JOIN dep ON dep.trip_id = a.trip_id
+        LEFT JOIN eol ON eol.trip_id = a.trip_id
         UNION ALL
         SELECT DATE '{d.isoformat()}', rt.trip_id, rt.rt_route_id,
                route_slug(coalesce(ro.route_short_name, rt.rt_route_id)), NULL, false, true, rt.vehicle_seen,
-               rt.trip_sr, 0, 0, 0, 0, NULL, NULL
+               rt.trip_sr, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
         FROM rt_trips rt LEFT JOIN routes ro ON ro.route_id = rt.rt_route_id
         WHERE rt.trip_id NOT IN (SELECT trip_id FROM a)
         ORDER BY 2

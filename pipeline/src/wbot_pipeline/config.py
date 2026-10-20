@@ -15,7 +15,7 @@ from wbot_collector import layout
 
 # Bump when the way stop events are derived from the archive changes. Every
 # service date whose events were made by another version is reprocessed.
-EVENTS_VERSION = 2
+EVENTS_VERSION = 3
 
 # On-time windows in seconds late, inclusive. The headline is the common industry
 # window (1 min early to 5 min late); the alt is Intercity Transit's own (0 to 5).

@@ -72,3 +72,22 @@ def test_preview_never_publishes(tmp_path, remote):
     assert publish.publish(settings, output(tmp_path / "out", 1), message="m") == "preview"
     assert git(bare, "log", "--format=%s", "main").splitlines() == ["init"]
     assert not (clone / "site").exists()
+
+
+def test_trips_are_added_never_removed(tmp_path, remote):
+    bare, clone = remote
+    settings = load_settings({}, data_dir=tmp_path, derived_dir=tmp_path, publish=True, stats_repo=clone)
+    out = output(tmp_path / "out", 1)
+    (out / "trips").mkdir()
+    (out / "trips" / "trips_2026-10.csv").write_text("date\n2026-10-06\n")
+    assert publish.publish(settings, out, message="October") == "pushed"
+    assert publish.publish(settings, out, message="again") == "unchanged"
+    # A later output without October's file (or without trips/ at all) leaves it published.
+    (out / "trips" / "trips_2026-10.csv").unlink()
+    (out / "trips" / "trips_2026-11.csv").write_text("date\n2026-11-02\n")
+    assert publish.publish(settings, out, message="November") == "pushed"
+    (out / "trips" / "trips_2026-11.csv").unlink()
+    (out / "trips").rmdir()
+    assert publish.publish(settings, out, message="none") == "unchanged"
+    files = git(bare, "ls-tree", "-r", "--name-only", "main").split()
+    assert "trips/trips_2026-10.csv" in files and "trips/trips_2026-11.csv" in files
