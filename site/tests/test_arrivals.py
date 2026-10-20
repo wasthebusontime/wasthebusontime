@@ -48,6 +48,12 @@ def test_spare_words(seconds, words):
     assert data.spare_text(seconds) == words
 
 
+@pytest.mark.parametrize("seconds, words", [(589, "9 min 49 sec"), (0, "none"), (-76, "1 min 16 sec late"),
+                                            (None, "n/a")])
+def test_spare_words_for_a_table_column(seconds, words):
+    assert data.spare_short(seconds) == words
+
+
 # Route pages
 
 
@@ -111,6 +117,7 @@ def test_stop_page_where_trips_end_has_an_arrivals_table(dev_site):
     r = eol["by_route"][0]
     assert f"<td class=\"num\">{r['n']:,}</td>" in block
     assert data.percent(r["next"]["in_time"], r["next"]["n"]) in block
+    assert f'<td class="num">{data.spare_short(r["next"]["spare_p50"])}</td>' in block
     assert NOTE in block
 
 

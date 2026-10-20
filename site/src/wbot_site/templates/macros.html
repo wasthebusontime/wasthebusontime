@@ -246,7 +246,7 @@
 {% if r.n >= min_sample %}
 <td class="num">{{ r.n | number }}</td><td class="num">{{ r.p50 | delay }}</td><td class="num">{{ fraction(r.early_share) }}</td>
 {% if r.get("next") and r.next.n >= min_sample %}
-<td class="num">{{ percent(r.next.in_time, r.next.n) }} <span class="def">of {{ r.next.n | number }}</span></td><td class="num">{{ r.next.spare_p50 | spare }}</td>
+<td class="num">{{ percent(r.next.in_time, r.next.n) }} <span class="def">of {{ r.next.n | number }}</span></td><td class="num">{{ r.next.spare_p50 | spare_short }}</td>
 {% else %}
 <td class="num" colspan="2"><span class="nodata">Not enough data</span></td>
 {% endif %}
