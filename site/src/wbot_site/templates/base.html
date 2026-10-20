@@ -22,7 +22,7 @@
 {% if env == "dev" or synthetic %}
 <aside aria-label="Build notice">
 {% if env == "dev" %}
-<p class="banner banner-dev">DEV PREVIEW: code {{ banner.code }}, stats {{ banner.stats }}, built {{ banner.time }}</p>
+<p class="banner banner-dev">{{ banner.label }}: code {{ banner.code }}, stats {{ banner.stats }}, built {{ banner.time }}</p>
 {% endif %}
 {% if synthetic %}
 <p class="banner banner-sample">SAMPLE DATA: every route, stop and number on this site is invented for testing.</p>

@@ -4,7 +4,8 @@
 
 WBOT_ENV=dev (the default) adds the preview banner and noindex; WBOT_ENV=prod has
 neither and refuses synthetic or missing stats. In dev, missing stats fall back to
-the committed sample with a "SAMPLE DATA" banner. WBOT_TILES_URL is the basemap
+the committed sample with a "SAMPLE DATA" banner. WBOT_DEV_LABEL names the preview
+in the banner (default "DEV PREVIEW"; the patterns preview on :8080 sets its own). WBOT_TILES_URL is the basemap
 tile file for the stop map; without it the map has no basemap.
 """
 
@@ -157,11 +158,13 @@ def build(
     stats_commit: str = "none",
     build_time: datetime | None = None,
     tiles_url: str = "",
+    dev_label: str = "DEV PREVIEW",
 ) -> Build:
     if env not in ENVS:
         raise ValueError(f"WBOT_ENV must be one of {ENVS}, not {env!r}")
     stats = choose_stats(stats_dir, env)
     banner = {
+        "label": dev_label,
         "code": code_commit,
         "stats": "sample" if stats.synthetic else stats_commit,
         "time": (build_time or datetime.now(UTC)).strftime("%Y-%m-%d %H:%M UTC"),
@@ -353,6 +356,7 @@ def main(argv: list[str] | None = None) -> None:
             code_commit=os.environ.get("WBOT_CODE_COMMIT", "unknown"),
             stats_commit=os.environ.get("WBOT_STATS_COMMIT", "none"),
             tiles_url=os.environ.get("WBOT_TILES_URL", ""),
+            dev_label=os.environ.get("WBOT_DEV_LABEL") or "DEV PREVIEW",
         )
     except (StatsError, ValueError) as e:
         log.error("%s", e)

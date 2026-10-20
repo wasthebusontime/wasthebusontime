@@ -291,6 +291,15 @@ def test_unknown_env_is_refused(tmp_path, monkeypatch):
     assert exc.value.code == 1
 
 
+
+def test_dev_label_names_the_preview(tmp_path, monkeypatch):
+    # The patterns preview on the dev VM's port 8080 labels its banner.
+    monkeypatch.setenv("WBOT_ENV", "dev")
+    monkeypatch.setenv("WBOT_DEV_LABEL", "PATTERNS PREVIEW")
+    main(["--stats", str(SAMPLE_DIR), "--out", str(tmp_path / "out")])
+    html = (tmp_path / "out" / "index.html").read_text(encoding="utf-8")
+    assert "PATTERNS PREVIEW: code" in html and "DEV PREVIEW" not in html
+
 def test_dev_falls_back_to_sample(tmp_path):
     (tmp_path / "stats").mkdir()  # a stats repo with no site output yet
     b = make_build(tmp_path / "stats", tmp_path / "out", "dev")

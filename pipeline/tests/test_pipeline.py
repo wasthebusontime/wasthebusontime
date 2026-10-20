@@ -63,3 +63,14 @@ def test_date_waits_while_its_hours_are_still_spooled(settings, feed):
     result = pipeline.run(settings, now=after(DAY), do_publish=False, generated_at="2026-10-07T12:00:00Z")
     assert result.processed == {DAY.isoformat(): "not_ready"}
     assert events.read_manifest(settings, DAY) is None
+
+
+def test_preview_run_says_it_cannot_publish(settings, feed, caplog):
+    feed.write()
+    preview = load_settings({"WBOT_PIPELINE_PREVIEW": "1", "WBOT_PIPELINE_PUBLISH": "1"},
+                            data_dir=settings.data_dir, derived_dir=settings.derived_dir, first_service_date=DAY)
+    with caplog.at_level("INFO"):
+        result = pipeline.run(preview, now=after(DAY), generated_at="2026-10-07T12:00:00Z")
+    assert result.published == "preview"
+    assert "publish: off (preview run)" in result.summary()
+    assert "preview run: publishing is off" in caplog.text

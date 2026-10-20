@@ -16,6 +16,10 @@
 # (pipeline/deploy/devcopy/), and the build uses those; without either, build.sh falls
 # back to the sample data. Delete private-stats/ when publishing is on.
 #
+# Settings (environment): WBOT_DEV_ROOT (default /srv/wbot-dev), WBOT_CODE_BRANCH (dev),
+# WBOT_STATS_URL and WBOT_STATS_BRANCH. An empty WBOT_STATS_URL means no stats repo: the
+# build uses private-stats/ only, as the patterns preview does (deploy/patterns/README.md).
+#
 # Everything is inside main() because the script resets the clone it lives in: bash
 # reads the whole function before running it, so a new version takes effect next run.
 set -euo pipefail
@@ -24,7 +28,7 @@ main() {
     local root=${WBOT_DEV_ROOT:-/srv/wbot-dev}
     local code_url=${WBOT_CODE_URL:-https://github.com/wasthebusontime/wasthebusontime.git}
     local code_branch=${WBOT_CODE_BRANCH:-dev}
-    local stats_url=${WBOT_STATS_URL:-https://github.com/wasthebusontime/stats.git}
+    local stats_url=${WBOT_STATS_URL-https://github.com/wasthebusontime/stats.git}
     local stats_branch=${WBOT_STATS_BRANCH:-main}
     local keep=3
     local state=$root/state releases=$root/releases
@@ -38,7 +42,11 @@ main() {
 
     local code_head stats_head wanted private=$root/private-stats
     code_head=$(remote_head "$code_url" "$code_branch")
-    stats_head=$(remote_head "$stats_url" "$stats_branch")
+    if [ -n "$stats_url" ]; then
+        stats_head=$(remote_head "$stats_url" "$stats_branch")
+    else
+        stats_head=none
+    fi
     wanted="code $code_head stats $stats_head"
     if [ -f "$private/site/meta.json" ]; then
         wanted="$wanted private $(fingerprint "$private")"
@@ -59,7 +67,7 @@ main() {
 
     local stats_dir=$root/stats
     if sync_clone "$root/code" "$code_url" "$code_branch" >>"$log" 2>&1 &&
-        sync_clone "$root/stats" "$stats_url" "$stats_branch" >>"$log" 2>&1 &&
+        { [ -z "$stats_url" ] || sync_clone "$root/stats" "$stats_url" "$stats_branch" >>"$log" 2>&1; } &&
         stats_dir=$(pick_stats "$root/stats" "$private" 2>>"$log") &&
         WBOT_ENV=dev WBOT_STATS_DIR="$stats_dir" WBOT_OUT_DIR="$release" WBOT_TILES_URL="$tiles_url" \
             bash "$root/code/site/build.sh" >>"$log" 2>&1; then

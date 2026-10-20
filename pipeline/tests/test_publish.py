@@ -62,3 +62,13 @@ def test_refuses_synthetic(tmp_path, remote):
     settings = load_settings({}, data_dir=tmp_path, derived_dir=tmp_path, publish=True, stats_repo=clone)
     with pytest.raises(publish.PublishError):
         publish.publish(settings, output(tmp_path / "out", 1, synthetic=True), message="m")
+
+
+def test_preview_never_publishes(tmp_path, remote):
+    bare, clone = remote
+    env = {"WBOT_PIPELINE_PREVIEW": "1", "WBOT_PIPELINE_PUBLISH": "1", "WBOT_STATS_REPO": str(clone)}
+    settings = load_settings(env, data_dir=tmp_path, derived_dir=tmp_path)
+    assert settings.preview and settings.publish
+    assert publish.publish(settings, output(tmp_path / "out", 1), message="m") == "preview"
+    assert git(bare, "log", "--format=%s", "main").splitlines() == ["init"]
+    assert not (clone / "site").exists()

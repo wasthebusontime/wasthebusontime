@@ -1,0 +1,12 @@
+# Variant of ../systemd/wbot-pipeline.timer for the patterns preview run (README.md here).
+[Unit]
+Description=Nightly patterns preview pipeline, after the main run
+
+[Timer]
+# After the main timer's latest start (04:00 plus up to 300 s). If the main run is still
+# going, the service's After=wbot-pipeline.service makes this one wait for it.
+OnCalendar=*-*-* 04:10:00 America/Los_Angeles
+Persistent=true
+
+[Install]
+WantedBy=timers.target

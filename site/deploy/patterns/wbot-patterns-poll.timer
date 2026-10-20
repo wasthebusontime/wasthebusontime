@@ -1,0 +1,10 @@
+# Variant of ../systemd/wbot-dev-poll.timer for the patterns preview (README.md here).
+[Unit]
+Description=Check for patterns preview changes every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

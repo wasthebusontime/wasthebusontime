@@ -73,6 +73,9 @@ class Settings:
     methodology_changes: tuple[tuple[str, str], ...] = ()
     daily_days: int = 90
     publish: bool = False
+    # A preview run (a branch's code on real data, beside the main run) never publishes,
+    # whatever publish says: publish.publish() checks this first.
+    preview: bool = False
     hc_url: str = ""
     # Private key for pushing to the stats repo (a deploy key scoped to that repo).
     ssh_key: str = ""
@@ -117,7 +120,7 @@ def load_settings(env: dict[str, str] | None = None, **overrides) -> Settings:
                        ("methodology_version", str), ("duckdb_memory", str)):
         if v := env.get(p + name.upper()):
             values[name] = cast(v)
-    for name in ("provisional", "publish"):
+    for name in ("provisional", "publish", "preview"):
         if v := env.get(p + name.upper()):
             values[name] = _bool(v)
     if v := env.get(p + "METHODOLOGY_CHANGES"):

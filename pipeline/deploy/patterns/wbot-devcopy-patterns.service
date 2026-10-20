@@ -1,0 +1,21 @@
+# Variant of ../devcopy/wbot-devcopy.service for the patterns preview run (README.md here).
+[Unit]
+Description=Was the Bus On Time? copy the patterns preview's site files to the dev VM
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wbot/patterns/pipeline/deploy/devcopy/devcopy.sh
+User=wbot
+Group=wbot
+# Read for WBOT_PIPELINE_PUBLISH, WBOT_DERIVED_DIR and WBOT_DEVCOPY_KEY.
+EnvironmentFile=/etc/wasthebusontime/pipeline-patterns.env
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=10min
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadOnlyPaths=/srv/wbot/data /var/lib/wbot

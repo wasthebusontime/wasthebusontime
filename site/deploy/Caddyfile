@@ -28,3 +28,7 @@
 		file_server
 	}
 }
+
+# Extra sites, such as the patterns preview on :8080 (deploy/patterns/README.md). A glob
+# that matches no file is only a warning, so this is harmless without them.
+import /etc/caddy/conf.d/*.caddy

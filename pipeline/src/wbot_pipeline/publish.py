@@ -1,7 +1,8 @@
 """Publish the site files to the public stats repo: replace site/ and csv/ in a local
 clone, commit if anything changed, push.
 
-Off unless WBOT_PIPELINE_PUBLISH=1. The clone belongs to the pipeline: it is reset to
+Off unless WBOT_PIPELINE_PUBLISH=1, and always off in a preview run
+(WBOT_PIPELINE_PREVIEW=1), whatever WBOT_PIPELINE_PUBLISH says. The clone belongs to the pipeline: it is reset to
 the remote before every publish. Pushing uses a deploy key scoped to that repo only
 (WBOT_STATS_SSH_KEY); the key's contents are never logged.
 """
@@ -40,7 +41,10 @@ def git_env(settings: Settings) -> dict:
 
 
 def publish(settings: Settings, out: Path, *, message: str) -> str:
-    """Returns 'disabled', 'unchanged' or 'pushed'."""
+    """Returns 'preview', 'disabled', 'unchanged' or 'pushed'."""
+    if settings.preview:
+        log.info("preview run: publishing is off whatever WBOT_PIPELINE_PUBLISH says; output left in %s", out)
+        return "preview"
     if not settings.publish:
         log.info("publishing is off (WBOT_PIPELINE_PUBLISH); output left in %s", out)
         return "disabled"

@@ -33,6 +33,7 @@ class Result:
     wrote_site: bool = False
     published: str = "disabled"
     seconds: float = 0.0
+    preview: bool = False
 
     def summary(self) -> str:
         done = sum(1 for s in self.processed.values() if s == "ok")
@@ -41,7 +42,7 @@ class Result:
         if waiting:
             parts.append(f"{len(waiting)} not ready yet")
         parts.append("site files written" if self.wrote_site else "no site files")
-        parts.append(f"publish: {self.published}")
+        parts.append("publish: off (preview run)" if self.preview else f"publish: {self.published}")
         parts.append(f"{self.seconds:.0f} s")
         return ", ".join(parts)
 
@@ -76,7 +77,9 @@ def run(settings: Settings, *, now: int | None = None, rebuild: bool = False, da
     now = now or int(time.time())
     version = pipeline_version()
     versions = static.list_versions(settings.static_dir)
-    result = Result()
+    result = Result(preview=settings.preview)
+    if settings.preview:
+        log.info("preview run: publishing is off whatever WBOT_PIPELINE_PUBLISH says")
     for e in plan(settings, versions, now, rebuild, dates):
         if not e.process:
             log.info("%s: waiting (%s)", e.date, e.reason)

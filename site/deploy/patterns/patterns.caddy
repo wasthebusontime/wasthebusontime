@@ -1,0 +1,29 @@
+# /etc/caddy/conf.d/patterns.caddy on the dev VM (VM 301): the patterns preview, the
+# `patterns` branch built from the preview pipeline run's data (README.md here). The same
+# site as :80 in ../Caddyfile with its own root, and the shared basemap tiles. ufw allows
+# port 8080 from 192.168.1.0/24 only.
+:8080 {
+	header X-Robots-Tag "noindex, nofollow"
+
+	redir /_status /_status/
+	handle_path /_status/* {
+		root * /srv/wbot-patterns/state/status
+		file_server
+	}
+
+	handle_path /tiles/* {
+		root * /srv/wbot-dev/tiles
+		file_server
+	}
+
+	handle {
+		root * /srv/wbot-patterns/releases/current
+		file_server
+	}
+
+	handle_errors {
+		root * /srv/wbot-patterns/releases/current
+		rewrite * /404.html
+		file_server
+	}
+}

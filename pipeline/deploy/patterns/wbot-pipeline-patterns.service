@@ -1,0 +1,31 @@
+# Variant of ../systemd/wbot-pipeline.service for the patterns preview run (README.md here).
+[Unit]
+Description=Was the Bus On Time? patterns preview pipeline (never publishes)
+Wants=network-online.target
+# Never alongside the main run: if wbot-pipeline is running, this waits for it to finish.
+After=network-online.target wbot-pipeline.service
+RequiresMountsFor=/srv/wbot/data
+OnSuccess=wbot-devcopy-patterns.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wbot/patterns/pipeline/.venv/bin/wbot-pipeline run
+User=wbot
+Group=wbot
+EnvironmentFile=/etc/wasthebusontime/pipeline-patterns.env
+WorkingDirectory=/opt/wbot/patterns/pipeline
+# The collector always wins: lowest CPU and disk priority, and a memory cap.
+Nice=19
+CPUWeight=idle
+IOSchedulingClass=idle
+MemoryHigh=400M
+MemoryMax=700M
+# A full rebuild takes about 25 s per service date.
+TimeoutStartSec=12h
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# The archive and the main run's output are read-only; it writes only its own directory.
+ReadOnlyPaths=/srv/wbot/data
+ReadWritePaths=/srv/wbot/data/derived-patterns
