@@ -14,7 +14,7 @@ from fractions import Fraction
 from markupsafe import Markup, escape
 
 from wbot_site import filters
-from wbot_site.data import directions_html, number, percent
+from wbot_site.data import directions_html, percent
 
 log = logging.getLogger("wbot_site")
 
@@ -23,10 +23,6 @@ log = logging.getLogger("wbot_site")
 BANNED = ("caus", "reason", r"due to", "blame", "fault", "driver", "operator", "dispatch", "schedul",
           "should", r"\bfix", "improv", r"\bwhy\b", "wrong", r"\bmust\b", r"need to")
 
-# A share in words: the nearest of these fractions, "nearly all" from NEARLY_ALL, "all" at 1.
-SHARE_FRACTIONS = (Fraction(1, 3), Fraction(2, 5), Fraction(1, 2), Fraction(3, 5), Fraction(2, 3),
-                   Fraction(3, 4), Fraction(4, 5), Fraction(9, 10))
-NEARLY_ALL = 0.95
 # Where the bus came from: "mostly from" when the largest previous route covers less than this
 # share of a pattern's matched late departures.
 MOSTLY = 0.9
@@ -44,14 +40,10 @@ def banned_words(text: str) -> list[str]:
     return [w for w in BANNED if re.search(w, text, re.I)]
 
 
-def share_words(share: float) -> str:
-    """0.3513 -> "about 1 in 3", 0.5 -> "about half", 0.97 -> "nearly all"."""
-    if share >= 1:
-        return "all"
-    if share >= NEARLY_ALL:
-        return "nearly all"
-    f = min(SHARE_FRACTIONS, key=lambda f: abs(float(f) - share))
-    return "about half" if f == Fraction(1, 2) else f"about {f.numerator} in {f.denominator}"
+def share_words(p: dict) -> str:
+    """A pattern's share as a whole percentage, from its counts with the site's one rounding
+    rule: 510 of 588 -> "87%"."""
+    return percent(p["matched"], p["late"])
 
 
 def slot_words(preset: dict | None) -> str:
@@ -96,11 +88,6 @@ def where(p: dict, names: Names) -> str:
     slot = slot_words(p["preset"])
     return f"{route} {slot}" if slot else route
 
-
-def share_of(share: float, noun: str) -> str:
-    """"about 1 in 3 late departures", "about half of the late departures"."""
-    words = share_words(share)
-    return f"{words} of the {noun}" if words == "about half" else f"{words} {noun}"
 
 
 class Plain:
@@ -156,7 +143,7 @@ def came_from(p: dict, link: Plain) -> str:
 
 
 def carry_over(p: dict, names: Names, link: Plain) -> str:
-    return (f"On {where(p, names)}, {share_of(p['share'], 'late departures')} were on trips that left "
+    return (f"On {where(p, names)}, {share_words(p)} of late departures were on trips that left "
             f"{link.stop(p['stops'][0])} late, after the bus arrived{came_from(p, link)} too late to leave on time.")
 
 
@@ -177,12 +164,6 @@ def sentence_html(p: dict, names: Names) -> Markup:
     for mark, a in link.links.items():
         html = html.replace(mark, a)
     return Markup(html)
-
-
-def detail(p: dict) -> str:
-    """The counts behind a pattern, under its sentence."""
-    return (f"{number(p['matched'])} of {number(p['late'])} late departures ({percent(p['matched'], p['late'])}), "
-            f"on {number(p['trips'])} trips with a late departure; seen on {number(p['days'])} different days.")
 
 
 def shown(doc: dict) -> list[dict]:

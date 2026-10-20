@@ -279,14 +279,13 @@
 {{ chart(charts.histogram_chart(s.summary, subject, min_sample, windows), "How late buses left") }}
 {% endmacro %}
 
-{# A pattern (patterns.py writes the sentence and the counts). Tinted and labeled, so it reads
+{# A pattern (patterns.py writes the sentence). Tinted and labeled, so it reads
    as an interpretation, not a measurement; the label is text, never color alone. #}
 {% macro pattern_panel(item) %}
 <div class="pattern">
 <p class="pattern-label">Pattern</p>
 <p class="pattern-note">A pattern in past trips, not a measured cause.</p>
 <p class="pattern-text">{{ item.sentence }}</p>
-<p class="pattern-detail">{{ item.detail }}</p>
 <p class="pattern-how"><a href="/patterns/#how-we-find-patterns">How we find patterns</a></p>
 </div>
 {% endmacro %}

@@ -59,13 +59,11 @@ NAMES = patterns.Names(
 )
 
 
-@pytest.mark.parametrize("share, words", [
-    (0.3333, "about 1 in 3"), (0.36, "about 1 in 3"), (0.41, "about 2 in 5"), (0.5, "about half"),
-    (0.6096, "about 3 in 5"), (0.67, "about 2 in 3"), (0.74, "about 3 in 4"), (0.7831, "about 4 in 5"),
-    (0.8673, "about 9 in 10"), (0.94, "about 9 in 10"), (0.976, "nearly all"), (1.0, "all"),
+@pytest.mark.parametrize("matched, late, words", [
+    (510, 588, "87%"), (196, 588, "33%"), (294, 588, "50%"), (3, 8, "38%"), (657, 673, "98%"), (588, 588, "100%"),
 ])
-def test_shares_read_as_plain_fractions(share, words):
-    assert patterns.share_words(share) == words
+def test_shares_read_as_percentages(matched, late, words):
+    assert patterns.share_words(carry_over(matched=matched, late=late)) == words
 
 
 @pytest.mark.parametrize("preset, words", [
@@ -83,12 +81,12 @@ def test_specific_patterns_name_their_slot(preset, words):
 
 def test_carry_over_sentence():
     assert patterns.sentence(carry_over(), NAMES) == (
-        "On Route 905 to Sample Transit Center, about 9 in 10 late departures were on trips that left "
+        "On Route 905 to Sample Transit Center, 87% of late departures were on trips that left "
         "Fictional Blvd & 1st Ave [sb] late, after the bus arrived from Route 905, going the other way, "
         "too late to leave on time.")
-    specific = carry_over(preset={"daytype": "weekday", "band": "pm_peak"}, share=0.3513)
+    specific = carry_over(preset={"daytype": "weekday", "band": "pm_peak"}, matched=207, share=0.352)
     assert patterns.sentence(specific, NAMES) == (
-        "On Route 905 to Sample Transit Center on weekday PM peaks (3 to 6 pm), about 1 in 3 late departures "
+        "On Route 905 to Sample Transit Center on weekday PM peaks (3 to 6 pm), 35% of late departures "
         "were on trips that left Fictional Blvd & 1st Ave [sb] late, after the bus arrived from Route 905, "
         "going the other way, too late to leave on time.")
 
@@ -120,7 +118,7 @@ def test_stop_and_previous_route_link_to_their_pages():
     assert ('left <a href="/stops/E111/">Fictional Blvd &amp; 1st Ave <span aria-hidden="true">[sb]</span>'
             '<span class="visually-hidden">southbound</span></a> late') in html
     # The pattern's own route isn't a link; the previous one is.
-    assert html.startswith("On Route 905 to Sample Transit Center, about 9 in 10")
+    assert html.startswith("On Route 905 to Sample Transit Center, 87% of late departures")
     assert 'arrived from <a href="/routes/905/">Route 905</a>, going the other way, too late' in html
     other = str(patterns.sentence_html(carry_over(previous=prev(("9x", 1, 510))), NAMES))
     assert 'arrived from <a href="/routes/9x/">Route 9X</a> too late' in other
@@ -133,23 +131,19 @@ def test_panels_link_the_stop_and_previous_route(dev_site):
     assert 'arrived (mostly from <a href="/routes/905/">Route 905</a>, going the other way) too late' in html
 
 
-def test_half_reads_as_half_of_the():
-    assert "about half of the late departures were" in patterns.sentence(carry_over(share=0.497), NAMES)
-    assert "nearly all late departures were" in patterns.sentence(carry_over(share=0.97), NAMES)
-
-
-def test_detail_line_gives_the_counts():
-    assert patterns.detail(carry_over()) == (
-        "510 of 588 late departures (87%), on 68 trips with a late departure; seen on 16 different days.")
+def test_panels_give_the_percentage_without_a_counts_line(dev_site):
+    html = read(dev_site, "patterns")
+    assert "pattern-detail" not in html
+    assert re.search(r'<p class="pattern-text">On Route 905 to Sample Transit Center, 38% of late departures', html)
 
 
 def test_a_route_direction_without_a_headsign_still_reads():
     names = patterns.Names(routes={"905": "Route 905"}, headsigns={}, stops={"E111": "Fictional Blvd"})
-    assert patterns.sentence(carry_over(), names).startswith("On Route 905, about 9 in 10 late departures")
+    assert patterns.sentence(carry_over(), names).startswith("On Route 905, 87% of late departures")
 
 
 def test_no_template_says_cause_blame_or_fix():
-    shares = (0.3333, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.97, 1.0)
+    shares = (196, 250, 294, 350, 420, 510, 570, 588)
     presets = [None] + [{"daytype": dt, "band": b} for dt in contract.MAP_DAYTYPES for b in contract.MAP_BANDS
                         if (dt, b) != ("all", "all")]
     previous = (prev(("9x", 1, 510)), prev(("905", 1, 510)), prev(("905", 0, 510)), prev(("9x", 1, 300)), [])
@@ -158,11 +152,11 @@ def test_no_template_says_cause_blame_or_fix():
         for preset in presets:
             for share in shares:
                 for pr in previous:
-                    p = carry_over(kind=kind, preset=preset, share=share, previous=pr)
-                    for text in (patterns.sentence(p, NAMES), patterns.detail(p)):
-                        assert patterns.banned_words(text) == [], text
-                        checked += 1
-    assert checked >= 2 * len(presets) * len(shares) * len(previous)
+                    p = carry_over(kind=kind, preset=preset, matched=share, previous=pr)
+                    text = patterns.sentence(p, NAMES)
+                    assert patterns.banned_words(text) == [], text
+                    checked += 1
+    assert checked >= len(presets) * len(shares) * len(previous)
 
 
 @pytest.mark.parametrize("text", [
@@ -239,7 +233,7 @@ def test_panels_in_rank_order_with_label_note_and_link(dev_site):
         assert '<p class="pattern-label">Pattern</p>' in panel
         assert '<p class="pattern-note">A pattern in past trips, not a measured cause.</p>' in panel
         assert f'<a href="{HOW}">How we find patterns</a>' in panel
-    assert "about 1 in 3" not in panels[0] and "on AM peaks (6 to 9 am)" in panels[2]
+    assert "38% of late departures" in panels[0] and "on AM peaks (6 to 9 am)" in panels[2]
 
 
 def test_panel_colors_have_both_themes_and_pass_contrast():

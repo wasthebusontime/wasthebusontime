@@ -141,7 +141,6 @@ main:focus { outline: none; }
 .pattern .pattern-label { display: inline-block; margin: 0 .5rem 0 0; padding: .05rem .5rem; background: var(--pattern-edge); color: var(--pattern-label-text); border-radius: 3px; font-size: .8rem; font-weight: 700; letter-spacing: .04em; }
 .pattern .pattern-note { display: inline; color: var(--muted); font-size: .9rem; }
 .pattern .pattern-text { font-size: 1.05rem; }
-.pattern .pattern-detail { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
 .pattern .pattern-how { font-size: .9rem; }
 @media (forced-colors: active) { .pattern { border: 1px solid CanvasText; border-left-width: 4px; } .pattern .pattern-label { border: 1px solid CanvasText; } }
 .pattern-none { padding-left: 1.2rem; }
