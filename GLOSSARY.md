@@ -72,6 +72,14 @@ A departure from a trip's first stop.
 A trip's arrival at its last stop, reported separately because that stop has no departure.
 _Avoid_: last-stop departure
 
+**In time for the next trip**:
+An end-of-line arrival followed by another trip on the same block that was not a carry-over: the bus reached the stop before that trip was due to leave. Counted only where the next trip's carry-over is known.
+_Avoid_: made its connection, on time (for arrivals)
+
+**Time to spare**:
+The next trip's scheduled departure minus the end-of-line arrival, below zero when the bus arrived too late for it.
+_Avoid_: recovery time (the schedule's allowance, not what was left of it)
+
 **Observed**:
 Recorded with a tracked bus at the time it left, and seen for at least 180 s after it left (so its time had settled); only observed departures count. Public pages say "recorded".
 _Avoid_: seen (which only means the stop appeared in the feed)
