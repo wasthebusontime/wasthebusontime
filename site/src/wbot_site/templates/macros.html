@@ -24,7 +24,7 @@
 <summary>What do these mean?</summary>
 {% if scope %}
 <p><strong>Timepoints</strong> are the stops with times printed in the schedule. Drivers are expected not to leave them early. This matches how {{ agency.NAME }} measures on-time performance.</p>
-<p><strong>All stops</strong>: at stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower in this view.</p>
+<p><strong>All stops</strong>: at stops between timepoints, the schedule's times are estimates, and buses aren't expected to keep to them exactly. A bus can show as early there without having left a timepoint early, so on-time numbers are lower for all stops.</p>
 <p>Every number counts departures: one bus leaving one stop on one trip. A trip that passes five timepoints counts as four departures here, because the last stop of a trip has no departure.</p>
 {% endif %}
 {% if filter %}

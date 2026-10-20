@@ -43,14 +43,14 @@ Arrivals are recorded as the bus enters the stop area, about 25 seconds before i
 
 <!-- end-of-line-sources -->
 
-We count departures, not trips. A departure is one bus leaving one stop on one trip, so a single trip adds several departures: one for each timepoint it leaves in the timepoints view, or one for each stop in the all stops view. Trips are counted separately, as scheduled, recorded and not recorded, on each route page and on the [Data quality](/data-quality/) page.
+We count departures, not trips. A departure is one bus leaving one stop on one trip, so a single trip adds several departures: one for each timepoint it leaves when counting timepoints, or one for each stop when counting all stops. Trips are counted separately, as scheduled, recorded and not recorded, on each route page and on the [Data quality](/data-quality/) page.
 
 ## Which stops
 
 Every page has a choice between two sets of stops:
 
 - **Timepoints** (the default): the stops with times printed in the schedule, not counting each trip's last stop. Drivers are expected not to leave them early. This matches how Intercity Transit measures on-time performance.
-- **All stops**: every stop, not counting each trip's last stop. Times at stops between timepoints are estimates the schedule fills in, not promises, so a bus can be "early" there without having left a timepoint early. Expect lower on-time numbers in this view.
+- **All stops**: every stop, not counting each trip's last stop. Times at stops between timepoints are estimates the schedule fills in, not promises, so a bus can be "early" there without having left a timepoint early. Expect lower on-time numbers for all stops.
 
 **Terminal departures** (the first stop of each trip) are also shown on their own, next to Intercity Transit's 90% goal for them. They use the same window as everything else, so they compare with the goal only roughly (see above).
 
