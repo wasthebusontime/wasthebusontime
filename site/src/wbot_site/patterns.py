@@ -11,8 +11,10 @@ import re
 from dataclasses import dataclass
 from fractions import Fraction
 
+from markupsafe import Markup, escape
+
 from wbot_site import filters
-from wbot_site.data import number, percent
+from wbot_site.data import directions_html, number, percent
 
 log = logging.getLogger("wbot_site")
 
@@ -109,6 +111,17 @@ TEMPLATES = {"carry_over": carry_over}
 
 def sentence(p: dict, names: Names) -> str:
     return TEMPLATES[p["kind"]](p, names)
+
+
+def sentence_html(p: dict, names: Names) -> Markup:
+    """The sentence for a page: escaped, each stop name a link to its stop page (so it reads
+    as a name, not part of the sentence), direction codes read out."""
+    marks = {f"~~stop{i}~~": code for i, code in enumerate(p["stops"])}
+    marked = Names(names.routes, names.headsigns, {**names.stops, **{code: m for m, code in marks.items()}})
+    html = str(escape(sentence(p, marked)))
+    for mark, code in marks.items():
+        html = html.replace(mark, f'<a href="/stops/{escape(code)}/">{directions_html(names.stops[code])}</a>')
+    return Markup(html)
 
 
 def detail(p: dict) -> str:

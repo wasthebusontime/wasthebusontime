@@ -87,6 +87,18 @@ def test_carry_over_sentence():
         "were on trips that left Fictional Blvd & 1st Ave [sb] late right after a carry-over.")
 
 
+def test_stop_names_link_to_their_stop_page():
+    html = str(patterns.sentence_html(carry_over(), NAMES))
+    assert ('left <a href="/stops/E111/">Fictional Blvd &amp; 1st Ave <span aria-hidden="true">[sb]</span>'
+            '<span class="visually-hidden">southbound</span></a> late') in html
+    assert html.startswith("On Route 905 to Sample Transit Center, about 9 in 10")
+
+
+def test_panels_link_the_stop(dev_site):
+    html = read(dev_site, "patterns")
+    assert re.search(r'<p class="pattern-text">[^\n]*left <a href="/stops/E111/">Fictional Blvd', html)
+
+
 def test_half_reads_as_half_of_the():
     assert "about half of the late departures were" in patterns.sentence(carry_over(share=0.497), NAMES)
     assert "nearly all late departures were" in patterns.sentence(carry_over(share=0.97), NAMES)

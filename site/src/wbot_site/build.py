@@ -285,7 +285,7 @@ def render_patterns(b: Build) -> None:
     by_route: dict[str, list[dict]] = {}
     for p in sorted(patterns.shown(doc), key=lambda p: p["rank"]):
         by_route.setdefault(p["route"], []).append(
-            {"sentence": patterns.sentence(p, names), "detail": patterns.detail(p)})
+            {"sentence": patterns.sentence_html(p, names), "detail": patterns.detail(p)})
     too_little = set(doc["too_little_data"])
     routes = [(r, by_route.get(r["slug"], []), r["slug"] in too_little) for r in stats.system["routes"]]
     b.render(
