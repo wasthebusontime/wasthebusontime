@@ -119,17 +119,28 @@ def strip(p: dict, hist: bool = False, percentiles: bool = True) -> dict:
 
 
 def end_of_line(stage: Stage, entity: str | None) -> dict:
-    out = {}
-    for key, p in stage.end_of_line([entity] if entity else []).items():
-        out[key[0] if entity else None] = {
-            "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-            "early_share": round(p["early"] / p["n"], 3),
-            "sources": {"block": p["n_block"], "gps": p["n_gps"]},
-        }
-    return out
+    """End-of-line blocks for the system (entity None) or per route or stop, by its value."""
+    return {key[0] if entity else None: block
+            for key, block in end_of_line_by(stage, [entity] if entity else []).items()}
 
 
-EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0, "sources": {"block": 0, "gps": 0}}
+def end_of_line_by(stage: Stage, keys: list[str]) -> dict[tuple, dict]:
+    """End-of-line blocks per group of `keys`: arrivals at the last stop of trips, and of those
+    followed by another trip on the same block, how many were in time for it (next)."""
+    return {key: eol_block(p) for key, p in stage.end_of_line(keys).items()}
+
+
+def eol_block(p: dict) -> dict:
+    return {
+        "n": p["n"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
+        "early_share": round(p["early"] / p["n"], 3),
+        "sources": {"block": p["n_block"], "gps": p["n_gps"]},
+        "next": {"n": p["next_n"], "in_time": p["next_in_time"], "spare_p50": p["spare_p50"]},
+    }
+
+
+EMPTY_EOL = {"n": 0, "p10": None, "p50": None, "p90": None, "early_share": 0.0, "sources": {"block": 0, "gps": 0},
+             "next": {"n": 0, "in_time": 0, "spare_p50": None}}
 
 
 def system_notices(stage: Stage, loss: list[dict], days: list[dict]) -> list[dict]:
@@ -261,6 +272,8 @@ def route_numbers(stage: Stage, names: Names, slugs: list[str], order) -> dict[s
     by_stop = stage.perf(["scope", "route", "direction_id", "stop"])
     terminal = stage.perf(["route"], terminal=True, hist=True)
     eol = end_of_line(stage, "route")
+    arrivals = end_of_line_by(stage, ["route", "direction_id", "stop"])
+    ends = stage.trip_ends()
     out = {}
     for slug in slugs:
         directions = sorted(d for (r, d) in order if r == slug)
@@ -280,6 +293,9 @@ def route_numbers(stage: Stage, names: Names, slugs: list[str], order) -> dict[s
                     "code": code, "name": names.stops.get(code, {}).get("name", code), "timepoint": timepoint,
                     "timepoints": by_stop.get(("timepoints", slug, d, code), empty()) if timepoint else None,
                     "all_stops": by_stop.get(("all_stops", slug, d, code), empty()),
+                    # Where trips of this direction end: their arrivals (an empty block where
+                    # nothing arrived under this filter); None elsewhere.
+                    "arrivals": arrivals.get((slug, d, code), EMPTY_EOL) if (slug, d, code) in ends else None,
                 })
             stop_lists.append({"direction_id": d, "stops": rows})
         out[slug] = {"scopes": scopes, "terminal": terminal.get((slug,), empty(hist=True)),
@@ -375,6 +391,7 @@ def write_stops(stage: Stage, names: Names, site: Path, detours: list[dict]) -> 
     timepoint_somewhere = set(timepoint_routes)
     blocks = stage.perf_blocks("stop", daily=False)
     by_route = stage.perf(["scope", "stop", "route"])
+    eol, eol_by_route = end_of_line(stage, "stop"), end_of_line_by(stage, ["stop", "route"])
     index = []
     for code in sorted(serving, key=lambda c: (names.stops.get(c, {}).get("name", c), c)):
         info = names.stops.get(code, {"stop_id": code, "name": code, "lat": None, "lon": None})
@@ -396,6 +413,10 @@ def write_stops(stage: Stage, names: Names, site: Path, detours: list[dict]) -> 
                      "timepoint_somewhere": code in timepoint_somewhere,
                      "timepoint_routes": sorted(timepoint_routes.get(code, ()), key=route_order)},
             "scopes": scopes,
+            # Arrivals of trips ending here, all routes and by route; None where no trip ends.
+            "end_of_line": None if code not in eol else {**eol[code], "by_route": [{
+                "slug": slug, "short_name": names.routes.get(slug, {}).get("short_name", slug), **eol_by_route[(code, slug)],
+            } for slug in routes if (code, slug) in eol_by_route]},
             "notices": [{"code": "detour", "route": d["route"], "short_name": route_name(names, d["route"]),
                          "start": d["start"], "end": d["end"]} for d in detours if d["route"] in serving[code]],
         })

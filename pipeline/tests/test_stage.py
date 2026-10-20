@@ -21,7 +21,7 @@ EV = dict(service_date="DATE", trip_id="VARCHAR", route_slug="VARCHAR", directio
 TR = dict(service_date="DATE", trip_id="VARCHAR", route_id="VARCHAR", route_slug="VARCHAR", direction_id="INTEGER",
           scheduled="BOOLEAN", trip_sr="VARCHAR",
           eligible_timepoints="INTEGER", observed_timepoints="INTEGER", skipped_stops="INTEGER",
-          start_ts="BIGINT", end_ts="BIGINT")
+          start_ts="BIGINT", end_ts="BIGINT", prev_trip_id="VARCHAR", carry_over="BOOLEAN")
 
 
 def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoints=None, trip_sr="SCHEDULED",
@@ -47,7 +47,8 @@ def trip(trip_id, route, stops, delays, *, direction=0, day=DAY, hour=8, timepoi
                scheduled=scheduled, trip_sr=trip_sr,
                eligible_timepoints=len(timed),
                observed_timepoints=sum(1 for e in timed if e["observed"] and e["stop_sr"] == "SCHEDULED"),
-               skipped_stops=sum(1 for e in events if e["stop_sr"] == "SKIPPED"), start_ts=start, end_ts=start + 1800)
+               skipped_stops=sum(1 for e in events if e["stop_sr"] == "SKIPPED"), start_ts=start, end_ts=start + 1800,
+               prev_trip_id=None, carry_over=None)
     return events, row
 
 
@@ -113,7 +114,7 @@ def test_end_of_line_early_is_any_time_before_the_schedule(tmp_path):
     stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, -1]), trip("t2", "901", A, [0, 0, 0, 0]),
                        trip("t3", "901", A, [0, 0, 0, -300]))
     assert stage.end_of_line([])[()] == {"n": 3, "early": 2, "p10": -300, "p50": -1, "p90": 0,
-                                         "n_block": 3, "n_gps": 0}
+                                         "n_block": 3, "n_gps": 0, "next_n": 0, "next_in_time": 0, "spare_p50": None}
 
 
 def test_end_of_line_counts_its_sources(tmp_path):
@@ -122,6 +123,53 @@ def test_end_of_line_counts_its_sources(tmp_path):
     eol = stage.end_of_line(["route"])
     assert (eol[("901",)]["n_block"], eol[("901",)]["n_gps"]) == (1, 1)
     assert (eol[("902",)]["n_block"], eol[("902",)]["n_gps"]) == (0, 1)
+
+
+def followed_by(prev, nxt, carry_over):
+    """nxt (a trip()) as the next trip on prev's block, with its carry-over value."""
+    return nxt[0], {**nxt[1], "prev_trip_id": prev[1]["trip_id"], "carry_over": carry_over}
+
+
+def test_end_of_line_by_route_direction_and_stop(tmp_path):
+    stage = make_stage(tmp_path, trip("t1", "901", A, [0, 0, 0, 30]),
+                       trip("t2", "901", list(reversed(A)), [0, 0, 0, -60], direction=1),
+                       trip("t3", "902", ["E9", "E4"], [0, 120]))
+    eol = stage.end_of_line(["route", "direction_id", "stop"])
+    assert {k: v["n"] for k, v in eol.items()} == {("901", 0, "E4"): 1, ("901", 1, "E1"): 1, ("902", 0, "E4"): 1}
+    by_stop = stage.end_of_line(["stop", "route"])
+    assert (by_stop[("E4", "901")]["p50"], by_stop[("E4", "902")]["p50"]) == (30, 120)
+    assert stage.end_of_line(["stop"])[("E4",)]["n"] == 2
+
+
+def test_end_of_line_in_time_for_the_next_trip(tmp_path):
+    # Each trip is scheduled to end 30 minutes after it starts; the next ones start an hour after.
+    t1, t2, t3 = trip("t1", "901", A, [0, 0, 0, 30]), trip("t2", "901", A, [0, 0, 0, 1900]),         trip("t3", "901", A, [0, 0, 0, 0])
+    n1 = followed_by(t1, trip("n1", "901", A, [0, 0, 0, 0], hour=9), False)
+    n2 = followed_by(t2, trip("n2", "901", A, [0, 0, 0, 0], hour=9), True)
+    # Carry-over unknown: the arrival counts, but not toward the next trip.
+    n3 = followed_by(t3, trip("n3", "901", A, [0, 0, 0, 0], hour=9), None)
+    stage = make_stage(tmp_path, t1, t2, t3, n1, n2, n3)
+    p = stage.end_of_line(["route"])[("901",)]
+    assert p["n"] == 6
+    assert (p["next_n"], p["next_in_time"]) == (2, 1)
+    # Time to spare: the next trip's scheduled departure minus the arrival (1770 s and -100 s);
+    # the nearest-rank median of two is the lower one.
+    assert p["spare_p50"] == -100
+
+
+def test_end_of_line_counts_each_arrival_once_with_the_earliest_next_trip(tmp_path):
+    t1 = trip("t1", "901", A, [0, 0, 0, 30])
+    stage = make_stage(tmp_path, t1, followed_by(t1, trip("n1", "901", A, [0, 0, 0, 0], hour=9), False),
+                       followed_by(t1, trip("n2", "901", A, [0, 0, 0, 0], hour=10), True))
+    p = stage.end_of_line(["stop", "route"])[("E4", "901")]
+    assert (p["n"], p["next_n"], p["next_in_time"], p["spare_p50"]) == (3, 1, 1, 1770)
+
+
+def test_end_of_line_next_trip_follows_the_filter(tmp_path):
+    t1 = trip("t1", "901", A, [0, 0, 0, 30])
+    stage = make_stage(tmp_path, t1, followed_by(t1, trip("n1", "901", A, [0, 0, 0, 0], hour=9), False))
+    assert stage.only("weekday", "am_peak").end_of_line(["route"])[("901",)]["next_n"] == 1
+    assert ("901",) not in stage.only("all", "pm_peak").end_of_line(["route"])
 
 
 def test_trip_facts(tmp_path):

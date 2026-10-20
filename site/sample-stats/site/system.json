@@ -1387,6 +1387,11 @@
   "sources": {
    "block": 6421,
    "gps": 383
+  },
+  "next": {
+   "n": 2408,
+   "in_time": 2192,
+   "spare_p50": 502
   }
  },
  "completeness": {

@@ -86,7 +86,7 @@ CARRY_OVER = {"901": 0.005, "902": 0.0, "903": 0.0, "904": 0.005, "905": 0.12, "
 CARRY_OVER_PM_PEAK = {"902": 0.3}
 # Where the bus of a carry-over trip came from (its previous trip, for the patterns'
 # "arrived from"): (route, direction, chance) tried in order, by route and direction; the
-# previous trip is the last one on that route and direction that started before. A sample
+# previous trip is the last one on that route and direction that ended before. A sample
 # of the three wordings: another route (902 from 901), the same route the other way (905),
 # and mostly one route (905 direction 0, about 1 in 4 from 903).
 PREVIOUS = {("902", 0): [("901", 0, 1.0)], ("902", 1): [("901", 1, 1.0)],
@@ -222,16 +222,17 @@ def simulate_trip(rng: random.Random, d: date, t: Trip, bias: int) -> tuple[list
 
 
 def link_previous(d: date, trip_rows: list[dict]) -> None:
-    """Gives each carry-over trip on a route in PREVIOUS a previous trip (prev_trip_id)."""
+    """Gives each trip with a known carry-over value on a route in PREVIOUS a previous trip
+    (prev_trip_id), so the sample has arrivals both in time and too late for the next trip."""
     for trip in trip_rows:
         rules = PREVIOUS.get((trip["route_slug"], trip["direction_id"]))
-        if not trip["carry_over"] or not rules:
+        if trip["carry_over"] is None or not rules:
             continue
         own = random.Random(f"previous {d.isoformat()} {trip['trip_id']}")
         draw = own.random()
         route, direction = next((r, di) for r, di, chance in rules if draw < chance)
         before = [t for t in trip_rows if t["route_slug"] == route and t["direction_id"] == direction
-                  and t["start_ts"] < trip["start_ts"]]
+                  and t["end_ts"] <= trip["start_ts"]]
         if before:
             trip["prev_trip_id"] = max(before, key=lambda t: t["start_ts"])["trip_id"]
 

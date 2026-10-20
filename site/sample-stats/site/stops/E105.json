@@ -782,5 +782,41 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 628,
+  "p10": -164,
+  "p50": 13,
+  "p90": 205,
+  "early_share": 0.452,
+  "sources": {
+   "block": 576,
+   "gps": 52
+  },
+  "next": {
+   "n": 0,
+   "in_time": 0,
+   "spare_p50": null
+  },
+  "by_route": [
+   {
+    "slug": "904",
+    "short_name": "904",
+    "n": 628,
+    "p10": -164,
+    "p50": 13,
+    "p90": 205,
+    "early_share": 0.452,
+    "sources": {
+     "block": 576,
+     "gps": 52
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   }
+  ]
+ },
  "notices": []
 }

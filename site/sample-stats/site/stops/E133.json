@@ -898,6 +898,132 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 3397,
+  "p10": -182,
+  "p50": 75,
+  "p90": 419,
+  "early_share": 0.372,
+  "sources": {
+   "block": 3214,
+   "gps": 183
+  },
+  "next": {
+   "n": 1314,
+   "in_time": 1199,
+   "spare_p50": 677
+  },
+  "by_route": [
+   {
+    "slug": "901",
+    "short_name": "901",
+    "n": 767,
+    "p10": -237,
+    "p50": 23,
+    "p90": 354,
+    "early_share": 0.455,
+    "sources": {
+     "block": 762,
+     "gps": 5
+    },
+    "next": {
+     "n": 627,
+     "in_time": 588,
+     "spare_p50": 482
+    }
+   },
+   {
+    "slug": "902",
+    "short_name": "902",
+    "n": 683,
+    "p10": -132,
+    "p50": 132,
+    "p90": 522,
+    "early_share": 0.299,
+    "sources": {
+     "block": 658,
+     "gps": 25
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   },
+   {
+    "slug": "903",
+    "short_name": "903",
+    "n": 707,
+    "p10": -224,
+    "p50": -22,
+    "p90": 250,
+    "early_share": 0.535,
+    "sources": {
+     "block": 616,
+     "gps": 91
+    },
+    "next": {
+     "n": 135,
+     "in_time": 119,
+     "spare_p50": 389
+    }
+   },
+   {
+    "slug": "904",
+    "short_name": "904",
+    "n": 633,
+    "p10": -161,
+    "p50": 21,
+    "p90": 219,
+    "early_share": 0.436,
+    "sources": {
+     "block": 588,
+     "gps": 45
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   },
+   {
+    "slug": "905",
+    "short_name": "905",
+    "n": 603,
+    "p10": 19,
+    "p50": 276,
+    "p90": 665,
+    "early_share": 0.091,
+    "sources": {
+     "block": 586,
+     "gps": 17
+    },
+    "next": {
+     "n": 552,
+     "in_time": 492,
+     "spare_p50": 1046
+    }
+   },
+   {
+    "slug": "906",
+    "short_name": "906",
+    "n": 4,
+    "p10": -239,
+    "p50": 16,
+    "p90": 480,
+    "early_share": 0.25,
+    "sources": {
+     "block": 4,
+     "gps": 0
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   }
+  ]
+ },
  "notices": [
   {
    "code": "detour",

@@ -215,10 +215,50 @@
 {% macro end_of_line(eol) %}
 <h3>End-of-line arrivals</h3>
 {% if eol.n >= min_sample %}
-<p>At the last stop of a trip, the median arrival was {{ eol.p50 | delay }}, and {{ fraction(eol.early_share) }} of {{ eol.n | number }} arrivals were early. Most trips (80%) arrived between {{ eol.p10 | delay }} and {{ eol.p90 | delay }}. Schedules include recovery time at the end of a trip, so early arrivals there are normal.</p>
+<p>At the last stop of a trip, the median arrival was {{ eol.p50 | delay }}, and {{ fraction(eol.early_share) }} of {{ eol.n | number }} arrivals were early. Most trips (80%) arrived between {{ eol.p10 | delay }} and {{ eol.p90 | delay }}. Schedules include recovery time at the end of a trip, so early arrivals there are normal.{% if eol.get("next") and eol.next.n >= min_sample %} Of the {{ eol.next.n | number }} arrivals followed by another trip on the same bus, {{ percent(eol.next.in_time, eol.next.n) }} were in time for it, with a median of {{ eol.next.spare_p50 | spare }}.{% endif %}</p>
 {% else %}
 <p><span class="nodata">Not enough data</span> ({{ eol.n | number }} arrivals).</p>
 {% endif %}
+{% endmacro %}
+
+{# Arrivals where trips end, shaded apart from departures (a route's stop tables and stop
+   pages), always with the note linking how they are measured. #}
+{% macro arrivals_note() %}<a class="arrivals-note" href="/methodology/#arrivals">How arrivals are measured</a>{% endmacro %}
+
+{# One line for a route's stop table: "1,234 arrivals, median 1 min late; 91% in time for the
+   next trip (median 8 min to spare)." #}
+{% macro arrivals_line(a) %}
+{% if a.n >= min_sample %}{{ a.n | number }} arrivals, median {{ a.p50 | delay }}{% if a.get("next") and a.next.n >= min_sample %}; {{ percent(a.next.in_time, a.next.n) }} in time for the next trip (median {{ a.next.spare_p50 | spare }}){% endif %}.{% else %}<span class="nodata">Not enough data</span> ({{ a.n | number }} arrivals).{% endif %} {{ arrivals_note() }}
+{% endmacro %}
+
+{# A stop page's arrivals of trips ending there, by route. #}
+{% macro arrivals_block(eol, route_names) %}
+<div class="arrivals-block">
+<h3>Arrivals at the end of trips</h3>
+<p>Trips end at this stop. These are buses arriving here at the end of a trip, not leaving, so they aren&rsquo;t in the numbers above. When the same bus runs another trip from here, they say whether it arrived in time for it. {{ arrivals_note() }}</p>
+<div class="table-wrap">
+<table class="data">
+<caption>Arrivals here, by route</caption>
+<thead><tr><th scope="col">Route</th><th scope="col" class="num">Arrivals</th><th scope="col" class="num">Median arrival</th><th scope="col" class="num">Early</th><th scope="col" class="num">In time for the next trip</th><th scope="col" class="num">Median time to spare</th></tr></thead>
+<tbody>
+{% for r in eol.by_route %}
+<tr><th scope="row"><a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a></th>
+{% if r.n >= min_sample %}
+<td class="num">{{ r.n | number }}</td><td class="num">{{ r.p50 | delay }}</td><td class="num">{{ fraction(r.early_share) }}</td>
+{% if r.get("next") and r.next.n >= min_sample %}
+<td class="num">{{ percent(r.next.in_time, r.next.n) }} <span class="def">of {{ r.next.n | number }}</span></td><td class="num">{{ r.next.spare_p50 | spare }}</td>
+{% else %}
+<td class="num" colspan="2"><span class="nodata">Not enough data</span></td>
+{% endif %}
+{% else %}
+<td class="num" colspan="5"><span class="nodata">Not enough data</span> ({{ r.n | number }} arrivals)</td>
+{% endif %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
 {% endmacro %}
 
 {% macro trips_line(trips) %}

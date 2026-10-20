@@ -41,6 +41,10 @@ The real-time data never lists a trip's last stop, so end-of-line arrivals are f
 
 Arrivals are recorded as the bus enters the stop area, about 25 seconds before it stops.
 
+<h3 id="arrivals">Arrivals and the next trip</h3>
+
+Route and stop pages show arrivals where trips end, shaded apart from departures. When the same bus runs another trip from that stop (the next trip on its block), they also say whether the bus arrived in time for it: before that trip was due to leave or, after a scheduled layover of 10 minutes or more, by its GPS arrival no more than a minute after. Time to spare is the next trip's scheduled departure minus the arrival; the median is the middle value, so half the buses had more time and half less. A bus that arrived too late for its next trip is what the Patterns page calls a carry-over. A bus's last trip of the day has no next trip, and an arrival whose next trip we can't judge is left out of these figures.
+
 <!-- end-of-line-sources -->
 
 We count departures, not trips. A departure is one bus leaving one stop on one trip, so a single trip adds several departures: one for each timepoint it leaves when counting timepoints, or one for each stop when counting all stops. Trips are counted separately, as scheduled, recorded and not recorded, on each route page and on the [Data quality](/data-quality/) page.

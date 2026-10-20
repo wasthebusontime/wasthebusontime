@@ -23,6 +23,10 @@ the thresholds in use, the patterns, per route and per stop how many count under
 filter (pattern_counts), and the routes with too little data for any pattern yet. Every
 pattern also has a row in csv/patterns.csv (PATTERNS_COLUMNS).
 
+End-of-line arrivals (EOL_FIELDS) may also say how many were in time for the next trip on
+the same block (next, optional), and appear per route stop where trips end (arrivals) and in
+stop files (end_of_line with by_route, or null); stats without them are valid.
+
 Page presets (presets/, optional: stats without them are valid) are the route and system
 numbers for one day type and band, for every name in PRESETS. A preset file has the shapes
 of system.json or routes/{slug}.json for the parts that can be filtered: scopes, terminal,
@@ -172,6 +176,7 @@ def validate(stats_dir: Path) -> None:
     _keys(system, ("scopes", "terminal", "end_of_line", "completeness", "trips", "routes", "notices"), "system.json")
     _scopes(system["scopes"], "system.json", daily=True)
     _perf(system["terminal"], "system.json: terminal")
+    _eol(system["end_of_line"], "system.json: end_of_line")
     _notices(system["notices"], "system.json")
     for i, row in enumerate(system["routes"]):
         where = f"system.json: routes[{i}]"
@@ -307,6 +312,7 @@ def _route_numbers(doc: dict, where: str) -> None:
             _keys(row, ("direction_id", "headsign"), f"{where}: scopes.{scope}.by_direction[{i}]")
             _perf(row, f"{where}: scopes.{scope}.by_direction[{i}]")
     _perf(doc["terminal"], f"{where}: terminal")
+    _eol(doc["end_of_line"], f"{where}: end_of_line")
     for i, direction in enumerate(_list(doc, "stops", where)):
         _keys(direction, ("direction_id", "stops"), f"{where}: stops[{i}]")
         for j, stop in enumerate(direction["stops"]):
@@ -315,6 +321,8 @@ def _route_numbers(doc: dict, where: str) -> None:
             if stop["timepoints"] is not None:
                 _perf(stop["timepoints"], f"{at}.timepoints")
             _perf(stop["all_stops"], f"{at}.all_stops")
+            if stop.get("arrivals") is not None:
+                _eol(stop["arrivals"], f"{at}.arrivals")
 
 
 def _stop(doc: dict, where: str) -> None:
@@ -327,6 +335,13 @@ def _stop(doc: dict, where: str) -> None:
         for i, row in enumerate(_list(doc["scopes"][scope], "by_route", f"{where}: scopes.{scope}")):
             _keys(row, ("slug", "short_name"), f"{where}: scopes.{scope}.by_route[{i}]")
             _perf(row, f"{where}: scopes.{scope}.by_route[{i}]")
+    if doc.get("end_of_line") is not None:
+        at = f"{where}: end_of_line"
+        _keys(doc["end_of_line"], ("by_route",), at)
+        _eol(doc["end_of_line"], at)
+        for i, row in enumerate(_list(doc["end_of_line"], "by_route", at)):
+            _keys(row, ("slug", "short_name"), f"{at}.by_route[{i}]")
+            _eol(row, f"{at}.by_route[{i}]")
     _notices(doc["notices"], where)
 
 
@@ -361,6 +376,7 @@ def _presets(site: Path, system: dict) -> None:
         _preset_head(doc, where, daytype, band)
         _scopes(doc["scopes"], where, daily=True)
         _perf(doc["terminal"], f"{where}: terminal")
+        _eol(doc["end_of_line"], f"{where}: end_of_line")
         totals[(daytype, band, None)] = _preset_counts(doc)
         rows = set()
         for i, row in enumerate(_list(doc, "routes", where)):
@@ -435,6 +451,31 @@ def _preset_sums(totals: dict, entities: list) -> None:
                 if total != want:
                     raise ContractError(f"{file(*whole, e)}: {key} is {want}, but {file(*label, e)} "
                                         f"add up to {total}")
+
+
+# End-of-line arrivals (end_of_line in system, route and preset files; arrivals on a route's
+# stops where trips end; end_of_line in a stop file, with by_route). next (optional): arrivals
+# followed by another trip on the same block with a known carry-over value, those in time for
+# it, and their median time to spare in seconds (below 0 when late, None without any).
+EOL_FIELDS = ("n", "p10", "p50", "p90", "early_share", "sources")
+EOL_NEXT_FIELDS = ("n", "in_time", "spare_p50")
+
+
+def _eol(block, where: str) -> None:
+    _keys(block, EOL_FIELDS, where)
+    _count(block["n"], f"{where}: n")
+    if "next" not in block:
+        return
+    nxt, at = block["next"], f"{where}.next"
+    _keys(nxt, EOL_NEXT_FIELDS, at)
+    _count(nxt["n"], f"{at}: n")
+    _count(nxt["in_time"], f"{at}: in_time")
+    if nxt["in_time"] > nxt["n"]:
+        raise ContractError(f"{at}: in_time {nxt['in_time']} is more than n {nxt['n']}")
+    if nxt["n"] > block["n"]:
+        raise ContractError(f"{at}: n {nxt['n']} is more than the {block['n']} arrivals")
+    if nxt["spare_p50"] is not None and (not isinstance(nxt["spare_p50"], int) or isinstance(nxt["spare_p50"], bool)):
+        raise ContractError(f"{at}: spare_p50 is {nxt['spare_p50']!r}, expected whole seconds or null")
 
 
 def _count(value, where: str) -> None:

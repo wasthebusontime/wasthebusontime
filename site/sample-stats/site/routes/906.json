@@ -996,6 +996,11 @@
   "sources": {
    "block": 10,
    "gps": 0
+  },
+  "next": {
+   "n": 0,
+   "in_time": 0,
+   "spare_p50": null
   }
  },
  "completeness": {
@@ -1044,7 +1049,8 @@
       "p10": -60,
       "p50": 79,
       "p90": 694
-     }
+     },
+     "arrivals": null
     },
     {
      "code": "E102",
@@ -1062,7 +1068,8 @@
       "p10": -182,
       "p50": 74,
       "p90": 550
-     }
+     },
+     "arrivals": null
     },
     {
      "code": "E132",
@@ -1080,6 +1087,22 @@
       "p10": null,
       "p50": null,
       "p90": null
+     },
+     "arrivals": {
+      "n": 6,
+      "p10": -253,
+      "p50": -122,
+      "p90": 485,
+      "early_share": 0.667,
+      "sources": {
+       "block": 6,
+       "gps": 0
+      },
+      "next": {
+       "n": 0,
+       "in_time": 0,
+       "spare_p50": null
+      }
      }
     }
    ]
@@ -1114,7 +1137,8 @@
       "p10": -8,
       "p50": 7,
       "p90": 678
-     }
+     },
+     "arrivals": null
     },
     {
      "code": "E102",
@@ -1132,7 +1156,8 @@
       "p10": -9,
       "p50": 64,
       "p90": 619
-     }
+     },
+     "arrivals": null
     },
     {
      "code": "E133",
@@ -1150,6 +1175,22 @@
       "p10": null,
       "p50": null,
       "p90": null
+     },
+     "arrivals": {
+      "n": 4,
+      "p10": -239,
+      "p50": 16,
+      "p90": 480,
+      "early_share": 0.25,
+      "sources": {
+       "block": 4,
+       "gps": 0
+      },
+      "next": {
+       "n": 0,
+       "in_time": 0,
+       "spare_p50": null
+      }
      }
     }
    ]

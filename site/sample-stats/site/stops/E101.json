@@ -675,6 +675,42 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 684,
+  "p10": -144,
+  "p50": 138,
+  "p90": 500,
+  "early_share": 0.284,
+  "sources": {
+   "block": 638,
+   "gps": 46
+  },
+  "next": {
+   "n": 0,
+   "in_time": 0,
+   "spare_p50": null
+  },
+  "by_route": [
+   {
+    "slug": "902",
+    "short_name": "902",
+    "n": 684,
+    "p10": -144,
+    "p50": 138,
+    "p90": 500,
+    "early_share": 0.284,
+    "sources": {
+     "block": 638,
+     "gps": 46
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   }
+  ]
+ },
  "notices": [
   {
    "code": "detour",

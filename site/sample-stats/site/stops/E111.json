@@ -675,5 +675,41 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 589,
+  "p10": 17,
+  "p50": 251,
+  "p90": 595,
+  "early_share": 0.087,
+  "sources": {
+   "block": 585,
+   "gps": 4
+  },
+  "next": {
+   "n": 437,
+   "in_time": 371,
+   "spare_p50": -115
+  },
+  "by_route": [
+   {
+    "slug": "905",
+    "short_name": "905",
+    "n": 589,
+    "p10": 17,
+    "p50": 251,
+    "p90": 595,
+    "early_share": 0.087,
+    "sources": {
+     "block": 585,
+     "gps": 4
+    },
+    "next": {
+     "n": 437,
+     "in_time": 371,
+     "spare_p50": -115
+    }
+   }
+  ]
+ },
  "notices": []
 }

@@ -158,6 +158,18 @@ def delay_text(seconds: int | None) -> str:
     return f"{amount} {'early' if seconds < 0 else 'late'}"
 
 
+def spare_text(seconds: int | None) -> str:
+    """Time to spare before the next trip on the block was due to leave: "8 min 22 sec to
+    spare", or after it below zero."""
+    if seconds is None:
+        return "n/a"
+    if seconds == 0:
+        return "no time to spare"
+    m, s = divmod(abs(seconds), 60)
+    amount = f"{m} min {s} sec" if m and s else f"{m} min" if m else f"{s} sec"
+    return f"{amount} to spare" if seconds > 0 else f"{amount} after the next trip was due to leave"
+
+
 # Stop names carry the agency's direction codes ("Example St & 1st Ave [sb]"). Pages show
 # them as written, with the word for screen readers.
 DIRECTIONS = {"nb": "northbound", "sb": "southbound", "eb": "eastbound", "wb": "westbound"}

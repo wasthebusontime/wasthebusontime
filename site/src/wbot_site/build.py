@@ -143,6 +143,7 @@ def make_jinja(env: str, stats: Stats, banner: dict) -> Environment:
         asset=asset_url,
         number=data.number,
         delay=data.delay_text,
+        spare=data.spare_text,
         date=data.date_text,
         month=data.month_text,
         hour=data.hour_text,

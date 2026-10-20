@@ -283,5 +283,41 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 6,
+  "p10": -253,
+  "p50": -122,
+  "p90": 485,
+  "early_share": 0.667,
+  "sources": {
+   "block": 6,
+   "gps": 0
+  },
+  "next": {
+   "n": 0,
+   "in_time": 0,
+   "spare_p50": null
+  },
+  "by_route": [
+   {
+    "slug": "906",
+    "short_name": "906",
+    "n": 6,
+    "p10": -253,
+    "p50": -122,
+    "p90": 485,
+    "early_share": 0.667,
+    "sources": {
+     "block": 6,
+     "gps": 0
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   }
+  ]
+ },
  "notices": []
 }

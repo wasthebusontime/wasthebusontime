@@ -276,3 +276,51 @@ def test_patterns_are_optional(stats):
     (stats / "site" / contract.PATTERNS_FILE).unlink()
     (stats / "csv" / contract.PATTERNS_CSV).unlink()
     contract.validate(stats)
+
+
+# End-of-line arrivals: in time for the next trip, per route stop and per stop (optional keys).
+
+def last_stop(doc):
+    return doc["stops"][0]["stops"][-1]
+
+
+@pytest.mark.parametrize("name, fn, message", [
+    ("system.json", lambda d: d["end_of_line"]["next"].update(in_time=d["end_of_line"]["next"]["n"] + 1),
+     r"system.json: end_of_line.next: in_time \d+ is more than n"),
+    ("system.json", lambda d: d["end_of_line"]["next"].update(n=d["end_of_line"]["n"] + 1),
+     r"system.json: end_of_line.next: n \d+ is more than the \d+ arrivals"),
+    ("system.json", lambda d: d["end_of_line"]["next"].pop("spare_p50"), "end_of_line.next: missing spare_p50"),
+    ("system.json", lambda d: d["end_of_line"].pop("sources"), "system.json: end_of_line: missing sources"),
+    ("routes/905.json", lambda d: last_stop(d).update(arrivals=[]), r"stops\[0\].stops\[\d+\].arrivals: expected an object"),
+    ("routes/905.json", lambda d: last_stop(d)["arrivals"]["next"].update(in_time=-1), r"arrivals.next: in_time is -1"),
+    ("presets/weekday-am_peak/routes/905.json", lambda d: last_stop(d)["arrivals"].pop("n"), r"arrivals: missing n"),
+    ("stops/E133.json", lambda d: d["end_of_line"]["by_route"][0].pop("slug"), r"end_of_line.by_route\[0\]: missing slug"),
+    ("stops/E133.json", lambda d: d["end_of_line"].pop("by_route"), r"E133.json: end_of_line: missing by_route"),
+])
+def test_each_end_of_line_problem_is_reported(stats, name, fn, message):
+    change(stats, name, fn)
+    with pytest.raises(ContractError, match=message):
+        contract.validate(stats)
+
+
+def strip_arrivals(doc):
+    doc.get("end_of_line", {}) and doc["end_of_line"].pop("next", None)
+    for d in doc.get("stops", []):
+        for s in d["stops"]:
+            s.pop("arrivals", None)
+
+
+def test_arrivals_and_the_next_trip_are_optional(stats):
+    site = stats / "site"
+    for path in [site / "system.json", *site.glob("routes/*.json"), *site.glob("presets/*/routes/*.json")]:
+        change(stats, path.relative_to(site).as_posix(), strip_arrivals)
+    for path in site.glob("stops/*.json"):
+        change(stats, path.relative_to(site).as_posix(), lambda d: d.pop("end_of_line", None))
+    contract.validate(stats)
+
+
+def test_the_sample_has_arrivals_where_trips_end():
+    route = json.loads((SAMPLE_DIR / "site" / "routes" / "905.json").read_text(encoding="utf-8"))
+    assert all(d["stops"][-1]["arrivals"]["next"]["n"] > 0 for d in route["stops"])
+    stop = json.loads((SAMPLE_DIR / "site" / "stops" / "E133.json").read_text(encoding="utf-8"))
+    assert stop["end_of_line"]["next"]["in_time"] > 0

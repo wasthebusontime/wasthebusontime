@@ -152,6 +152,45 @@ def test_map_presets_and_route_lines(world):
     assert line[0] == [-122.9, 47.04] and len(line) == 2     # straight line: inner points simplified away
 
 
+EOL_KEYS = {"n", "p10", "p50", "p90", "early_share", "sources", "next"}
+
+
+def check_eol(block):
+    assert set(block) == EOL_KEYS
+    assert set(block["next"]) == {"n", "in_time", "spare_p50"}
+    assert 0 <= block["next"]["in_time"] <= block["next"]["n"] <= block["n"]
+
+
+def test_end_of_line_blocks_say_whether_buses_were_in_time_for_the_next_trip(world):
+    check_eol(load(world, "system.json")["end_of_line"])
+    check_eol(load(world, "routes", "901.json")["end_of_line"])
+
+
+def test_route_stop_lists_have_arrivals_where_trips_end(world):
+    # 901 ends at its last stop in each direction; the 902 loop ends where it starts (E205).
+    for d in load(world, "routes", "901.json")["stops"]:
+        *middle, last = d["stops"]
+        check_eol(last["arrivals"])
+        assert last["arrivals"]["n"] > 0
+        assert all(s["arrivals"] is None for s in middle), d["direction_id"]
+    (loop,) = load(world, "routes", "902.json")["stops"]
+    assert [s["code"] for s in loop["stops"] if s["arrivals"]] == ["E205"]
+    preset = load(world, "presets", "weekday-am_peak", "routes", "901.json")
+    for d in preset["stops"]:
+        check_eol(d["stops"][-1]["arrivals"])
+
+
+def test_stop_files_have_arrivals_where_trips_end(world):
+    # Both routes end trips at E205 (901's end, the 902 loop's start and end); E202 is a stop along the way.
+    eol = load(world, "stops", "E205.json")["end_of_line"]
+    check_eol({k: v for k, v in eol.items() if k != "by_route"})
+    assert [(r["slug"], r["short_name"]) for r in eol["by_route"]] == [("901", "901"), ("902", "902")]
+    for r in eol["by_route"]:
+        check_eol({k: v for k, v in r.items() if k not in ("slug", "short_name")})
+    assert sum(r["n"] for r in eol["by_route"]) == eol["n"]
+    assert load(world, "stops", "E202.json")["end_of_line"] is None
+
+
 def test_page_presets(world):
     settings, _ = world
     presets = settings.out_dir / "site" / "presets"

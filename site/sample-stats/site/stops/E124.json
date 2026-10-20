@@ -701,5 +701,41 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 674,
+  "p10": -237,
+  "p50": -47,
+  "p90": 271,
+  "early_share": 0.571,
+  "sources": {
+   "block": 616,
+   "gps": 58
+  },
+  "next": {
+   "n": 0,
+   "in_time": 0,
+   "spare_p50": null
+  },
+  "by_route": [
+   {
+    "slug": "903",
+    "short_name": "903",
+    "n": 674,
+    "p10": -237,
+    "p50": -47,
+    "p90": 271,
+    "early_share": 0.571,
+    "sources": {
+     "block": 616,
+     "gps": 58
+    },
+    "next": {
+     "n": 0,
+     "in_time": 0,
+     "spare_p50": null
+    }
+   }
+  ]
+ },
  "notices": []
 }

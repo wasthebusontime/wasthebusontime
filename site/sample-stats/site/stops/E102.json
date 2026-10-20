@@ -781,5 +781,41 @@
    ]
   }
  },
+ "end_of_line": {
+  "n": 826,
+  "p10": -232,
+  "p50": 14,
+  "p90": 343,
+  "early_share": 0.467,
+  "sources": {
+   "block": 786,
+   "gps": 40
+  },
+  "next": {
+   "n": 657,
+   "in_time": 622,
+   "spare_p50": 489
+  },
+  "by_route": [
+   {
+    "slug": "901",
+    "short_name": "901",
+    "n": 826,
+    "p10": -232,
+    "p50": 14,
+    "p90": 343,
+    "early_share": 0.467,
+    "sources": {
+     "block": 786,
+     "gps": 40
+    },
+    "next": {
+     "n": 657,
+     "in_time": 622,
+     "spare_p50": 489
+    }
+   }
+  ]
+ },
  "notices": []
 }

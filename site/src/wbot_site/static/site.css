@@ -23,6 +23,8 @@
   /* Pattern panels (interpretations, not measurements): a plum tint, OKLCH hue 336, apart
      from the violet links, the gold notices and the chart colors. */
   --pattern-bg: #f8eef5;
+  /* Arrivals where trips end: shaded apart from departures (route stop tables, stop pages). */
+  --arrivals-bg: #eaf1f3;
   --pattern-edge: #8b3378;
   --pattern-label-text: #ffffff;
   /* Header band and footer */
@@ -64,6 +66,7 @@
     --sunday: #25231f;
     --chosen: #32284a;
     --pattern-bg: #2a1926;
+    --arrivals-bg: #17232a;
     --pattern-edge: #e9a8d8;
     --pattern-label-text: #1d1a15;
     --head-bg: #2d1b47;
@@ -144,6 +147,12 @@ main:focus { outline: none; }
 .pattern .pattern-how { font-size: .9rem; }
 @media (forced-colors: active) { .pattern { border: 1px solid CanvasText; border-left-width: 4px; } .pattern .pattern-label { border: 1px solid CanvasText; } }
 .pattern-none { padding-left: 1.2rem; }
+tr.arrivals > * { background: var(--arrivals-bg); }
+tr.arrivals td { font-size: .95rem; }
+.arrivals-block { margin: 1.5rem 0; padding: .4rem .9rem .6rem; background: var(--arrivals-bg); border-radius: 4px; }
+.arrivals-block h3 { margin-top: .4rem; }
+.arrivals-note { font-size: .9rem; white-space: nowrap; }
+@media (forced-colors: active) { .arrivals-block { border: 1px solid CanvasText; } }
 /* Callouts on route and stop pages: the panels, then the line linking the Patterns page. */
 .pattern-callouts { margin: 1.25rem 0 1.5rem; }
 .pattern-callouts .pattern { margin: .75rem 0; }

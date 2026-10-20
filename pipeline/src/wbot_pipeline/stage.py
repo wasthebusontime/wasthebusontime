@@ -64,12 +64,28 @@ class Stage:
             UNION ALL
             SELECT 'timepoints' AS scope, {cols} FROM ev WHERE {rules.DEPARTURE} AND is_timepoint
         """)
-        # End-of-line arrivals: each trip's last stop.
+        # End-of-line arrivals: each trip's last stop. When the next trip on the block has a known
+        # carry-over value: whether the bus was in time for it (no carry-over), and the time to
+        # spare, its scheduled departure minus this arrival (scheduled end plus arrival delay).
         con.execute(f"""
             CREATE TABLE eol AS
-            SELECT strftime(service_date, '%Y-%m') AS month, day_type, {rules.band('service_hour')} AS band,
-                   route_slug AS route, delay_arr_s AS delay, method
-            FROM ev WHERE {rules.END_OF_LINE}
+            SELECT strftime(e.service_date, '%Y-%m') AS month, e.day_type, {rules.band('e.service_hour')} AS band,
+                   e.route_slug AS route, coalesce(e.direction_id, 0) AS direction_id, e.stop_code AS stop,
+                   e.delay_arr_s AS delay, e.method,
+                   n.carry_over IS NOT NULL AS has_next, NOT n.carry_over AS in_time,
+                   CASE WHEN n.carry_over IS NOT NULL THEN CAST(n.start_ts - (t.end_ts + e.delay_arr_s) AS INTEGER)
+                   END AS spare
+            FROM (SELECT * FROM ev WHERE {rules.END_OF_LINE}) e
+            LEFT JOIN tr t ON t.service_date = e.service_date AND t.trip_id = e.trip_id AND t.scheduled
+            LEFT JOIN (
+                -- The next trip: the earliest scheduled trip naming this one as its previous trip.
+                SELECT service_date, prev_trip_id, arg_min(carry_over, start_ts) AS carry_over, min(start_ts) AS start_ts
+                FROM tr WHERE scheduled AND prev_trip_id IS NOT NULL GROUP BY ALL
+            ) n ON n.service_date = e.service_date AND n.prev_trip_id = e.trip_id
+        """)
+        con.execute("""
+            CREATE TABLE eoln AS
+            SELECT month, day_type, band, route, direction_id, stop, spare AS delay, in_time FROM eol WHERE has_next
         """)
         # Scheduled departures, counted, by day type, band, route and whether at a timepoint.
         con.execute(f"""
@@ -80,6 +96,7 @@ class Stage:
         self._pq = PerfQuery(con, "d")
         self._eol = PerfQuery(con, "eol", extra={"before_schedule": rules.before_schedule("delay"),
                                                  "from_block": "(method = 'block')", "from_gps": "(method = 'gps')"})
+        self._eoln = PerfQuery(con, "eoln", extra={"in_time": "in_time"})
         self._flag_detours(alerts.load_extra_routes() if extra_routes is None else extra_routes)
         self._only = {}
 
@@ -174,11 +191,19 @@ class Stage:
     # End-of-line arrivals.
 
     def end_of_line(self, keys: list[str]) -> dict[tuple, dict]:
-        """{key: {n, early, p10, p50, p90, n_block, n_gps}} per group of `keys` (month, route); early is
-        any time before the schedule; n_block and n_gps count arrivals by where they came from."""
-        return {key: {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
-                      "n_block": p["from_block"], "n_gps": p["from_gps"]}
-                for key, p in self._eol.get(keys, where=self._where()).items()}
+        """{key: {n, early, p10, p50, p90, n_block, n_gps, next_n, next_in_time, spare_p50}} per
+        group of `keys` (month, route, direction_id, stop); early is any time before the
+        schedule; n_block and n_gps count arrivals by where they came from; next_n counts those
+        followed by a trip on the same block with a known carry-over value, next_in_time those
+        in time for it, and spare_p50 is their median time to spare (seconds, below 0 when late)."""
+        nxt = self._eoln.get(keys, where=self._where())
+        out = {}
+        for key, p in self._eol.get(keys, where=self._where()).items():
+            q = nxt.get(key, {"n": 0, "in_time": 0, "p50": None})
+            out[key] = {"n": p["n"], "early": p["before_schedule"], "p10": p["p10"], "p50": p["p50"], "p90": p["p90"],
+                        "n_block": p["from_block"], "n_gps": p["from_gps"],
+                        "next_n": q["n"], "next_in_time": q["in_time"], "spare_p50": q["p50"]}
+        return out
 
     # Scheduled departures.
 
@@ -337,6 +362,12 @@ class Stage:
         """).fetchall()
         return [Cell(d, r, int(di), s, dt, b, int(late), int(matched), int(trips), pr, None if pd is None else int(pd))
                 for d, r, di, s, dt, b, late, matched, trips, pr, pd in rows]
+
+    def trip_ends(self) -> set[tuple[str, int, str]]:
+        """(route, direction_id, stop) where scheduled trips end, over the whole period."""
+        return {(r, int(d), c) for r, d, c in self._con.execute(
+            "SELECT DISTINCT route_slug, coalesce(direction_id, 0), stop_code FROM ev WHERE scheduled AND is_last"
+        ).fetchall()}
 
     def route_spans(self) -> dict[str, list[tuple[int, int]]]:
         """Per route, the (first departure, last arrival) of its scheduled trips on each service date."""
