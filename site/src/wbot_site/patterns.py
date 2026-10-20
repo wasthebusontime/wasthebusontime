@@ -92,8 +92,14 @@ def where(p: dict, names: Names) -> str:
     return f"{route} {slot}" if slot else route
 
 
+def share_of(share: float, noun: str) -> str:
+    """"about 1 in 3 late departures", "about half of the late departures"."""
+    words = share_words(share)
+    return f"{words} of the {noun}" if words == "about half" else f"{words} {noun}"
+
+
 def carry_over(p: dict, names: Names) -> str:
-    return (f"On {where(p, names)}, {share_words(p['share'])} late departures were on trips that left "
+    return (f"On {where(p, names)}, {share_of(p['share'], 'late departures')} were on trips that left "
             f"{names.stops[p['stops'][0]]} late right after a carry-over.")
 
 

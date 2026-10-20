@@ -87,6 +87,11 @@ def test_carry_over_sentence():
         "were on trips that left Fictional Blvd & 1st Ave [sb] late right after a carry-over.")
 
 
+def test_half_reads_as_half_of_the():
+    assert "about half of the late departures were" in patterns.sentence(carry_over(share=0.497), NAMES)
+    assert "nearly all late departures were" in patterns.sentence(carry_over(share=0.97), NAMES)
+
+
 def test_detail_line_gives_the_counts():
     assert patterns.detail(carry_over()) == (
         "510 of 588 late departures (87%), on 68 trips with a late departure; seen on 16 different days.")
