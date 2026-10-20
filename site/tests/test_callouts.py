@@ -161,9 +161,9 @@ def test_stop_counts_only_patterns_at_that_stop():
     assert line == 'On the Patterns page: <a href="/patterns/#route-905">patterns for Route 905</a>'
 
 
-def test_stop_without_patterns():
-    line = str(patterns.stop_callouts(stop_doc(), "E101", CALL_NAMES).line)
-    assert line == 'No patterns found at this stop yet. <a href="/patterns/">About patterns</a>'
+def test_stop_without_patterns_shows_nothing():
+    # Owner's choice 2026-10-20: most stops are never a first stop, so no line at all.
+    assert patterns.stop_callouts(stop_doc(), "E101", CALL_NAMES) is None
 
 
 def test_a_page_does_not_link_to_itself():
@@ -179,7 +179,7 @@ def test_link_lines_use_no_banned_words():
     d = stop_doc()
     lines = [patterns.route_callouts(d, s, dt, b, CALL_NAMES).line
              for s in ("905", "902", "9x") for dt, b in (("all", "all"), ("weekday", "pm_peak"), ("sunday", "midday"))]
-    lines += [patterns.stop_callouts(d, code, CALL_NAMES).line for code in ("E111", "E133", "E101")]
+    lines += [patterns.stop_callouts(d, code, CALL_NAMES).line for code in ("E111", "E133")]
     lines.append(patterns.route_callouts(doc(too_little=["905"]), "905", "all", "all", CALL_NAMES).line)
     for line in lines:
         assert patterns.banned_words(text(line)) == [], line
@@ -219,7 +219,6 @@ def more_line(block):
     ("routes/906", 0, "Not enough data for patterns on this route yet. About patterns"),
     ("stops/E133", 2, "On the Patterns page: patterns for Route 902 and patterns for Route 905"),
     ("stops/E111", 2, "On the Patterns page: patterns for Route 905"),
-    ("stops/E120", 0, "No patterns found at this stop yet. About patterns"),
 ])
 def test_built_pages(dev_site, path, n, line):
     block = callouts_of(read(dev_site, path))
@@ -238,6 +237,12 @@ def test_callouts_come_after_the_headline_numbers(dev_site):
     assert route.index('class="pattern-callouts"') < route.index("<caption>By direction</caption>")
     stop = main_of(read(dev_site, "stops/E133"))
     assert stop.index('class="headline"') < stop.index('class="pattern-callouts"') < stop.index("<h2>Details</h2>")
+
+
+def test_stop_page_without_patterns_has_no_callouts_or_line(dev_site):
+    html = read(dev_site, "stops/E120")
+    assert "pattern-callouts" not in html and "pattern-more" not in html
+    assert 'href="/patterns/' not in main_of(html)
 
 
 def test_the_panels_are_the_pattern_panel(dev_site):

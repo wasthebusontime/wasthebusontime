@@ -244,25 +244,25 @@ def route_callouts(doc: dict, slug: str, daytype: str, band: str, names: Names) 
     return Callouts(chosen, panels(chosen, names, f"/routes/{slug}/"), Markup(line))
 
 
-def stop_callouts(doc: dict, code: str, names: Names) -> Callouts:
+def stop_callouts(doc: dict, code: str, names: Names) -> Callouts | None:
     """A stop page's callouts: the patterns at the stop (for a carry-over, the trip's first
     stop) on every route, general ones first, then by late departures covered, chosen like an
     unfiltered route page's. The link line has one link per route with a pattern here, in the
-    site's route order, counting the ones left out."""
+    site's route order, counting the ones left out. None for a stop without a pattern: most
+    stops are never a first stop, so the page says nothing (owner's choice, 2026-10-20)."""
     order = {slug: i for i, slug in enumerate(names.routes)}
     ps = sorted((p for p in shown(doc) if code in p["stops"] and p["route"] in order),
                 key=lambda p: (p["preset"] is not None, -p["matched"], order[p["route"]], p["rank"]))
-    chosen = general_and_strongest_specific(ps)
     if not ps:
-        line = f"No patterns found at this stop yet. {ABOUT}"
-    else:
-        links = []
-        for slug in sorted({p["route"] for p in ps}, key=order.get):
-            more = sum(1 for p in ps if p["route"] == slug and p not in chosen)
-            what = f"{counted(more, 'more pattern')} for" if more else "patterns for"
-            links.append(section_link(slug, f"{what} {names.routes[slug]}"))
-        joined = links[0] if len(links) == 1 else ", ".join(links[:-1]) + " and " + links[-1]
-        line = f"On the Patterns page: {joined}"
+        return None
+    chosen = general_and_strongest_specific(ps)
+    links = []
+    for slug in sorted({p["route"] for p in ps}, key=order.get):
+        more = sum(1 for p in ps if p["route"] == slug and p not in chosen)
+        what = f"{counted(more, 'more pattern')} for" if more else "patterns for"
+        links.append(section_link(slug, f"{what} {names.routes[slug]}"))
+    joined = links[0] if len(links) == 1 else ", ".join(links[:-1]) + " and " + links[-1]
+    line = f"On the Patterns page: {joined}"
     return Callouts(chosen, panels(chosen, names, f"/stops/{code}/"), Markup(line))
 
 
