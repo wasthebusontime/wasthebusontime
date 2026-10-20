@@ -231,7 +231,8 @@
 {% if a.n >= min_sample %}{{ a.n | number }} arrivals, median {{ a.p50 | delay }}{% if a.get("next") and a.next.n >= min_sample %}; {{ percent(a.next.in_time, a.next.n) }} in time for the next trip (median {{ a.next.spare_p50 | spare }}){% endif %}.{% else %}<span class="nodata">Not enough data</span> ({{ a.n | number }} arrivals).{% endif %} {{ arrivals_note() }}
 {% endmacro %}
 
-{# A stop page's arrivals of trips ending there, by route. #}
+{# A stop page's arrivals of trips ending there, by route. No early column: early arrivals at
+   the end of a line are normal, and five columns fit a phone. #}
 {% macro arrivals_block(eol, route_names) %}
 <div class="arrivals-block">
 <h3>Arrivals at the end of trips</h3>
@@ -239,19 +240,19 @@
 <div class="table-wrap">
 <table class="data">
 <caption>Arrivals here, by route</caption>
-<thead><tr><th scope="col">Route</th><th scope="col" class="num">Arrivals</th><th scope="col" class="num">Median arrival</th><th scope="col" class="num">Early</th><th scope="col" class="num">In time for the next trip</th><th scope="col" class="num">Median time to spare</th></tr></thead>
+<thead><tr><th scope="col">Route</th><th scope="col" class="num">Arrivals</th><th scope="col" class="num">Median arrival</th><th scope="col" class="num">In time for the next trip</th><th scope="col" class="num">Median time to spare</th></tr></thead>
 <tbody>
 {% for r in eol.by_route %}
 <tr><th scope="row"><a href="/routes/{{ r.slug }}/">{{ route_names[r.slug] }}</a></th>
 {% if r.n >= min_sample %}
-<td class="num">{{ r.n | number }}</td><td class="num">{{ r.p50 | delay }}</td><td class="num">{{ fraction(r.early_share) }}</td>
+<td class="num">{{ r.n | number }}</td><td class="num">{{ r.p50 | delay }}</td>
 {% if r.get("next") and r.next.n >= min_sample %}
 <td class="num">{{ percent(r.next.in_time, r.next.n) }} <span class="def">of {{ r.next.n | number }}</span></td><td class="num">{{ r.next.spare_p50 | spare_short }}</td>
 {% else %}
 <td class="num" colspan="2"><span class="nodata">Not enough data</span></td>
 {% endif %}
 {% else %}
-<td class="num" colspan="5"><span class="nodata">Not enough data</span> ({{ r.n | number }} arrivals)</td>
+<td class="num" colspan="4"><span class="nodata">Not enough data</span> ({{ r.n | number }} arrivals)</td>
 {% endif %}
 </tr>
 {% endfor %}
